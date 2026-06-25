@@ -39,7 +39,7 @@ client = AsyncOpenAI(api_key=cred.secret)
 ```bash
 uv sync --extra test --all-extras
 uv run pytest
-uv run ruff check . && uv run ruff format . && uv run mypy internal/authlm
+uv run ruff check . && uv run ruff format . && uv run mypy src/authlm
 ```
 
 See [AGENTS.md](AGENTS.md) for the full contribution guide.

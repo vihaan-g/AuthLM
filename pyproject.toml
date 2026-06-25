@@ -63,13 +63,13 @@ Source = "https://github.com/vihaan-g/authlm"
 
 [tool.hatch.version]
 source = "code"
-path = "internal/authlm/_version.py"
+path = "src/authlm/_version.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["internal/authlm"]
+packages = ["src/authlm"]
 
 [tool.hatch.build]
-dev-mode-dirs = ["internal"]
+dev-mode-dirs = ["src"]
 
 [tool.ruff]
 target-version = "py311"
@@ -83,7 +83,7 @@ known-first-party = ["authlm"]
 
 [tool.mypy]
 strict = true
-mypy_path = "internal"
+mypy_path = "src"
 plugins = ["pydantic.mypy"]
 
 [tool.pydantic-mypy]

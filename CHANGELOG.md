@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Project scaffolding: `pyproject.toml` with hatchling build, ruff, mypy (strict),
   and pytest configuration.
 - `authlm` package skeleton with `py.typed` marker and dynamic version sourced from
-  `internal/authlm/_version.py`.
+  `src/authlm/_version.py`.
 - Core exception hierarchy in `authlm.errors` (`AuthLMError` and seven subclasses).
 - Core credential types in `authlm.credentials` (Pydantic models: `ApiKeyCredential`,
   `OAuthCredential`) with a discriminated `CredentialUnion` over the v0.1.0 types.
