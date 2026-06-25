@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import pytest
+from pydantic import TypeAdapter, ValidationError
+
 from authlm.credentials import (
     ApiKeyCredential,
     AwsCredential,
     AzureAdCredential,
     Credential,
+    CredentialUnion,
     OAuthCredential,
 )
 
@@ -88,3 +92,41 @@ def test_azure_ad_credential_fields() -> None:
     assert cred.type == "azure_ad"
     assert cred.access_token is None
     assert cred.expires_at is None
+
+
+_ADAPTER = TypeAdapter(CredentialUnion)
+
+
+def test_union_parses_api_key() -> None:
+    cred = _ADAPTER.validate_python(
+        {
+            "type": "api_key",
+            "provider": "openai",
+            "alias": "default",
+            "method_id": "api_key",
+            "secret": "sk-test",
+        }
+    )
+    assert isinstance(cred, ApiKeyCredential)
+
+
+def test_union_parses_oauth() -> None:
+    cred = _ADAPTER.validate_python(
+        {
+            "type": "oauth",
+            "provider": "openai",
+            "alias": "default",
+            "method_id": "m",
+            "access_token": "a",
+            "refresh_token": None,
+            "expires_at": None,
+        }
+    )
+    assert isinstance(cred, OAuthCredential)
+
+
+def test_union_rejects_unknown_type() -> None:
+    with pytest.raises(ValidationError):
+        _ADAPTER.validate_python(
+            {"type": "unknown", "provider": "p", "alias": "a", "method_id": "m"}
+        )

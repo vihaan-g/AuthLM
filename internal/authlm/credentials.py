@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal, TypeAlias
 
 from pydantic import BaseModel, Field
 
@@ -42,3 +42,9 @@ class AzureAdCredential(Credential):
     access_token: str | None = None
     refresh_token: str | None = None
     expires_at: datetime | None = None
+
+
+CredentialUnion: TypeAlias = Annotated[
+    ApiKeyCredential | OAuthCredential | AwsCredential | AzureAdCredential,
+    Field(discriminator="type"),
+]
