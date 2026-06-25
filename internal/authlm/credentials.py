@@ -27,24 +27,7 @@ class OAuthCredential(Credential):
     client_id: str | None = None
 
 
-class AwsCredential(Credential):
-    type: Literal["aws"] = "aws"
-    access_key_id: str
-    secret_access_key: str
-    session_token: str | None = None
-
-
-class AzureAdCredential(Credential):
-    type: Literal["azure_ad"] = "azure_ad"
-    tenant_id: str
-    client_id: str
-    client_secret: str | None
-    access_token: str | None = None
-    refresh_token: str | None = None
-    expires_at: datetime | None = None
-
-
 CredentialUnion: TypeAlias = Annotated[
-    ApiKeyCredential | OAuthCredential | AwsCredential | AzureAdCredential,
+    ApiKeyCredential | OAuthCredential,
     Field(discriminator="type"),
 ]

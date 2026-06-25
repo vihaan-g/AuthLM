@@ -7,8 +7,6 @@ from pydantic import TypeAdapter, ValidationError
 
 from authlm.credentials import (
     ApiKeyCredential,
-    AwsCredential,
-    AzureAdCredential,
     Credential,
     CredentialUnion,
     OAuthCredential,
@@ -65,33 +63,6 @@ def test_oauth_scopes_default_empty() -> None:
     )
     assert cred.scopes == []
     assert cred.client_id is None
-
-
-def test_aws_credential_fields() -> None:
-    cred = AwsCredential(
-        provider="aws",
-        alias="default",
-        method_id="aws",
-        access_key_id="AKIA",
-        secret_access_key="secret",
-        session_token=None,
-    )
-    assert cred.type == "aws"
-    assert cred.session_token is None
-
-
-def test_azure_ad_credential_fields() -> None:
-    cred = AzureAdCredential(
-        provider="azure",
-        alias="default",
-        method_id="azure_ad",
-        tenant_id="tid",
-        client_id="cid",
-        client_secret=None,
-    )
-    assert cred.type == "azure_ad"
-    assert cred.access_token is None
-    assert cred.expires_at is None
 
 
 _ADAPTER = TypeAdapter(CredentialUnion)
