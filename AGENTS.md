@@ -4,7 +4,7 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
 
 ## Project Structure
 
-- `internal/authlm/` — the library source (note: `internal/`, not `src/`)
+- `src/authlm/` — the library source (src layout)
   - `api.py` — public async API (`get_credential`, `get_valid_credential`, `refresh`, `validate`, `connect`)
   - `credentials.py` — Pydantic Credential types (`ApiKeyCredential`, `OAuthCredential`, `AwsCredential`, `AzureAdCredential`)
   - `providers/` — built-in providers (v0.1.0: `openai`, `anthropic`, `google`, `ollama`, `openrouter`)
@@ -28,7 +28,7 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
 
 - **Lint:** `uv run ruff check .`
 - **Format:** `uv run ruff format .` — run after changes
-- **Typecheck:** `uv run mypy internal/authlm` — must pass with `--strict`
+- **Typecheck:** `uv run mypy src/authlm` — must pass with `--strict`
 - **Test (focused):** `uv run pytest tests/unit/<area>` — run for the area you changed
 - **Test (full):** `uv run pytest` — ask before running the full suite
 - **Build:** `uv run python -m build`
@@ -73,7 +73,7 @@ All Python code follows `.agents/rules/general.md` and the `python-conventions` 
 
 ## PR / Commit
 
-- Run `ruff check . && ruff format . && mypy internal/authlm && pytest` before committing.
+- Run `ruff check . && ruff format . && mypy src/authlm && pytest` before committing.
 - Add a line under `## [Unreleased]` in `CHANGELOG.md` for every user-facing change.
 - Follow the `commit-conventions` skill. Key rules:
   - **Conventional Commits format:** `<type>[scope]: <description>` — allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
@@ -90,9 +90,9 @@ All Python code follows `.agents/rules/general.md` and the `python-conventions` 
 
 ## Security-Sensitive Areas
 
-- `internal/authlm/stores/` — credential storage. Changes require maintainer review and a `SECURITY.md` update.
-- `internal/authlm/connection_methods/` — OAuth flows and token handling.
-- `internal/authlm/_auth_table.py` — OAuth client IDs, endpoints, scopes.
+- `src/authlm/stores/` — credential storage. Changes require maintainer review and a `SECURITY.md` update.
+- `src/authlm/connection_methods/` — OAuth flows and token handling.
+- `src/authlm/_auth_table.py` — OAuth client IDs, endpoints, scopes.
 - VCR cassettes — must be scrubbed of all secrets.
 - `SECURITY.md` — threat model and disclosure process.
 
