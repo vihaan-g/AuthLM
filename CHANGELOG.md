@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   `internal/authlm/_version.py`.
 - Core exception hierarchy in `authlm.errors` (`AuthLMError` and seven subclasses).
 - Core credential types in `authlm.credentials` (Pydantic models: `ApiKeyCredential`,
-  `OAuthCredential`, `AwsCredential`, `AzureAdCredential`) with a discriminated
-  `CredentialUnion`.
+  `OAuthCredential`) with a discriminated `CredentialUnion` over the v0.1.0 types.
+  (Additional types `AwsCredential` and `AzureAdCredential` are defined in the spec
+  for v0.2.0 but are not implemented in this release.)
 - Test infrastructure: `tests/conftest.py` with environment isolation fixtures and a
   smoke test.
