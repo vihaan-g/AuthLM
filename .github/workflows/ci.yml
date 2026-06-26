@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint (py3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --extra test --all-extras
+
+      - name: Lint with ruff
+        run: uv run ruff check .
+
+      - name: Format check with ruff
+        run: uv run ruff format --check .
+
+      - name: Typecheck with mypy
+        run: uv run mypy src/authlm
+
+  test:
+    name: test (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Sync dependencies
+        run: uv sync --extra test --all-extras
+
+      - name: Run unit tests
+        run: uv run pytest tests/unit -q
+
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --extra test --all-extras
+
+      - name: Run pip-audit
+        run: uv run pip-audit --strict
+
+  secrets-grep:
+    name: secrets-grep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan tracked files for leaked credential patterns
+        run: |
+          set -euo pipefail
+          if git ls-files -z | xargs -0 rg --no-messages \
+              -e 'sk-[A-Za-z0-9]{20,}' \
+              -e 'xoxb-[A-Za-z0-9-]+' \
+              -e 'ghp_[A-Za-z0-9]{20,}' \
+              -e 'ya29\.[A-Za-z0-9_-]+' \
+              -e 'Bearer [A-Za-z0-9_-]{20,}'; then
+            echo "::error::Leaked credential pattern detected in tracked files."
+            exit 1
+          fi
