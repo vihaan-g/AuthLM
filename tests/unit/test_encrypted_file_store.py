@@ -151,22 +151,22 @@ def _assert_windows_owner_only(path: Path) -> None:
     everyone_sid, _, _ = win32security.LookupAccountName(None, "Everyone")
     users_sid, _, _ = win32security.LookupAccountName(None, "BUILTIN\\Users")
     admin_sid, _, _ = win32security.LookupAccountName(None, "BUILTIN\\Administrators")
+    current_user, _, _ = win32security.LookupAccountName(None, _current_username())
+    forbidden_sids: list[object] = [everyone_sid, users_sid, admin_sid]
 
-    allowed_sids: set[object] = set()
-    for index in range(dacl.GetAceCount()):
-        # pywin32 ACL.GetAce return shape varies by build:
-        # 3 values (e.g. build 312): (AceType, AccessMask, Sid)
-        # 4 values: (AceType, AceFlags, AccessMask, Sid)
-        # 5 values (newer): (AceType, AceFlags, AccessMask, SidType, Sid)
-        # The SID is always the last element, regardless of version.
-        allowed_sids.add(dacl.GetAce(index)[-1])
+    # pywin32 ACL.GetAce return shape varies by build:
+    # 3 values (e.g. build 312): (AceType, AccessMask, Sid)
+    # 4 values: (AceType, AceFlags, AccessMask, Sid)
+    # 5 values (newer): (AceType, AceFlags, AccessMask, SidType, Sid)
+    # The SID is always the last element, regardless of version.
+    # PySID is not hashable (pywin32 defines __eq__ but not __hash__),
+    # so use a list and rely on `in` falling back to __eq__.
+    allowed_sids: list[object] = [
+        dacl.GetAce(index)[-1] for index in range(dacl.GetAceCount())
+    ]
 
-    assert everyone_sid not in allowed_sids, "Everyone has access"
-    assert users_sid not in allowed_sids, "BUILTIN\\Users has access"
-    assert admin_sid not in allowed_sids, (
-        "BUILTIN\\Administrators should not be granted access"
-    )
-    current_user = win32security.LookupAccountName(None, _current_username())[0]
+    for forbidden in forbidden_sids:
+        assert forbidden not in allowed_sids, "Forbidden SID is in the DACL"
     assert current_user in allowed_sids, "Current user is missing from DACL"
 
 
