@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import override
 
 from authlm.credentials import Credential, parse_credential
-from authlm.errors import AuthLMError
+from authlm.errors import SecretStoreError
 from authlm.stores.base import CredentialStore
 
 
@@ -99,7 +99,7 @@ class EncryptedFileStore(CredentialStore):
         try:
             raw = fernet.decrypt(token)
         except InvalidToken:
-            raise AuthLMError("Credential store is locked or corrupted") from None
+            raise SecretStoreError("Credential store is locked or corrupted") from None
         return parse_credential(raw)
 
     @override

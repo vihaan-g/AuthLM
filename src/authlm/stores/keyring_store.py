@@ -9,6 +9,7 @@ from keyring import errors
 from typing_extensions import override
 
 from authlm.credentials import Credential, parse_credential
+from authlm.errors import SecretStoreError
 from authlm.stores.base import CredentialStore
 
 _Index = list[list[str]]
@@ -22,19 +23,28 @@ class KeyringStore(CredentialStore):
 
     @override
     def get(self, provider: str, alias: str) -> Credential | None:
-        raw = keyring.get_password(self._service(provider), alias)
+        try:
+            raw = keyring.get_password(self._service(provider), alias)
+        except Exception as exc:
+            raise SecretStoreError(str(exc)) from exc
         if raw is None:
             return None
         return parse_credential(raw)
 
     @override
     def set(self, credential: Credential) -> None:
-        keyring.set_password(
-            self._service(credential.provider),
-            credential.alias,
-            credential.model_dump_json(),
-        )
-        self._index_add(credential.provider, credential.alias)
+        try:
+            keyring.set_password(
+                self._service(credential.provider),
+                credential.alias,
+                credential.model_dump_json(),
+            )
+        except Exception as exc:
+            raise SecretStoreError(str(exc)) from exc
+        try:
+            self._index_add(credential.provider, credential.alias)
+        except OSError as exc:
+            raise SecretStoreError(str(exc)) from exc
 
     @override
     def delete(self, provider: str, alias: str) -> bool:
@@ -42,7 +52,12 @@ class KeyringStore(CredentialStore):
             keyring.delete_password(self._service(provider), alias)
         except errors.PasswordDeleteError:
             return False
-        self._index_remove(provider, alias)
+        except Exception as exc:
+            raise SecretStoreError(str(exc)) from exc
+        try:
+            self._index_remove(provider, alias)
+        except OSError as exc:
+            raise SecretStoreError(str(exc)) from exc
         return True
 
     @override
@@ -61,12 +76,18 @@ class KeyringStore(CredentialStore):
     def _index_read(self) -> _Index:
         if not self._index_path.exists():
             return []
-        data: _Index = json.loads(self._index_path.read_text())
+        try:
+            data: _Index = json.loads(self._index_path.read_text())
+        except (OSError, json.JSONDecodeError) as exc:
+            raise SecretStoreError(str(exc)) from exc
         return data
 
     def _index_write(self, entries: _Index) -> None:
         self._index_path.parent.mkdir(parents=True, exist_ok=True)
-        self._index_path.write_text(json.dumps(entries))
+        try:
+            self._index_path.write_text(json.dumps(entries))
+        except OSError as exc:
+            raise SecretStoreError(str(exc)) from exc
 
     def _index_add(self, provider: str, alias: str) -> None:
         entries = self._index_read()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime
 from typing import Annotated, Literal, TypeAlias
 
@@ -39,3 +40,12 @@ _ADAPTER: TypeAdapter[ApiKeyCredential | OAuthCredential] = TypeAdapter(Credenti
 def parse_credential(raw: str | bytes) -> Credential:
     """Deserialize a credential from JSON using the discriminated union."""
     return _ADAPTER.validate_json(raw)
+
+
+def compute_fingerprint(secret: str) -> str:
+    """Return a truncated SHA-256 fingerprint for change detection.
+
+    The first 16 hex characters (64 bits) of the SHA-256 digest are enough to
+    detect changes while remaining safe to store in non-secret metadata.
+    """
+    return hashlib.sha256(secret.encode("utf-8")).hexdigest()[:16]

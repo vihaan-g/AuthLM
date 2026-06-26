@@ -31,3 +31,7 @@ class ProviderNotAvailable(AuthLMError):
 
 class AliasCollisionError(AuthLMError):
     """Two plugins registered the same (provider, alias)."""
+
+
+class SecretStoreError(AuthLMError):
+    """Secret store backend failed (keyring, encrypted file, etc.)."""

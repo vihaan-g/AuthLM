@@ -55,3 +55,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   `PROTECTED_DACL_SECURITY_INFORMATION`) on Windows to strip inherited ACLs
   and grant Read+Write only to the current user. `pywin32>=307` is a
   platform-marked core dependency (`sys_platform == 'win32'`).
+- Keyring store and encrypted file store now wrap raw backend errors
+  (`keyring.errors.*`, file I/O) in `SecretStoreError` so consumers can
+  catch all secret-store failures with a single `AuthLMError` subclass.
+- Added `compute_fingerprint(secret)` to `authlm.credentials` for
+  non-secret fingerprint generation and change detection.

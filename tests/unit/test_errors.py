@@ -10,6 +10,7 @@ from authlm.errors import (
     ProviderNotAvailable,
     ReconnectionRequired,
     RefreshFailed,
+    SecretStoreError,
     TokenEndpointError,
 )
 
@@ -21,6 +22,7 @@ SUBCLASSES: list[type[AuthLMError]] = [
     TokenEndpointError,
     ProviderNotAvailable,
     AliasCollisionError,
+    SecretStoreError,
 ]
 
 

@@ -10,6 +10,7 @@ from authlm.credentials import (
     Credential,
     CredentialUnion,
     OAuthCredential,
+    compute_fingerprint,
     parse_credential,
 )
 
@@ -135,3 +136,22 @@ def test_parse_credential_bytes_input() -> None:
     cred = ApiKeyCredential(provider="p", alias="a", method_id="m", secret="s")
     parsed = parse_credential(cred.model_dump_json().encode())
     assert isinstance(parsed, ApiKeyCredential)
+
+
+def test_compute_fingerprint_length() -> None:
+    fp = compute_fingerprint("sk-test")
+    assert len(fp) == 16
+    assert all(c in "0123456789abcdef" for c in fp)
+
+
+def test_compute_fingerprint_deterministic() -> None:
+    assert compute_fingerprint("sk-test") == compute_fingerprint("sk-test")
+
+
+def test_compute_fingerprint_unique_per_secret() -> None:
+    assert compute_fingerprint("sk-a") != compute_fingerprint("sk-b")
+
+
+def test_compute_fingerprint_empty() -> None:
+    fp = compute_fingerprint("")
+    assert len(fp) == 16
