@@ -52,7 +52,7 @@ We follow coordinated disclosure. We will work with you on an embargo period and
 | Backend | Security notes |
 |---------|----------------|
 | `KeyringStore` (default) | OS-protected. On macOS, requires user approval on first access. On Linux, requires a Secret Service backend (gnome-keyring, KWallet). |
-| `EncryptedFileStore` | Fernet (AES-128-CBC + HMAC-SHA256) with PBKDF2-HMAC key derivation from a passphrase. Security is bounded by passphrase strength. |
+| `EncryptedFileStore` | Fernet (AES-128-CBC + HMAC-SHA256) with PBKDF2-HMAC key derivation from a passphrase. Security is bounded by passphrase strength. On POSIX the file is `chmod 0o600`; on Windows the file is created with a Read+Write DACL for the current user only (inherited ACLs stripped) via `pywin32`. |
 | `EnvStore` | Read-only. Reads from `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc. Inherits the security of the environment: leaks to subprocesses, `ps` output, and crash dumps are possible. |
 | `MemoryStore` | In-process only. Cleared on exit. Intended for tests, not production. |
 

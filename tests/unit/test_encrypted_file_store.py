@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -128,5 +129,44 @@ def test_file_permissions_owner_only(tmp_path: Path) -> None:
     store = _store(tmp_path)
     store.set(_api_key())
     path = tmp_path / "creds.enc.json"
-    mode = path.stat().st_mode & 0o777
-    assert mode == 0o600
+    if sys.platform == "win32":
+        _assert_windows_owner_only(path)
+    else:
+        mode = path.stat().st_mode & 0o777
+        assert mode == 0o600
+
+
+def _assert_windows_owner_only(path: Path) -> None:
+    """Verify the file DACL grants access only to the current user."""
+    import win32security  # type: ignore[import-untyped]
+
+    security = win32security.GetNamedSecurityInfo(
+        str(path),
+        win32security.SE_FILE_OBJECT,
+        win32security.DACL_SECURITY_INFORMATION,
+    )
+    dacl = security.GetSecurityDescriptorDacl()
+    assert dacl is not None, "File has no DACL"
+
+    everyone_sid, _, _ = win32security.LookupAccountName(None, "Everyone")
+    users_sid, _, _ = win32security.LookupAccountName(None, "BUILTIN\\Users")
+    admin_sid, _, _ = win32security.LookupAccountName(None, "BUILTIN\\Administrators")
+
+    allowed_sids: set[tuple[int, int, int]] = set()
+    for index in range(dacl.GetAceCount()):
+        _ace_type, _ace_flags, _access_mask, ace_sid = dacl.GetAce(index)
+        allowed_sids.add(ace_sid)
+
+    assert everyone_sid not in allowed_sids, "Everyone has access"
+    assert users_sid not in allowed_sids, "BUILTIN\\Users has access"
+    assert admin_sid not in allowed_sids, (
+        "BUILTIN\\Administrators should not be granted access"
+    )
+    current_user = win32security.LookupAccountName(None, _current_username())[0]
+    assert current_user in allowed_sids, "Current user is missing from DACL"
+
+
+def _current_username() -> str:
+    import getpass
+
+    return getpass.getuser()

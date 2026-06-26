@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import base64
+import getpass
 import json
 import os
+import sys
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -31,6 +33,44 @@ def _derive_fernet_key(passphrase: bytes, salt: bytes, iterations: int) -> bytes
         iterations=iterations,
     )
     return base64.urlsafe_b64encode(kdf.derive(passphrase))
+
+
+def _restrict_permissions(path: Path) -> None:
+    """Restrict file permissions to owner-only (0o600 on POSIX, ACL on Windows)."""
+    if sys.platform == "win32":
+        _restrict_permissions_windows(path)
+    else:
+        os.chmod(path, 0o600)
+
+
+def _restrict_permissions_windows(path: Path) -> None:
+    """Restrict file permissions to current user via NTFS ACLs.
+
+    Removes inherited ACEs (equivalent to ``icacls /inheritance:r``) and replaces
+    the DACL with a single Read+Write ACE for the current user (equivalent to
+    ``icacls /grant:r "<user>:(R,W)"``). The ``pywin32`` package is a
+    platform-marked core dependency on Windows, so the import is safe.
+    """
+    import ntsecuritycon  # type: ignore[import-untyped]
+    import win32security  # type: ignore[import-untyped]
+
+    user_sid, _, _ = win32security.LookupAccountName(None, getpass.getuser())
+    dacl = win32security.ACL()
+    dacl.AddAccessAllowedAce(
+        win32security.ACL_REVISION,
+        ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_WRITE,
+        user_sid,
+    )
+    win32security.SetNamedSecurityInfo(
+        str(path),
+        win32security.SE_FILE_OBJECT,
+        win32security.DACL_SECURITY_INFORMATION
+        | win32security.PROTECTED_DACL_SECURITY_INFORMATION,
+        None,
+        None,
+        dacl,
+        None,
+    )
 
 
 class EncryptedFileStore(CredentialStore):
@@ -111,5 +151,5 @@ class EncryptedFileStore(CredentialStore):
         self._path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = self._path.with_suffix(self._path.suffix + ".tmp")
         tmp_path.write_text(file.model_dump_json(indent=2))
-        os.chmod(tmp_path, 0o600)
+        _restrict_permissions(tmp_path)
         os.replace(tmp_path, self._path)

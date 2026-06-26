@@ -47,3 +47,11 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   `register_connection_methods`, and `register_stores` hooks for third-party
   plugin registration of providers, connection methods, and credential store
   backends, plus an exported `hookimpl` marker for plugin authors.
+
+### Fixed
+- `EncryptedFileStore` file permissions now work on Windows: replaced the
+  POSIX-only `os.chmod(0o600)` with a platform-aware `_restrict_permissions`
+  that uses `pywin32` (`SetNamedSecurityInfo` with
+  `PROTECTED_DACL_SECURITY_INFORMATION`) on Windows to strip inherited ACLs
+  and grant Read+Write only to the current user. `pywin32>=307` is a
+  platform-marked core dependency (`sys_platform == 'win32'`).
