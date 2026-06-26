@@ -29,3 +29,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   otherwise picks `KeyringStore` when a real keyring backend is available, and
   falls back to `EnvStore` with a warning when no keyring is present. Honors the
   `AUTHLM_USER_PATH` env var for the keyring index and encrypted file locations.
+- `Provider` and `ConnectionMethod` Protocols in `authlm.providers.base`, plus the
+  `OAuthGrant` `StrEnum` enumerating supported OAuth flow types
+  (`authorization_code_pkce`, `device_code`). Both Protocols are
+  `@runtime_checkable` for `isinstance()` tests; no implementations are included
+  in v0.1.0 yet.
