@@ -19,3 +19,6 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   for v0.2.0 but are not implemented in this release.)
 - Test infrastructure: `tests/conftest.py` with environment isolation fixtures and a
   smoke test.
+- `KeyringStore` in `authlm.stores.keyring_store`: OS keychain-backed credential store
+  via the `keyring` library, with a JSON index file for enumeration (keyring has no
+  enumeration API).

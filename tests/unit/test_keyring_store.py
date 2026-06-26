@@ -1,0 +1,125 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import keyring
+import pytest
+from keyring import errors
+from keyring.backend import KeyringBackend
+from typing_extensions import override
+
+from authlm.credentials import ApiKeyCredential, OAuthCredential
+from authlm.stores.base import CredentialStore
+from authlm.stores.keyring_store import KeyringStore
+
+
+class InMemoryKeyring(KeyringBackend):
+    priority = 1
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._store: dict[tuple[str, str], str] = {}
+
+    @override
+    def get_password(self, service: str, username: str) -> str | None:
+        return self._store.get((service, username))
+
+    @override
+    def set_password(self, service: str, username: str, password: str) -> None:
+        self._store[(service, username)] = password
+
+    @override
+    def delete_password(self, service: str, username: str) -> None:
+        if (service, username) not in self._store:
+            raise errors.PasswordDeleteError("not found")
+        del self._store[(service, username)]
+
+
+@pytest.fixture
+def in_memory_keyring() -> InMemoryKeyring:
+    original = keyring.get_keyring()
+    backend = InMemoryKeyring()
+    keyring.set_keyring(backend)
+    yield backend
+    keyring.set_keyring(original)
+
+
+def _api_key() -> ApiKeyCredential:
+    return ApiKeyCredential(
+        provider="openai", alias="default", method_id="api_key", secret="sk-test"
+    )
+
+
+def _oauth() -> OAuthCredential:
+    return OAuthCredential(
+        provider="anthropic",
+        alias="work",
+        method_id="m",
+        access_token="a",
+        refresh_token="r",
+        expires_at=None,
+    )
+
+
+def test_satisfies_protocol(tmp_path: Path) -> None:
+    store = KeyringStore(index_path=tmp_path / "index.json")
+    assert isinstance(store, CredentialStore)
+
+
+def test_set_and_get(in_memory_keyring: InMemoryKeyring, tmp_path: Path) -> None:
+    store = KeyringStore(index_path=tmp_path / "index.json")
+    store.set(_api_key())
+    cred = store.get("openai", "default")
+    assert cred is not None
+    assert isinstance(cred, ApiKeyCredential)
+    assert cred.secret == "sk-test"
+
+
+def test_get_missing_returns_none(
+    in_memory_keyring: InMemoryKeyring, tmp_path: Path
+) -> None:
+    store = KeyringStore(index_path=tmp_path / "index.json")
+    assert store.get("openai", "default") is None
+
+
+def test_delete_existing(in_memory_keyring: InMemoryKeyring, tmp_path: Path) -> None:
+    store = KeyringStore(index_path=tmp_path / "index.json")
+    store.set(_api_key())
+    assert store.delete("openai", "default") is True
+    assert store.get("openai", "default") is None
+
+
+def test_delete_missing_returns_false(
+    in_memory_keyring: InMemoryKeyring, tmp_path: Path
+) -> None:
+    store = KeyringStore(index_path=tmp_path / "index.json")
+    assert store.delete("openai", "default") is False
+
+
+def test_list(in_memory_keyring: InMemoryKeyring, tmp_path: Path) -> None:
+    store = KeyringStore(index_path=tmp_path / "index.json")
+    store.set(_api_key())
+    store.set(_oauth())
+    pairs = sorted(store.list())
+    assert pairs == [("anthropic", "work"), ("openai", "default")]
+
+
+def test_backend_name(in_memory_keyring: InMemoryKeyring, tmp_path: Path) -> None:
+    store = KeyringStore(index_path=tmp_path / "index.json")
+    name = store.backend_name()
+    assert isinstance(name, str)
+    assert len(name) > 0
+
+
+def test_set_overwrites(in_memory_keyring: InMemoryKeyring, tmp_path: Path) -> None:
+    store = KeyringStore(index_path=tmp_path / "index.json")
+    store.set(_api_key())
+    store.set(
+        ApiKeyCredential(
+            provider="openai", alias="default", method_id="api_key", secret="sk-new"
+        )
+    )
+    cred = store.get("openai", "default")
+    assert cred is not None
+    assert isinstance(cred, ApiKeyCredential)
+    assert cred.secret == "sk-new"
