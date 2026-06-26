@@ -5,17 +5,20 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
 ## Project Structure
 
 - `src/authlm/` — the library source (src layout)
-  - `api.py` — public async API (`get_credential`, `get_valid_credential`, `refresh`, `validate`, `connect`)
-  - `credentials.py` — Pydantic Credential types (`ApiKeyCredential`, `OAuthCredential`, `AwsCredential`, `AzureAdCredential`)
-  - `providers/` — built-in providers (v0.1.0: `openai`, `anthropic`, `google`, `ollama`, `openrouter`)
-  - `connection_methods/` — `api_key.py`, `oauth_pkce.py`, `oauth_device.py`, `_oauth_helpers.py`
-  - `stores/` — `keyring_store.py`, `encrypted_file_store.py`, `env_store.py`, `memory_store.py`
-  - `hookspecs.py`, `plugins.py` — pluggy plugin system
-  - `cli.py` — Click CLI (5 commands: connect, list, status, disconnect, env)
-  - `errors.py` — exception hierarchy (`AuthLMError` base)
+  - `api.py` — public async API (`get_credential`, `get_valid_credential`, `refresh`, `validate`, `connect`) — **planned (M3)**
+  - `credentials.py` — Pydantic Credential types for v0.1.0: `ApiKeyCredential`, `OAuthCredential`, plus `CredentialUnion` discriminated union, `parse_credential()`, and `compute_fingerprint()`. Additional types (`AwsCredential`, `AzureAdCredential`) are deferred to v0.2.0.
+  - `metadata.py` — `MetadataEntry` Pydantic model and `MetadataStore` for non-secret credential metadata.
+  - `providers/` — built-in providers (v0.1.0: `openai`, `anthropic`, `google`, `ollama`, `openrouter`) — **planned (M2)**; currently contains only `base.py` with `Provider`/`ConnectionMethod` Protocols and `OAuthGrant` enum.
+  - `connection_methods/` — `api_key.py`, `oauth_pkce.py`, `oauth_device.py`, `_oauth_helpers.py` — **planned (M2)**
+  - `stores/` — `base.py` (`CredentialStore` Protocol), `memory_store.py`, `env_store.py`, `keyring_store.py`, `encrypted_file_store.py`, `__init__.py` (`get_default_store` auto-selection).
+  - `hookspecs.py`, `plugins.py` — pluggy plugin system (hookspecs + `PluginManager` loader).
+  - `cli.py` — Click CLI (5 commands: connect, list, status, disconnect, env) — **planned (M3)**
+  - `errors.py` — exception hierarchy (`AuthLMError` base + `SecretStoreError` for keyring/file-store failures, plus credential logic errors).
 - `tests/` — `unit/`, `integration/`, `security/`, `cassettes/` (VCR.py)
 - `.agents/specs/` — design specs (read before architectural work)
 - `.agents/rules/general.md` — project-wide coding rules (read before any coding)
+- `SECURITY.md` — threat model, reporting a vulnerability, supported backends.
+- `CONTRIBUTING.md` — contributor guide (planned).
 
 ## Setup
 
@@ -30,7 +33,7 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
 - **Format:** `uv run ruff format .` — run after changes
 - **Typecheck:** `uv run mypy src/authlm` — must pass with `--strict`
 - **Test (focused):** `uv run pytest tests/unit/<area>` — run for the area you changed
-- **Test (full):** `uv run pytest` — ask before running the full suite
+- **Test (full):** `uv run pytest` — currently 98 unit tests, sub-second; run freely
 - **Build:** `uv run python -m build`
 
 ## Conventions
@@ -91,8 +94,8 @@ All Python code follows `.agents/rules/general.md` and the `python-conventions` 
 ## Security-Sensitive Areas
 
 - `src/authlm/stores/` — credential storage. Changes require maintainer review and a `SECURITY.md` update.
-- `src/authlm/connection_methods/` — OAuth flows and token handling.
-- `src/authlm/_auth_table.py` — OAuth client IDs, endpoints, scopes.
+- `src/authlm/connection_methods/` — OAuth flows and token handling (planned).
+- `src/authlm/_auth_table.py` — OAuth client IDs, endpoints, scopes (planned).
 - VCR cassettes — must be scrubbed of all secrets.
 - `SECURITY.md` — threat model and disclosure process.
 
@@ -101,4 +104,4 @@ All Python code follows `.agents/rules/general.md` and the `python-conventions` 
 - `.agents/specs/v0.1.0-authlm.md` — full design spec. Read before architectural work.
 - `.agents/rules/general.md` — project-wide coding rules (DRY, KISS, YAGNI, error handling, etc.).
 - `CONTRIBUTING.md` — contributor guide (planned).
-- `SECURITY.md` — threat model, reporting a vulnerability (planned).
+- `SECURITY.md` — threat model, reporting a vulnerability, supported backends.
