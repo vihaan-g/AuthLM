@@ -152,10 +152,14 @@ def _assert_windows_owner_only(path: Path) -> None:
     users_sid, _, _ = win32security.LookupAccountName(None, "BUILTIN\\Users")
     admin_sid, _, _ = win32security.LookupAccountName(None, "BUILTIN\\Administrators")
 
-    allowed_sids: set[tuple[int, int, int]] = set()
+    allowed_sids: set[object] = set()
     for index in range(dacl.GetAceCount()):
-        _ace_type, _ace_flags, _access_mask, ace_sid = dacl.GetAce(index)
-        allowed_sids.add(ace_sid)
+        # pywin32 ACL.GetAce return shape varies by build:
+        # 3 values (e.g. build 312): (AceType, AccessMask, Sid)
+        # 4 values: (AceType, AceFlags, AccessMask, Sid)
+        # 5 values (newer): (AceType, AceFlags, AccessMask, SidType, Sid)
+        # The SID is always the last element, regardless of version.
+        allowed_sids.add(dacl.GetAce(index)[-1])
 
     assert everyone_sid not in allowed_sids, "Everyone has access"
     assert users_sid not in allowed_sids, "BUILTIN\\Users has access"
