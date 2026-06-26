@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Core exception hierarchy in `authlm.errors` (`AuthLMError` and seven subclasses).
 - Core credential types in `authlm.credentials` (Pydantic models: `ApiKeyCredential`,
   `OAuthCredential`) with a discriminated `CredentialUnion` over the v0.1.0 types.
+- `parse_credential()` deserialization helper in `authlm.credentials` (uses the
+  discriminated union to restore the correct subclass from JSON).
+- `compute_fingerprint(secret)` in `authlm.credentials` returning a truncated
+  SHA-256 digest for non-secret change detection.
   (Additional types `AwsCredential` and `AzureAdCredential` are defined in the spec
   for v0.2.0 but are not implemented in this release.)
 - Test infrastructure: `tests/conftest.py` with environment isolation fixtures and a
@@ -58,5 +62,3 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Keyring store and encrypted file store now wrap raw backend errors
   (`keyring.errors.*`, file I/O) in `SecretStoreError` so consumers can
   catch all secret-store failures with a single `AuthLMError` subclass.
-- Added `compute_fingerprint(secret)` to `authlm.credentials` for
-  non-secret fingerprint generation and change detection.

@@ -25,7 +25,7 @@ class KeyringStore(CredentialStore):
     def get(self, provider: str, alias: str) -> Credential | None:
         try:
             raw = keyring.get_password(self._service(provider), alias)
-        except Exception as exc:
+        except errors.KeyringError as exc:
             raise SecretStoreError(str(exc)) from exc
         if raw is None:
             return None
@@ -39,7 +39,7 @@ class KeyringStore(CredentialStore):
                 credential.alias,
                 credential.model_dump_json(),
             )
-        except Exception as exc:
+        except errors.KeyringError as exc:
             raise SecretStoreError(str(exc)) from exc
         try:
             self._index_add(credential.provider, credential.alias)
@@ -52,7 +52,7 @@ class KeyringStore(CredentialStore):
             keyring.delete_password(self._service(provider), alias)
         except errors.PasswordDeleteError:
             return False
-        except Exception as exc:
+        except errors.KeyringError as exc:
             raise SecretStoreError(str(exc)) from exc
         try:
             self._index_remove(provider, alias)
