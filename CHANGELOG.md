@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   for v0.2.0 but are not implemented in this release.)
 - Test infrastructure: `tests/conftest.py` with environment isolation fixtures and a
   smoke test.
+- `MemoryStore` in `authlm.stores.memory_store`: in-process credential store for
+  tests, cleared on process exit.
+- `EnvStore` in `authlm.stores.env_store`: read-only store that reads API keys
+  from environment variables (module-level `_ENV_VAR_MAP` covers v0.1.0
+  providers: `openai`, `anthropic`, `google`, `openrouter`).
 - `KeyringStore` in `authlm.stores.keyring_store`: OS keychain-backed credential store
   via the `keyring` library, with a JSON index file for enumeration (keyring has no
   enumeration API).
