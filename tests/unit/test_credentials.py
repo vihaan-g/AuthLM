@@ -10,6 +10,7 @@ from authlm.credentials import (
     Credential,
     CredentialUnion,
     OAuthCredential,
+    parse_credential,
 )
 
 
@@ -101,3 +102,36 @@ def test_union_rejects_unknown_type() -> None:
         _ADAPTER.validate_python(
             {"type": "unknown", "provider": "p", "alias": "a", "method_id": "m"}
         )
+
+
+def test_parse_credential_api_key() -> None:
+    cred = ApiKeyCredential(
+        provider="openai",
+        alias="default",
+        method_id="api_key",
+        secret="sk-test",
+    )
+    parsed = parse_credential(cred.model_dump_json())
+    assert isinstance(parsed, ApiKeyCredential)
+    assert parsed.secret == "sk-test"
+    assert parsed.provider == "openai"
+
+
+def test_parse_credential_oauth() -> None:
+    cred = OAuthCredential(
+        provider="openai",
+        alias="default",
+        method_id="m",
+        access_token="a",
+        refresh_token=None,
+        expires_at=None,
+    )
+    parsed = parse_credential(cred.model_dump_json())
+    assert isinstance(parsed, OAuthCredential)
+    assert parsed.access_token == "a"
+
+
+def test_parse_credential_bytes_input() -> None:
+    cred = ApiKeyCredential(provider="p", alias="a", method_id="m", secret="s")
+    parsed = parse_credential(cred.model_dump_json().encode())
+    assert isinstance(parsed, ApiKeyCredential)
