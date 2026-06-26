@@ -62,3 +62,11 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Keyring store and encrypted file store now wrap raw backend errors
   (`keyring.errors.*`, file I/O) in `SecretStoreError` so consumers can
   catch all secret-store failures with a single `AuthLMError` subclass.
+
+### Changed
+- Expanded README with status/build/license badges, a "Why AuthLM?" motivation
+  section, a feature comparison table (vs `llm keys`, LiteLLM, provider SDKs),
+  installation instructions (from source, since not yet on PyPI), CLI usage
+  examples, a credential-stores reference table, and a security section
+  linking to SECURITY.md. Corrected the broken `uv sync --extra test
+  --all-extras` dev command to `uv sync --all-extras`.
