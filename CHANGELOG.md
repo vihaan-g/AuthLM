@@ -24,3 +24,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   enumeration API).
 - `EncryptedFileStore` in `authlm.stores.encrypted_file_store`: Fernet-encrypted
   credential file store, with PBKDF2-HMAC key derivation from a passphrase.
+- `get_default_store` in `authlm.stores`: auto-selects a `CredentialStore` from the
+  `AUTHLM_STORE` env var (one of `keyring`, `encrypted_file`, `env`, `memory`),
+  otherwise picks `KeyringStore` when a real keyring backend is available, and
+  falls back to `EnvStore` with a warning when no keyring is present. Honors the
+  `AUTHLM_USER_PATH` env var for the keyring index and encrypted file locations.
