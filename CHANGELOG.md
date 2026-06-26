@@ -34,3 +34,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   (`authorization_code_pkce`, `device_code`). Both Protocols are
   `@runtime_checkable` for `isinstance()` tests; no implementations are included
   in v0.1.0 yet.
+- pluggy hookspecs in `authlm.hookspecs` defining `register_providers`,
+  `register_connection_methods`, and `register_stores` hooks for third-party
+  plugin registration of providers, connection methods, and credential store
+  backends, plus an exported `hookimpl` marker for plugin authors.
