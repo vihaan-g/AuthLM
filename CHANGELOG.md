@@ -22,3 +22,5 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - `KeyringStore` in `authlm.stores.keyring_store`: OS keychain-backed credential store
   via the `keyring` library, with a JSON index file for enumeration (keyring has no
   enumeration API).
+- `EncryptedFileStore` in `authlm.stores.encrypted_file_store`: Fernet-encrypted
+  credential file store, with PBKDF2-HMAC key derivation from a passphrase.
