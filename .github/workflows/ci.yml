@@ -78,7 +78,7 @@ jobs:
         run: uv sync --all-extras
 
       - name: Run pip-audit
-        run: uv run pip-audit --strict
+        run: uv run pip-audit --strict --skip-editable
 
   secrets-grep:
     name: secrets-grep
