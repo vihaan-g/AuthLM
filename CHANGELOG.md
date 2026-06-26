@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - `KeyringStore` in `authlm.stores.keyring_store`: OS keychain-backed credential store
   via the `keyring` library, with a JSON index file for enumeration (keyring has no
   enumeration API).
+- Plugin loader in `authlm.plugins`: idempotent `pluggy.PluginManager` singleton
+  (`load_plugins` / `get_plugin_manager`) that registers hookspecs, skips
+  setuptools entry-point discovery under `sys._called_from_test`, and tolerates
+  broken `DEFAULT_PLUGINS` modules by logging a warning.
 - `EncryptedFileStore` in `authlm.stores.encrypted_file_store`: Fernet-encrypted
   credential file store, with PBKDF2-HMAC key derivation from a passphrase.
 - `get_default_store` in `authlm.stores`: auto-selects a `CredentialStore` from the
