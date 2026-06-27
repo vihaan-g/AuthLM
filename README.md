@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/vihaan-g/AuthLM/actions/workflows/ci.yml/badge.svg)](https://github.com/vihaan-g/AuthLM/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/vihaan-g/AuthLM/actions/workflows/codeql.yml/badge.svg)](https://github.com/vihaan-g/AuthLM/actions/workflows/codeql.yml)
-[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Status](https://img.shields.io/badge/status-pre--release-orange)](https://github.com/vihaan-g/AuthLM/releases)
 
@@ -14,7 +14,7 @@ AuthLM is a Python library that manages authentication and credentials for AI pr
 
 **Pre-release. v0.1.0 in development. Not yet on PyPI.**
 
-**Implemented today** (milestones 0, 1, 2 done; all tests passing on macOS/Linux/Windows × Python 3.11/3.12/3.13):
+**Implemented today** (milestones 0, 1, 2 done; all tests passing on macOS/Linux/Windows × Python 3.11/3.12/3.13/3.14):
 
 - Pydantic `Credential` types (`ApiKeyCredential`, `OAuthCredential`) with discriminated union
 - Exception hierarchy (`AuthLMError` + 8 specific subclasses)
@@ -162,7 +162,7 @@ uv run ruff format .                # format
 uv run mypy src/authlm              # typecheck (strict)
 ```
 
-CI runs the full matrix on every push: 3 OS (Ubuntu, macOS, Windows) × 3 Python (3.11, 3.12, 3.13), plus `pip-audit`, `secrets-grep`, ruff, and mypy strict.
+CI runs the full matrix on every push: 3 OS (Ubuntu, macOS, Windows) × 4 Python (3.11, 3.12, 3.13, 3.14), plus `pip-audit`, `secrets-grep`, ruff, and mypy strict.
 
 See [AGENTS.md](AGENTS.md) for the full contribution guide, coding conventions, and commit rules.
 
