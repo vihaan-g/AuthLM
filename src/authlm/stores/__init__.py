@@ -53,6 +53,11 @@ def get_default_store() -> CredentialStore:
                 raise AuthLMError(
                     "AUTHLM_STORE=encrypted_file requires AUTHLM_PASSPHRASE"
                 )
+            _log.warning(
+                "AUTHLM_PASSPHRASE sourced from environment; "
+                "the passphrase is visible to child processes and "
+                "/proc/<pid>/environ on Linux. Prefer an interactive prompt."
+            )
             return EncryptedFileStore(
                 path=_user_data_path() / "credentials.enc.json",
                 passphrase=passphrase,

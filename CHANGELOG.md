@@ -62,6 +62,10 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Keyring store and encrypted file store now wrap raw backend errors
   (`keyring.errors.*`, file I/O) in `SecretStoreError` so consumers can
   catch all secret-store failures with a single `AuthLMError` subclass.
+- `get_default_store` now emits a `WARNING`-level log when the encrypted
+  file passphrase is sourced from `AUTHLM_PASSPHRASE` (visible to child
+  processes and `/proc/<pid>/environ` on Linux); prefer an interactive
+  prompt.
 
 ### Changed
 - Expanded README with status/build/license badges, a "Why AuthLM?" motivation

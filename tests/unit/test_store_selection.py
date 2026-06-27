@@ -60,6 +60,20 @@ def test_authlm_store_encrypted_file(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(store, EncryptedFileStore)
 
 
+def test_encrypted_file_warns_on_env_passphrase(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("AUTHLM_STORE", "encrypted_file")
+    monkeypatch.setenv("AUTHLM_PASSPHRASE", "test-pass")
+    with caplog.at_level("WARNING", logger="authlm.stores"):
+        get_default_store()
+    assert any(
+        "AUTHLM_PASSPHRASE" in record.message and record.levelname == "WARNING"
+        for record in caplog.records
+    )
+
+
 def test_authlm_store_encrypted_file_without_passphrase(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
