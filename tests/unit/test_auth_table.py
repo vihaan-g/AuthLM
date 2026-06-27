@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 import pytest
 from pydantic import HttpUrl
 
@@ -49,7 +51,8 @@ def test_openai_has_both_pkce_and_device() -> None:
     entry = get_auth_entry("openai")
     assert entry.oauth is not None
     assert entry.oauth.device_code_url is not None
-    assert "auth.openai.com" in str(entry.oauth.device_code_url)
+    host = urlparse(str(entry.oauth.device_code_url)).hostname
+    assert host is not None and host.endswith("openai.com")
 
 
 def test_openai_default_client_id_is_codex_public() -> None:

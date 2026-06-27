@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 import httpx
 
 from authlm.providers.anthropic import ANTHROPIC_CLAUDE_PRO_WARNING, AnthropicProvider
@@ -17,7 +19,8 @@ def test_metadata() -> None:
     p = _provider()
     assert p.id == "anthropic"
     assert p.display_name == "Anthropic"
-    assert "anthropic.com" in p.docs_url
+    host = urlparse(p.docs_url).hostname
+    assert host is not None and host.endswith("anthropic.com")
 
 
 def test_default_methods_excludes_warned() -> None:

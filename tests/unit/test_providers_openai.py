@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 import httpx
 
 from authlm.providers.base import OAuthGrant, Provider
@@ -18,7 +20,8 @@ def test_metadata() -> None:
     assert p.id == "openai"
     assert p.display_name == "OpenAI"
     assert p.docs_url is not None
-    assert "openai.com" in str(p.docs_url)
+    host = urlparse(p.docs_url).hostname
+    assert host is not None and host.endswith("openai.com")
 
 
 def test_default_methods() -> None:
