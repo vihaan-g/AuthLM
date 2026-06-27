@@ -17,7 +17,7 @@ _REDACTED_PARAMS: frozenset[str] = frozenset(
     {"code", "access_token", "refresh_token", "id_token", "token", "client_secret"}
 )
 _FATAL_ERROR_CODES: frozenset[str] = frozenset(
-    {"invalid_grant", "expired_refresh_token", "revoked"}
+    {"invalid_grant", "expired_token", "expired_refresh_token", "revoked"}
 )
 _REDACTED_VALUE: str = "[REDACTED]"
 
