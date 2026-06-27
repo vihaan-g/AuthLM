@@ -51,8 +51,8 @@ def _restrict_permissions_windows(path: Path) -> None:
     ``icacls /grant:r "<user>:(R,W)"``). The ``pywin32`` package is a
     platform-marked core dependency on Windows, so the import is safe.
     """
-    import ntsecuritycon  # type: ignore[import-untyped]
-    import win32security  # type: ignore[import-untyped]
+    import ntsecuritycon  # type: ignore[import-untyped]  # pyright: ignore[reportMissingModuleSource]
+    import win32security  # type: ignore[import-untyped]  # pyright: ignore[reportMissingModuleSource]
 
     user_sid, _, _ = win32security.LookupAccountName(None, getpass.getuser())
     dacl = win32security.ACL()

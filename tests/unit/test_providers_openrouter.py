@@ -11,6 +11,7 @@ def test_metadata() -> None:
     p = _provider()
     assert p.id == "openrouter"
     assert p.display_name == "OpenRouter"
+    assert p.docs_url is not None
     assert "openrouter.ai" in p.docs_url
 
 

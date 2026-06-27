@@ -9,7 +9,7 @@ import pytest
 @pytest.fixture(autouse=True, scope="session")
 def _mark_called_from_test() -> None:
     """Set sentinel so authlm skips third-party plugin autoload in tests."""
-    sys._called_from_test = True  # type: ignore[attr-defined]
+    sys._called_from_test = True  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
 
 
 @pytest.fixture(autouse=True)

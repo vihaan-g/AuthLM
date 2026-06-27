@@ -65,6 +65,7 @@ async def test_connect_strips_whitespace(stub_store: _StubStore) -> None:
 
     cred = await method.connect(store=stub_store)
 
+    assert isinstance(cred, ApiKeyCredential)
     assert cred.secret == "sk-test"
 
 

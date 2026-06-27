@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -26,7 +27,7 @@ class _StubStore:
     def delete(self, provider: str, alias: str) -> bool:
         return False
 
-    def list(self) -> object:
+    def list(self) -> Iterator[tuple[str, str]]:
         return iter(())
 
     def backend_name(self) -> str:

@@ -17,6 +17,7 @@ def test_metadata() -> None:
     p = _provider()
     assert p.id == "google"
     assert p.display_name == "Google AI"
+    assert p.docs_url is not None
     assert "google" in p.docs_url
 
 

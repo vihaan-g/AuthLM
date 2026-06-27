@@ -138,7 +138,7 @@ def test_file_permissions_owner_only(tmp_path: Path) -> None:
 
 def _assert_windows_owner_only(path: Path) -> None:
     """Verify the file DACL grants access only to the current user."""
-    import win32security  # type: ignore[import-untyped]
+    import win32security  # type: ignore[import-untyped]  # pyright: ignore[reportMissingModuleSource]
 
     security = win32security.GetNamedSecurityInfo(
         str(path),

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -9,23 +10,23 @@ from pydantic import HttpUrl
 from respx import MockRouter
 
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
-from authlm.credentials import OAuthCredential
+from authlm.credentials import Credential, OAuthCredential
 from authlm.errors import ReconnectionRequired
 from authlm.providers.base import OAuthGrant
 from authlm.stores.base import CredentialStore
 
 
 class _StubStore(CredentialStore):
-    def get(self, provider: str, alias: str) -> object | None:
+    def get(self, provider: str, alias: str) -> Credential | None:
         return None
 
-    def set(self, credential: object) -> None:
+    def set(self, credential: Credential) -> None:
         pass
 
     def delete(self, provider: str, alias: str) -> bool:
         return False
 
-    def list(self) -> object:
+    def list(self) -> Iterator[tuple[str, str]]:
         return iter(())
 
     def backend_name(self) -> str:

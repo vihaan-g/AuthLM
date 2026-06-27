@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import pluggy
 
 import authlm.hookspecs as hookspecs
 from authlm.hookspecs import hookimpl
-from authlm.providers.base import Provider
+from authlm.providers.base import ConnectionMethod, Provider
 
 
 class _FakeProvider:
@@ -26,7 +26,7 @@ class _FakeProvider:
     def logo_url(self) -> str | None:
         return None
 
-    def connection_methods(self, *, include_warned: bool) -> list[object]:
+    def connection_methods(self, *, include_warned: bool) -> Sequence[ConnectionMethod]:
         return []
 
 

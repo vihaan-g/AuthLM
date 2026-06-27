@@ -105,6 +105,7 @@ async def test_get_valid_credential_skips_refresh_when_fresh() -> None:
     out = await get_valid_credential(
         "openai", alias="default", margin=timedelta(minutes=5), store=store
     )
+    assert isinstance(out, OAuthCredential)
     assert out.access_token == "a"
 
 
@@ -135,6 +136,7 @@ async def test_get_valid_credential_refreshes_when_expired(
     out = await get_valid_credential(
         "openai", alias="default", margin=timedelta(minutes=5), store=store
     )
+    assert isinstance(out, OAuthCredential)
     assert out.access_token == "NEW"
     stored = store.get("openai", "default")
     assert isinstance(stored, OAuthCredential)
