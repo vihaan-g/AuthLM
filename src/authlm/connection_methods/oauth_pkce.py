@@ -101,6 +101,16 @@ class OAuthPKCEMethod(ConnectionMethod):
         return OAuthGrant.AUTHORIZATION_CODE_PKCE
 
     @override
+    async def validate(self, cred: Credential, *, force: bool) -> bool:
+        if not isinstance(cred, OAuthCredential):
+            return False
+        if cred.expires_at is None:
+            return True
+        if cred.expires_at.tzinfo is None:
+            return cred.expires_at > datetime.now()
+        return cred.expires_at > datetime.now(UTC)
+
+    @override
     async def connect(self, *, store: CredentialStore) -> Credential:
         if self._http_client is None:
             raise RuntimeError("http_client is required for connect()")

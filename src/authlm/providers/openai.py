@@ -56,7 +56,7 @@ class OpenAIProvider(Provider):
                 if self._entry.validation_url
                 else None,
             ),
-            OAuthPKCEMethod(  # type: ignore[abstract]
+            OAuthPKCEMethod(
                 provider_id=self.id,
                 authorize_url=oauth.authorize_url,
                 token_url=oauth.token_url,
@@ -68,7 +68,7 @@ class OpenAIProvider(Provider):
         ]
         if oauth.device_code_url is not None:
             methods.append(
-                OAuthDeviceCodeMethod(  # type: ignore[abstract]
+                OAuthDeviceCodeMethod(
                     provider_id=self.id,
                     device_code_url=oauth.device_code_url,
                     token_url=oauth.token_url,
