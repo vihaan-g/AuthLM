@@ -51,6 +51,12 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   `register_connection_methods`, and `register_stores` hooks for third-party
   plugin registration of providers, connection methods, and credential store
   backends, plus an exported `hookimpl` marker for plugin authors.
+- `authlm._auth_table` with v0.1.0 provider auth metadata: `OAuthConfig` and
+  `AuthTableEntry` Pydantic models, an `AUTH_TABLE` covering `openai`,
+  `anthropic`, `google`, and `openrouter` (with public OAuth client IDs and
+  PKCE/device endpoints for the three OAuth-capable providers), and
+  `get_auth_entry` / `get_oauth_config` lookups. Client IDs are overridable
+  per provider via `AUTHLM_{OPENAI,ANTHROPIC,GOOGLE}_CLIENT_ID` env vars.
 
 ### Fixed
 - `EncryptedFileStore` file permissions now work on Windows: replaced the
