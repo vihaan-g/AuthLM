@@ -1,0 +1,186 @@
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+
+import httpx
+
+from authlm._auth_table import get_oauth_config
+from authlm.connection_methods.api_key import APIKeyMethod
+from authlm.credentials import Credential, OAuthCredential
+from authlm.errors import (
+    AuthLMError,
+    CredentialNotFound,
+    ReconnectionRequired,
+    RefreshFailed,
+    TokenEndpointError,
+)
+from authlm.metadata import MetadataEntry, MetadataStore
+from authlm.providers.base import ConnectionMethod
+from authlm.providers.registry import get_method as _get_method
+from authlm.providers.registry import get_provider as _get_provider
+from authlm.stores import get_default_store
+from authlm.stores.base import CredentialStore
+
+_log = logging.getLogger(__name__)
+
+
+def should_refresh(cred: Credential, *, margin: timedelta) -> bool:
+    if not isinstance(cred, OAuthCredential) or cred.expires_at is None:
+        return False
+    now = datetime.now(UTC)
+    return cred.expires_at <= now + margin
+
+
+async def get_credential(
+    provider: str,
+    *,
+    alias: str,
+    store: CredentialStore | None = None,
+) -> Credential:
+    backend = store or get_default_store()
+    cred = backend.get(provider, alias)
+    if cred is None:
+        raise CredentialNotFound(f"No credential stored for {provider}:{alias}")
+    return cred
+
+
+async def get_valid_credential(
+    provider: str,
+    *,
+    alias: str,
+    margin: timedelta,
+    store: CredentialStore | None = None,
+) -> Credential:
+    backend = store or get_default_store()
+    cred = backend.get(provider, alias)
+    if cred is None:
+        raise CredentialNotFound(f"No credential stored for {provider}:{alias}")
+    if should_refresh(cred, margin=margin):
+        return await refresh(provider, alias=alias, store=backend)
+    return cred
+
+
+async def refresh(
+    provider: str,
+    *,
+    alias: str,
+    store: CredentialStore | None = None,
+) -> Credential:
+    backend = store or get_default_store()
+    cred = backend.get(provider, alias)
+    if cred is None:
+        raise CredentialNotFound(f"No credential stored for {provider}:{alias}")
+    if not isinstance(cred, OAuthCredential):
+        return cred
+    if not cred.refresh_token:
+        raise ReconnectionRequired(
+            f"No refresh token for {provider}:{alias}; re-run connect()"
+        )
+    oauth = get_oauth_config(provider)
+    if oauth is None:
+        raise AuthLMError(f"Provider {provider!r} has no OAuth config")
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            str(oauth.token_url),
+            data={
+                "grant_type": "refresh_token",
+                "refresh_token": cred.refresh_token,
+                "client_id": oauth.client_id,
+            },
+            timeout=30.0,
+        )
+    if response.status_code == 400 and "invalid_grant" in response.text:
+        raise ReconnectionRequired(
+            f"Refresh token for {provider}:{alias} is dead; re-run connect()"
+        )
+    if 500 <= response.status_code < 600:
+        raise RefreshFailed(f"Token endpoint 5xx: status={response.status_code}")
+    if not (200 <= response.status_code < 300):
+        body = response.text[:300]
+        raise TokenEndpointError(
+            f"Token endpoint error: status={response.status_code} body={body}"
+        )
+    data = response.json()
+    new_access = str(data.get("access_token", ""))
+    if not new_access:
+        raise TokenEndpointError("refresh response missing access_token")
+    new_refresh_token = data.get("refresh_token") or cred.refresh_token
+    expires_in = data.get("expires_in")
+    expires_at: datetime | None = cred.expires_at
+    if isinstance(expires_in, (int, float)):
+        expires_at = datetime.now(UTC) + timedelta(seconds=float(expires_in))
+    scopes_field = data.get("scope") or data.get("scopes") or ""
+    if isinstance(scopes_field, str):
+        scopes = [s for s in scopes_field.split() if s]
+    else:
+        scopes = list(cred.scopes)
+    new_cred = cred.model_copy(
+        update={
+            "access_token": new_access,
+            "refresh_token": str(new_refresh_token) if new_refresh_token else None,
+            "expires_at": expires_at,
+            "scopes": scopes,
+        }
+    )
+    backend.set(new_cred)
+    return new_cred
+
+
+async def connect(
+    provider: str,
+    *,
+    alias: str,
+    method: ConnectionMethod | None = None,
+    method_id: str | None = None,
+    store: CredentialStore | None = None,
+    secret_prompt: Callable[[str], str] | None = None,
+    metadata_store: MetadataStore | None = None,
+) -> Credential:
+    """Run the connection method, persist the result, and update metadata.
+
+    Note: each ConnectionMethod's connect() returns a Credential with
+    alias="default". We re-key it to the requested alias here.
+    """
+    backend = store or get_default_store()
+    if method is None:
+        if method_id is None:
+            raise AuthLMError("connect() requires either method or method_id")
+        method = _get_method(provider, method_id)
+
+    if isinstance(method, APIKeyMethod) and secret_prompt is not None:
+        method = APIKeyMethod(
+            provider_id=method._provider_id,  # noqa: SLF001
+            secret_prompt=secret_prompt,
+            validation_url=method._validation_url,  # noqa: SLF001
+            http_get=method._http_get,  # noqa: SLF001
+        )
+
+    cred = await method.connect(store=backend)
+    if cred.alias != alias:
+        cred = cred.model_copy(update={"alias": alias})
+    backend.set(cred)
+
+    if metadata_store is not None:
+        entry = MetadataEntry(
+            provider_display_name=_get_provider(provider).display_name,
+            method_id=cred.method_id,
+            connected_at=datetime.now(UTC),
+            scopes=list(cred.scopes) if isinstance(cred, OAuthCredential) else [],
+            warning_acknowledged_at=datetime.now(UTC) if method.warning else None,
+        )
+        metadata_store.set(provider, alias, entry)
+
+    return cred
+
+
+async def validate(
+    cred: Credential,
+    *,
+    force: bool,
+) -> bool:
+    """Probe a credential against the provider's validation URL."""
+    from authlm.validation import validate as _validate
+
+    return await _validate(cred, force=force)
