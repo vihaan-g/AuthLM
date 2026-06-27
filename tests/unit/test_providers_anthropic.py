@@ -20,9 +20,8 @@ def test_metadata() -> None:
     assert p.id == "anthropic"
     assert p.display_name == "Anthropic"
     host = urlparse(p.docs_url).hostname
-    assert host is not None and (
-        host == "anthropic.com" or host.endswith(".anthropic.com")
-    )
+    assert host is not None
+    assert host in ("anthropic.com", "console.anthropic.com")
 
 
 def test_default_methods_excludes_warned() -> None:

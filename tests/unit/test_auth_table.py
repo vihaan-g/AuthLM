@@ -52,7 +52,8 @@ def test_openai_has_both_pkce_and_device() -> None:
     assert entry.oauth is not None
     assert entry.oauth.device_code_url is not None
     host = urlparse(str(entry.oauth.device_code_url)).hostname
-    assert host is not None and (host == "openai.com" or host.endswith(".openai.com"))
+    assert host is not None
+    assert host in ("openai.com", "auth.openai.com")
 
 
 def test_openai_default_client_id_is_codex_public() -> None:
