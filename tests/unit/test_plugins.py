@@ -47,7 +47,8 @@ def test_called_from_test_skips_entrypoints(
     monkeypatch.setattr(plugins, "pm", None)
     plugins.load_plugins()
     assert plugins.pm is not None
-    assert len(plugins.pm._name2plugin) <= 1
+    registered = set(plugins.pm._name2plugin)
+    assert registered == set(plugins.DEFAULT_PLUGINS)
 
 
 def test_broken_default_plugin_does_not_crash(

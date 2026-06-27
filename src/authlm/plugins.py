@@ -12,7 +12,12 @@ _log = logging.getLogger(__name__)
 
 pm: pluggy.PluginManager | None = None
 _loaded: bool = False
-DEFAULT_PLUGINS: tuple[str, ...] = ()
+DEFAULT_PLUGINS: tuple[str, ...] = (
+    "authlm.providers.openai",
+    "authlm.providers.anthropic",
+    "authlm.providers.google",
+    "authlm.providers.openrouter",
+)
 
 
 def load_plugins() -> None:
