@@ -5,7 +5,9 @@ from typing import Any
 import pytest
 from respx import MockRouter
 
+from authlm.connection_methods._oauth_helpers import redact_body
 from authlm.credentials import ApiKeyCredential, OAuthCredential
+from authlm.errors import TokenEndpointError
 from authlm.validation import _is_warned, validate
 
 
@@ -102,3 +104,44 @@ def test_is_warned_helper() -> None:
     assert _is_warned("claude_pro_oauth_device") is True
     assert _is_warned("api_key") is False
     assert _is_warned("oauth_browser") is False
+
+
+@pytest.mark.asyncio
+async def test_validate_redacts_access_token_in_400_body(
+    respx_mock: MockRouter,
+) -> None:
+    secret = "AKIA-real-token-1234567890"
+    respx_mock.get("https://api.openai.com/v1/models").respond(
+        400, text=f'{{"error":"invalid_token","access_token":"{secret}"}}'
+    )
+    cred = ApiKeyCredential(
+        provider="openai", alias="default", method_id="api_key", secret="sk-test"
+    )
+    with pytest.raises(TokenEndpointError) as exc_info:
+        await validate(cred, force=False)
+    msg = str(exc_info.value)
+    assert secret not in msg
+    assert "[REDACTED]" in msg
+
+
+@pytest.mark.asyncio
+async def test_validate_redacts_bearer_token_in_400_body(
+    respx_mock: MockRouter,
+) -> None:
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+    respx_mock.get("https://api.openai.com/v1/models").respond(
+        400, text=f"Bearer {token}"
+    )
+    cred = ApiKeyCredential(
+        provider="openai", alias="default", method_id="api_key", secret="sk-test"
+    )
+    with pytest.raises(TokenEndpointError) as exc_info:
+        await validate(cred, force=False)
+    msg = str(exc_info.value)
+    assert token not in msg
+    assert "[REDACTED]" in msg
+
+
+def test_redact_body_truncates_to_200_chars() -> None:
+    redacted = redact_body("x" * 500)
+    assert len(redacted) <= 200

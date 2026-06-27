@@ -6,6 +6,7 @@ from collections.abc import Callable
 import httpx
 
 from authlm._auth_table import AUTH_TABLE
+from authlm.connection_methods._oauth_helpers import redact_body
 from authlm.credentials import ApiKeyCredential, Credential, OAuthCredential
 from authlm.errors import AccessDenied, TokenEndpointError
 
@@ -66,6 +67,6 @@ async def validate(
         raise AccessDenied("validation probe: 403 (token may lack entitlement)")
     if 400 <= status < 500:
         raise TokenEndpointError(
-            f"validation probe: status={status} body={response.text[:200]}"
+            f"validation probe: status={status} body={redact_body(response.text)}"
         )
     return False

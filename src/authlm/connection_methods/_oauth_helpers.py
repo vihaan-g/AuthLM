@@ -4,6 +4,7 @@ import base64
 import hashlib
 import json
 import logging
+import re
 import secrets
 from dataclasses import dataclass
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
@@ -20,6 +21,12 @@ _FATAL_ERROR_CODES: frozenset[str] = frozenset(
     {"invalid_grant", "expired_token", "expired_refresh_token", "revoked"}
 )
 _REDACTED_VALUE: str = "[REDACTED]"
+_BEARER_TOKEN_RE: re.Pattern[str] = re.compile(r"Bearer [A-Za-z0-9_-]{20,}")
+_TOKEN_PARAM_RE: re.Pattern[str] = re.compile(
+    r"\b(access_token|refresh_token|id_token|client_secret)\b"
+    r"\s*[\"']?\s*[=:]\s*[\"']?"
+    r"(\"[^\"]*\"|[^\s,;&}]+)"
+)
 
 
 @dataclass(frozen=True)
@@ -84,6 +91,19 @@ def redact_url(url: str) -> str:
         for key, value in parse_qsl(parsed.query, keep_blank_values=True)
     ]
     return urlunparse(parsed._replace(query=urlencode(redacted_pairs)))
+
+
+def redact_body(body: str) -> str:
+    """Return ``body`` with sensitive substrings replaced and truncated to 200 chars.
+
+    Scrubs ``Bearer <token>`` values and ``access_token``, ``refresh_token``,
+    ``id_token``, and ``client_secret`` parameters in both query-string
+    (``k=v``) and JSON (``"k":"v"``) formats. The result is truncated to 200
+    characters to bound the size of downstream exception messages.
+    """
+    redacted = _BEARER_TOKEN_RE.sub(f"Bearer {_REDACTED_VALUE}", body)
+    redacted = _TOKEN_PARAM_RE.sub(rf"\1={_REDACTED_VALUE}", redacted)
+    return redacted[:200]
 
 
 def classify_token_error(*, status_code: int, body: str) -> TokenError:
