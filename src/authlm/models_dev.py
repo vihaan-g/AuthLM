@@ -1,3 +1,12 @@
+"""models.dev provider metadata integration.
+
+v0.1.0 status: SCAFFOLDING — module is implemented and tested but NOT wired
+into providers. The 4 built-in providers hardcode their display_name,
+docs_url, and logo_url. This module is used in v0.2.0 when the provider
+count grows and the join against models.dev's api.json justifies the
+network/cache/fallback chain. See spec §8.1.
+"""
+
 from __future__ import annotations
 
 import json
