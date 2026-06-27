@@ -8,31 +8,34 @@
 
 **OS-keychain-backed authentication for AI providers. API keys, OAuth, token refresh, and multi-account support — auth only, composes with any inference library.**
 
-AuthLM is a Python library that manages authentication and credentials for AI provider APIs (OpenAI, Anthropic, Google, Ollama, OpenRouter, and others). It is **auth-only** — it does not generate text, route requests, or choose models. It handles the hard part: secure storage, OAuth flows, token refresh, and multi-provider credential management. You hand the resulting credential to whatever inference library you already use.
+AuthLM is a Python library that manages authentication and credentials for AI provider APIs (OpenAI, Anthropic, Google, OpenRouter, and others). It is **auth-only** — it does not generate text, route requests, or choose models. It handles the hard part: secure storage, OAuth flows, token refresh, and multi-provider credential management. You hand the resulting credential to whatever inference library you already use.
 
 ## Status
 
 **Pre-release. v0.1.0 in development. Not yet on PyPI.**
 
-**Implemented today** (milestone 1, all tests passing on macOS/Linux/Windows × Python 3.11/3.12/3.13):
+**Implemented today** (milestones 0, 1, 2 done; all tests passing on macOS/Linux/Windows × Python 3.11/3.12/3.13):
 
 - Pydantic `Credential` types (`ApiKeyCredential`, `OAuthCredential`) with discriminated union
-- Exception hierarchy (`AuthLMError` + 7 specific subclasses)
+- Exception hierarchy (`AuthLMError` + 8 specific subclasses)
 - 4 `CredentialStore` backends: `KeyringStore`, `EncryptedFileStore`, `EnvStore`, `MemoryStore`
 - Store auto-selection via `get_default_store` (keychain → encrypted file → env, with warning)
 - `Provider` and `ConnectionMethod` Protocols + `OAuthGrant` enum
-- pluggy plugin system (hookspecs, loader, entry-point isolation)
+- pluggy plugin system (hookspecs, loader, entry-point isolation, 4 built-in provider modules)
 - `MetadataStore` for non-secret credential metadata (fingerprints, timestamps, scopes)
+- 3 connection methods: `APIKeyMethod`, `OAuthPKCEMethod` (with loopback HTTP server), `OAuthDeviceCodeMethod` (with polling)
+- 4 built-in providers: `OpenAIProvider`, `AnthropicProvider` (with warned Claude Pro methods), `GoogleProvider`, `OpenRouterProvider`
+- `_auth_table` with public OAuth client IDs and env-var override (`AUTHLM_{OPENAI,ANTHROPIC,GOOGLE}_CLIENT_ID`)
+- `models_dev` integration with vendored snapshot fallback (offline)
+- `validation.validate()` — async probe; refuses warned methods without `force=True`
+- Public async API: `get_credential`, `get_valid_credential`, `refresh`, `should_refresh`, `connect`, `validate`
 - NTFS ACL enforcement on Windows (owner-only file permissions, not just POSIX `chmod 0o600`)
+- OAuth error body redaction (`redact_body` in `connection_methods._oauth_helpers`)
 
 **Planned for v0.1.0** (not yet implemented):
 
-- Public async API (`api.py`): `get_credential`, `get_valid_credential`, `refresh`, `validate`, `connect`
-- 5-command CLI (`cli.py`): `connect`, `list`, `status`, `disconnect`, `env`
-- Connection methods: API key, OAuth PKCE (browser), OAuth device code
-- 5 concrete providers: OpenAI, Anthropic, Google, Ollama, OpenRouter
-- models.dev integration with vendored snapshot fallback
-- Validation probes (lightweight API calls to verify a credential works)
+- 5-command CLI (`cli.py`): `connect`, `list`, `status`, `disconnect`, `env` — this is the final M2-era milestone
+- Ollama provider (no-auth edge case) — deferred alongside the `AuthMethod.NONE` enum value it requires
 
 See the [design spec](.agents/specs/v0.1.0-authlm.md) for the full v0.1.0 architecture.
 
@@ -53,7 +56,9 @@ AuthLM is the dedicated auth layer. OS keychain by default, OAuth flows, token r
 - **Token refresh with rotation** — centralized implementation persists both new access and refresh tokens atomically, preventing the common "kept the old refresh token" failure mode.
 - **Multi-account** — every credential is keyed by `(provider, alias)`. `personal` and `work` OpenAI accounts coexist.
 - **Plugin system** — pluggy-based (same engine as `pytest`). Third-party providers and stores register via entry points.
-- **5-command CLI** — `connect`, `list`, `status`, `disconnect`, `env`. Thin sync wrapper over the async library.
+- **Public OAuth client IDs** — OpenAI Codex, Anthropic Claude Code, Google AI Studio client IDs are bundled in `_auth_table.py` (the same client IDs the official CLI tools use), so OAuth flows work out-of-the-box. Override per-provider via `AUTHLM_{OPENAI,ANTHROPIC,GOOGLE}_CLIENT_ID` env vars.
+- **Validation probes** — `await authlm.validate(cred, force=True)` issues a lightweight API call (`GET /v1/models`, etc.) to confirm a credential works. Warned methods (Anthropic Claude Pro) require `force=True` and the library tells you why.
+- **5-command CLI** — `connect`, `list`, `status`, `disconnect`, `env`. *(planned for the final M2-era milestone)*
 - **Zero telemetry** — no analytics, no phone-home, no crash reports. By design.
 
 ## What it is not
@@ -70,11 +75,12 @@ Target feature set for v0.1.0 (in development):
 | | AuthLM | `llm keys` | LiteLLM | Provider SDKs |
 |---|---|---|---|---|
 | OS keychain storage | Yes | No (plaintext JSON) | No | No |
-| OAuth (PKCE + device code) | Planned | No | No | No |
-| Token refresh + rotation | Planned | No | No | No |
-| Multi-account (alias) | Planned | Partial | No | No |
-| Multi-provider | Yes (5 + plugins) | Partial | Yes | No (one each) |
+| OAuth (PKCE + device code) | Yes | No | No | No |
+| Token refresh + rotation | Yes | No | No | No |
+| Multi-account (alias) | Yes | Partial | No | No |
+| Multi-provider | Yes (4 + plugins) | Partial | Yes | No (one each) |
 | Plugin system | Yes (pluggy) | No | No | No |
+| Validation probes | Yes | No | No | No |
 | Inference | No | Yes | Yes | Yes |
 | Telemetry | None | — | — | — |
 
@@ -91,14 +97,14 @@ uv sync --all-extras
 Once v0.1.0 ships, the install will be:
 
 ```bash
-pip install authlm                       # base + 5 providers
+pip install authlm                       # base + 4 providers
 pip install "authlm[openai]"             # installs openai SDK extra
 pip install "authlm[all]"                # all provider SDK extras
 ```
 
 ## Quick start
 
-> **Note:** The public API below is the target for v0.1.0. It is not yet implemented — `api.py` and `cli.py` are the next milestone. See [Status](#status) for what works today.
+> **Note:** The async API below is the v0.1.0 target. The M2 implementation (all 6 functions) is in place; the CLI wrapper is the final M2-era milestone. See [Status](#status) for what works today.
 
 ```python
 import authlm
@@ -150,7 +156,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync --all-extras                # install all deps including test extras
-uv run pytest                       # 93 unit tests, sub-second
+uv run pytest                       # 196 unit tests, sub-second
 uv run ruff check .                 # lint
 uv run ruff format .                # format
 uv run mypy src/authlm              # typecheck (strict)
