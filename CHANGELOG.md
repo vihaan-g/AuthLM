@@ -65,6 +65,20 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   subscription methods (`claude_pro_oauth_browser`,
   `claude_pro_oauth_device`) unless `force=True` is passed, and is
   no-op-detectable for providers without a `validation_url`.
+- Connection methods: `APIKeyMethod`, `OAuthPKCEMethod` (with loopback HTTP
+  server), `OAuthDeviceCodeMethod` (with polling). All implement the
+  `ConnectionMethod` Protocol.
+- `models_dev` module: live fetch from `https://models.dev/api.json`,
+  on-disk cache, and a vendored `_vendor/models-dev-snapshot.json`
+  offline fallback.
+- 4 built-in providers: `OpenAIProvider`, `AnthropicProvider` (with
+  warned Claude Pro browser/headless methods),
+  `GoogleProvider`, `OpenRouterProvider`.
+- `providers.registry` with `list_providers`, `get_provider`, `get_method`.
+- Public async API in `authlm.api`: `get_credential`,
+  `get_valid_credential`, `refresh` (handles refresh-token rotation
+  and classifies errors per spec §5.3), `should_refresh`, `connect`
+  (orchestrates method + store + metadata), and `validate`.
 
 ### Fixed
 - `EncryptedFileStore` file permissions now work on Windows: replaced the
@@ -88,3 +102,9 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   examples, a credential-stores reference table, and a security section
   linking to SECURITY.md. Corrected the broken `uv sync --extra test
   --all-extras` dev command to `uv sync --all-extras`.
+- `authlm.plugins.DEFAULT_PLUGINS` now includes the 4 built-in provider
+  modules, so `load_plugins()` registers them automatically.
+
+### Deferred
+- `OllamaProvider` (no-auth) is deferred to a later milestone. The
+  `_ENV_VAR_MAP` and CLI will be extended when ollama lands.
