@@ -23,7 +23,7 @@ _log = logging.getLogger(__name__)
 
 
 def _default_on_prompt(uri: str, user_code: str) -> None:
-    print(f"Open {uri} and enter code: {user_code}")
+    _log.info("Open %s and enter code: %s", uri, user_code)
 
 
 class OAuthDeviceCodeMethod(ConnectionMethod):
@@ -114,7 +114,7 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
 
     async def _poll_for_token(self, device_code: str) -> dict[str, Any]:
         assert self._http_client is not None
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         deadline = loop.time() + self._poll_timeout_seconds
         while True:
             response = await exchange_code_for_token(

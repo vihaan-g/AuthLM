@@ -33,6 +33,19 @@ class APIKeyMethod(ConnectionMethod):
         self._validation_url = validation_url
         self._http_get = http_get
 
+    def with_secret_prompt(self, prompt: Callable[[str], str]) -> APIKeyMethod:
+        """Return a new instance with the given secret_prompt.
+
+        Used by callers (especially the CLI) that need to inject a
+        non-default prompt — e.g. Click's `prompt(hidden=True)`.
+        """
+        return APIKeyMethod(
+            provider_id=self._provider_id,
+            secret_prompt=prompt,
+            validation_url=self._validation_url,
+            http_get=self._http_get,
+        )
+
     @property
     @override
     def id(self) -> str:

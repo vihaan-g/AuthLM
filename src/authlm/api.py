@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 import httpx
 
 from authlm._auth_table import get_oauth_config
+from authlm.connection_methods._oauth_helpers import classify_token_error
 from authlm.connection_methods.api_key import APIKeyMethod
 from authlm.credentials import Credential, OAuthCredential
 from authlm.errors import (
@@ -91,9 +92,13 @@ async def refresh(
             },
             timeout=30.0,
         )
-    if response.status_code == 400 and "invalid_grant" in response.text:
+    classification = classify_token_error(
+        status_code=response.status_code, body=response.text
+    )
+    if classification.fatal:
         raise ReconnectionRequired(
-            f"Refresh token for {provider}:{alias} is dead; re-run connect()"
+            f"Refresh token for {provider}:{alias} is dead; "
+            f"re-run connect() ({classification.error_code})"
         )
     if 500 <= response.status_code < 600:
         raise RefreshFailed(f"Token endpoint 5xx: status={response.status_code}")
@@ -150,12 +155,7 @@ async def connect(
         method = _get_method(provider, method_id)
 
     if isinstance(method, APIKeyMethod) and secret_prompt is not None:
-        method = APIKeyMethod(
-            provider_id=method._provider_id,  # noqa: SLF001
-            secret_prompt=secret_prompt,
-            validation_url=method._validation_url,  # noqa: SLF001
-            http_get=method._http_get,  # noqa: SLF001
-        )
+        method = method.with_secret_prompt(secret_prompt)
 
     cred = await method.connect(store=backend)
     if cred.alias != alias:
