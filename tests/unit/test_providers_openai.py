@@ -21,7 +21,9 @@ def test_metadata() -> None:
     assert p.display_name == "OpenAI"
     assert p.docs_url is not None
     host = urlparse(p.docs_url).hostname
-    assert host is not None and host.endswith("openai.com")
+    assert host is not None and (
+        host == "openai.com" or host.endswith(".openai.com")
+    )
 
 
 def test_default_methods() -> None:
