@@ -1,0 +1,36 @@
+{
+  "openai": {
+    "id": "openai",
+    "name": "OpenAI",
+    "env": ["OPENAI_API_KEY"],
+    "models": {
+      "gpt-4o": {"id": "gpt-4o", "name": "GPT-4o", "context_window": 128000}
+    }
+  },
+  "anthropic": {
+    "id": "anthropic",
+    "name": "Anthropic",
+    "env": ["ANTHROPIC_API_KEY"],
+    "models": {
+      "claude-3-5-sonnet-20241022": {
+        "id": "claude-3-5-sonnet-20241022",
+        "name": "Claude 3.5 Sonnet",
+        "context_window": 200000
+      }
+    }
+  },
+  "google": {
+    "id": "google",
+    "name": "Google AI",
+    "env": ["GOOGLE_API_KEY"],
+    "models": {
+      "gemini-1.5-pro": {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro", "context_window": 1000000}
+    }
+  },
+  "openrouter": {
+    "id": "openrouter",
+    "name": "OpenRouter",
+    "env": ["OPENROUTER_API_KEY"],
+    "models": {}
+  }
+}

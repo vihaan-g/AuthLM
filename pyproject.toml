@@ -68,6 +68,7 @@ path = "src/authlm/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/authlm"]
+include = ["src/authlm/_vendor/*.json"]
 
 [tool.hatch.build]
 dev-mode-dirs = ["src"]
