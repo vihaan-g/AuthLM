@@ -94,6 +94,15 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   file passphrase is sourced from `AUTHLM_PASSPHRASE` (visible to child
   processes and `/proc/<pid>/environ` on Linux); prefer an interactive
   prompt.
+- `validation.validate()` now runs the 4xx `TokenEndpointError` body
+  through `redact_body` in `authlm.connection_methods._oauth_helpers`
+  before including it in the exception message. `Bearer <token>` substrings
+  and JSON-string fields named `access_token` / `refresh_token` /
+  `id_token` / `client_secret` are replaced with `[REDACTED]`, and the
+  body is truncated to 200 chars. Prevents credential leakage when OAuth
+  providers echo tokens in error bodies (e.g. `invalid_token: <token>`).
+  The `state` (CSRF) parameter is intentionally **not** redacted — it is
+  not a credential and is useful for debugging.
 
 ### Changed
 - Expanded README with status/build/license badges, a "Why AuthLM?" motivation
