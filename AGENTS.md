@@ -5,15 +5,18 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
 ## Project Structure
 
 - `src/authlm/` — the library source (src layout)
-  - `api.py` — public async API (`get_credential`, `get_valid_credential`, `refresh`, `validate`, `connect`) — **planned (M3)**
+  - `api.py` — public async API: `get_credential`, `get_valid_credential`, `refresh`, `should_refresh`, `connect`, `validate`.
   - `credentials.py` — Pydantic Credential types for v0.1.0: `ApiKeyCredential`, `OAuthCredential`, plus `CredentialUnion` discriminated union, `parse_credential()`, and `compute_fingerprint()`. Additional types (`AwsCredential`, `AzureAdCredential`) are deferred to v0.2.0.
   - `metadata.py` — `MetadataEntry` Pydantic model and `MetadataStore` for non-secret credential metadata.
-  - `providers/` — built-in providers (v0.1.0: `openai`, `anthropic`, `google`, `ollama`, `openrouter`) — **planned (M2)**; currently contains only `base.py` with `Provider`/`ConnectionMethod` Protocols and `OAuthGrant` enum.
-  - `connection_methods/` — `api_key.py`, `oauth_pkce.py`, `oauth_device.py`, `_oauth_helpers.py` — **planned (M2)**
+  - `validation.py` — `validate()` async probe of a credential against the provider's `validation_url`; refuses warned methods (Anthropic Claude Pro) unless `force=True`. `validate()` raises `PermissionError` (built-in) for warned-method refusal; callers that want to catch this alongside other authlm errors use `except (AuthLMError, PermissionError)`.
+  - `models_dev.py` — live fetch from `https://models.dev/api.json`, on-disk cache, vendored fallback at `src/authlm/_vendor/models-dev-snapshot.json`.
+  - `_auth_table.py` — Pydantic `OAuthConfig` and `AuthTableEntry` models, plus a static `AUTH_TABLE` dict covering the 4 built-in providers. Public OAuth client IDs (OpenAI Codex, Anthropic Claude Code, Google AI Studio) are hardcoded and overridable via env vars: `AUTHLM_OPENAI_CLIENT_ID`, `AUTHLM_ANTHROPIC_CLIENT_ID`, `AUTHLM_GOOGLE_CLIENT_ID`.
+  - `providers/` — 4 built-in providers for v0.1.0: `openai` (api_key, oauth_browser, oauth_device), `anthropic` (api_key + 2 warned Claude Pro methods), `google` (api_key, oauth_browser), `openrouter` (api_key). `OllamaProvider` is deferred (no-auth; needs `AuthMethod.NONE` enum extension). Plus `base.py` (Protocols) and `registry.py` (`get_provider`, `list_providers`, `get_method`).
+  - `connection_methods/` — `api_key.py` (APIKeyMethod), `oauth_pkce.py` (OAuthPKCEMethod with loopback HTTP server), `oauth_device.py` (OAuthDeviceCodeMethod with polling), `_oauth_helpers.py` (PKCE generation, URL redaction, token-endpoint error classification, body redaction), `__init__.py` re-exports.
   - `stores/` — `base.py` (`CredentialStore` Protocol), `memory_store.py`, `env_store.py`, `keyring_store.py`, `encrypted_file_store.py`, `__init__.py` (`get_default_store` auto-selection).
-  - `hookspecs.py`, `plugins.py` — pluggy plugin system (hookspecs + `PluginManager` loader).
+  - `hookspecs.py`, `plugins.py` — pluggy plugin system (hookspecs + `PluginManager` loader). `DEFAULT_PLUGINS` registers the 4 built-in provider modules.
   - `cli.py` — Click CLI (5 commands: connect, list, status, disconnect, env) — **planned (M3)**
-  - `errors.py` — exception hierarchy (`AuthLMError` base + `SecretStoreError` for keyring/file-store failures, plus credential logic errors).
+  - `errors.py` — exception hierarchy (`AuthLMError` base + `SecretStoreError`, `CredentialNotFound`, `RefreshFailed`, `ReconnectionRequired`, `AccessDenied`, `TokenEndpointError`, `ProviderNotAvailable`, `AliasCollisionError`).
 - `tests/` — `unit/`, `integration/`, `security/`, `cassettes/` (VCR.py)
 - `.agents/specs/` — design specs (read before architectural work)
 - `.agents/rules/general.md` — project-wide coding rules (read before any coding)
@@ -33,7 +36,7 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
 - **Format:** `uv run ruff format .` — run after changes
 - **Typecheck:** `uv run mypy src/authlm` — must pass with `--strict`
 - **Test (focused):** `uv run pytest tests/unit/<area>` — run for the area you changed
-- **Test (full):** `uv run pytest` — currently 98 unit tests, sub-second; run freely
+- **Test (full):** `uv run pytest` — currently 196 unit tests, sub-second; run freely
 - **Build:** `uv run python -m build`
 
 ## Conventions
@@ -94,8 +97,10 @@ All Python code follows `.agents/rules/general.md` and the `python-conventions` 
 ## Security-Sensitive Areas
 
 - `src/authlm/stores/` — credential storage. Changes require maintainer review and a `SECURITY.md` update.
-- `src/authlm/connection_methods/` — OAuth flows and token handling (planned).
-- `src/authlm/_auth_table.py` — OAuth client IDs, endpoints, scopes (planned).
+- `src/authlm/connection_methods/` — OAuth flows and token handling. Changes to PKCE redirect handling, token exchange, or error classification require careful review (the loopback server, PKCE pair generation, and redaction layer are all in this surface).
+- `src/authlm/_auth_table.py` — OAuth client IDs, endpoints, scopes. Adding a new provider or changing an existing endpoint must be done as a single atomic change with the matching test update.
+- `src/authlm/api.py` — public async API. The `refresh()` path handles refresh-token rotation; any change to it must preserve the "keep the old refresh token if the server omits one" fallback.
+- `src/authlm/validation.py` — validation probes and warned-method policy. `validate()` raises `PermissionError` for warned-method refusals — this is a deliberate choice over `AuthLMError`; do not change without updating the spec.
 - VCR cassettes — must be scrubbed of all secrets.
 - `SECURITY.md` — threat model and disclosure process.
 
