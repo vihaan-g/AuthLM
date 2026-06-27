@@ -57,6 +57,14 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   PKCE/device endpoints for the three OAuth-capable providers), and
   `get_auth_entry` / `get_oauth_config` lookups. Client IDs are overridable
   per provider via `AUTHLM_{OPENAI,ANTHROPIC,GOOGLE}_CLIENT_ID` env vars.
+- `authlm.validation.validate()` async probe that GETs each provider's
+  `validation_url` from `_auth_table` (OpenAI `/v1/models`, Anthropic
+  `/v1/models` with `x-api-key` + `anthropic-version` headers, etc.) and
+  returns `True` on 2xx, `False` on 401/404, raises `AccessDenied` on 403
+  entitlement denial, and `TokenEndpointError` on other 4xx. Refuses warned
+  subscription methods (`claude_pro_oauth_browser`,
+  `claude_pro_oauth_device`) unless `force=True` is passed, and is
+  no-op-detectable for providers without a `validation_url`.
 
 ### Fixed
 - `EncryptedFileStore` file permissions now work on Windows: replaced the
