@@ -52,6 +52,26 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
         self._poll_timeout_seconds = poll_timeout_seconds
         self._http_client = http_client
 
+    def with_on_prompt(
+        self, callback: Callable[[str, str], None]
+    ) -> OAuthDeviceCodeMethod:
+        """Return a new instance with the given on_prompt callback.
+
+        Mirrors ``APIKeyMethod.with_secret_prompt``; the CLI uses this
+        to inject a Click-aware prompt.
+        """
+        return OAuthDeviceCodeMethod(
+            provider_id=self._provider_id,
+            device_code_url=self._device_code_url,
+            token_url=self._token_url,
+            client_id=self._client_id,
+            scopes=self._scopes,
+            on_prompt=callback,
+            poll_interval_seconds=self._poll_interval_seconds,
+            poll_timeout_seconds=self._poll_timeout_seconds,
+            http_client=self._http_client,
+        )
+
     @property
     @override
     def id(self) -> str:

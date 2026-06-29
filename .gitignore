@@ -228,3 +228,7 @@ opencode.json
 
 # macOS Finder metadata (canonical Python.gitignore is OS-agnostic)
 .DS_Store
+
+# Git worktrees
+.worktrees/
+worktrees/

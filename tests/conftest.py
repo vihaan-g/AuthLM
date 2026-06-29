@@ -4,6 +4,13 @@ import sys
 from pathlib import Path
 
 import pytest
+from click.testing import CliRunner
+
+
+@pytest.fixture
+def runner() -> CliRunner:
+    """A Click CliRunner for CLI tests."""
+    return CliRunner()
 
 
 @pytest.fixture(autouse=True, scope="session")

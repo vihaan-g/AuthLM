@@ -9,6 +9,8 @@ import httpx
 from authlm._auth_table import get_oauth_config
 from authlm.connection_methods._oauth_helpers import classify_token_error
 from authlm.connection_methods.api_key import APIKeyMethod
+from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
+from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.credentials import Credential, OAuthCredential
 from authlm.errors import (
     AuthLMError,
@@ -141,6 +143,8 @@ async def connect(
     method_id: str | None = None,
     store: CredentialStore | None = None,
     secret_prompt: Callable[[str], str] | None = None,
+    on_prompt: Callable[[str, str], None] | None = None,
+    open_browser: Callable[[str], None] | None = None,
     metadata_store: MetadataStore | None = None,
 ) -> Credential:
     """Run the connection method, persist the result, and update metadata.
@@ -156,6 +160,10 @@ async def connect(
 
     if isinstance(method, APIKeyMethod) and secret_prompt is not None:
         method = method.with_secret_prompt(secret_prompt)
+    if isinstance(method, OAuthDeviceCodeMethod) and on_prompt is not None:
+        method = method.with_on_prompt(on_prompt)
+    if isinstance(method, OAuthPKCEMethod) and open_browser is not None:
+        method = method.with_open_browser(open_browser)
 
     cred = await method.connect(store=backend)
     if cred.alias != alias:

@@ -80,6 +80,26 @@ class OAuthPKCEMethod(ConnectionMethod):
         self._open_browser = open_browser
         self._http_client = http_client
 
+    def with_open_browser(self, callback: Callable[[str], None]) -> OAuthPKCEMethod:
+        """Return a new instance with the given open_browser callback.
+
+        Mirrors ``APIKeyMethod.with_secret_prompt``; the CLI uses this
+        to inject a Click-aware opener (e.g. one that logs the URL to
+        stderr before invoking ``webbrowser.open``).
+        """
+        return OAuthPKCEMethod(
+            provider_id=self._provider_id,
+            authorize_url=self._authorize_url,
+            token_url=self._token_url,
+            client_id=self._client_id,
+            scopes=self._scopes,
+            redirect_port=self._redirect_port,
+            redirect_path=self._redirect_path,
+            loopback_factory=self._loopback_factory,
+            open_browser=callback,
+            http_client=self._http_client,
+        )
+
     @property
     @override
     def id(self) -> str:

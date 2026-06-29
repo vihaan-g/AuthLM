@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
+import httpx
 import pytest
+from pydantic import HttpUrl
 from respx import MockRouter
 
 from authlm.api import (
@@ -13,6 +17,8 @@ from authlm.api import (
     should_refresh,
     validate,
 )
+from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
+from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.credentials import ApiKeyCredential, OAuthCredential
 from authlm.errors import CredentialNotFound, ReconnectionRequired
 from authlm.providers.registry import get_method
@@ -195,3 +201,102 @@ async def test_validate_delegates_to_validation_module(
         provider="openai", alias="default", method_id="api_key", secret="sk-test"
     )
     assert await validate(cred, force=False) is True
+
+
+@pytest.mark.asyncio
+async def test_connect_propagates_on_prompt_to_device_method(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """api.connect(on_prompt=...) calls OAuthDeviceCodeMethod.with_on_prompt()."""
+    method = OAuthDeviceCodeMethod(
+        provider_id="openai",
+        device_code_url=HttpUrl(
+            "https://auth.openai.com/api/accounts/deviceauth/usercode"
+        ),
+        token_url=HttpUrl("https://auth.openai.com/oauth/token"),
+        client_id="cid",
+        scopes=("openid",),
+        http_client=httpx.AsyncClient(),
+    )
+
+    captured: list[Callable[[str, str], None]] = []
+
+    def stub_with_on_prompt(
+        callback: Callable[[str, str], None],
+    ) -> OAuthDeviceCodeMethod:
+        captured.append(callback)
+        return method
+
+    monkeypatch.setattr(method, "with_on_prompt", stub_with_on_prompt)
+
+    async def fake_connect(*, store: Any) -> ApiKeyCredential:
+        return ApiKeyCredential(
+            provider="openai",
+            alias="default",
+            method_id="oauth_device",
+            secret="",
+        )
+
+    monkeypatch.setattr(method, "connect", fake_connect)
+
+    def my_prompt(uri: str, code: str) -> None:
+        pass
+
+    await connect(
+        "openai",
+        alias="default",
+        method=method,
+        store=MemoryStore(),
+        secret_prompt=lambda _: "",
+        on_prompt=my_prompt,
+    )
+    assert captured == [my_prompt]
+
+
+@pytest.mark.asyncio
+async def test_connect_propagates_open_browser_to_pkce_method(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """api.connect(open_browser=...) calls OAuthPKCEMethod.with_open_browser()."""
+    method = OAuthPKCEMethod(
+        provider_id="openai",
+        authorize_url=HttpUrl("https://auth.openai.com/oauth/authorize"),
+        token_url=HttpUrl("https://auth.openai.com/oauth/token"),
+        client_id="cid",
+        scopes=("openid",),
+        redirect_port=14999,
+        http_client=httpx.AsyncClient(),
+    )
+
+    captured: list[Callable[[str], None]] = []
+
+    def stub_with_open_browser(
+        callback: Callable[[str], None],
+    ) -> OAuthPKCEMethod:
+        captured.append(callback)
+        return method
+
+    monkeypatch.setattr(method, "with_open_browser", stub_with_open_browser)
+
+    async def fake_connect(*, store: Any) -> ApiKeyCredential:
+        return ApiKeyCredential(
+            provider="openai",
+            alias="default",
+            method_id="oauth_browser",
+            secret="",
+        )
+
+    monkeypatch.setattr(method, "connect", fake_connect)
+
+    def my_open(url: str) -> None:
+        pass
+
+    await connect(
+        "openai",
+        alias="default",
+        method=method,
+        store=MemoryStore(),
+        secret_prompt=lambda _: "",
+        open_browser=my_open,
+    )
+    assert captured == [my_open]
