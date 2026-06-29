@@ -153,3 +153,26 @@ async def test_validate_rejects_expired_credential() -> None:
         expires_at=datetime.now(UTC) - timedelta(minutes=1),
     )
     assert await method.validate(cred, force=False) is False
+
+
+def test_device_method_with_on_prompt_returns_new_instance() -> None:
+    captured: list[tuple[str, str]] = []
+
+    def my_prompt(uri: str, code: str) -> None:
+        captured.append((uri, code))
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="openai",
+        device_code_url=HttpUrl(
+            "https://auth.openai.com/api/accounts/deviceauth/usercode"
+        ),
+        token_url=HttpUrl("https://auth.openai.com/oauth/token"),
+        client_id="cid",
+        scopes=("openid",),
+        on_prompt=my_prompt,
+        poll_interval_seconds=0,
+        poll_timeout_seconds=5.0,
+    )
+    new_method = method.with_on_prompt(my_prompt)
+    assert new_method is not method
+    assert new_method._on_prompt is my_prompt  # noqa: SLF001

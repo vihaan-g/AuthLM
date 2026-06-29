@@ -148,3 +148,20 @@ async def test_validate_rejects_expired_credential() -> None:
         expires_at=datetime.now(UTC) - timedelta(minutes=1),
     )
     assert await method.validate(cred, force=False) is False
+
+
+def test_pkce_method_with_open_browser_returns_new_instance() -> None:
+    def my_open(url: str) -> None:
+        pass
+
+    method = OAuthPKCEMethod(
+        provider_id="openai",
+        authorize_url=HttpUrl("https://auth.openai.com/oauth/authorize"),
+        token_url=HttpUrl("https://auth.openai.com/oauth/token"),
+        client_id="cid",
+        scopes=("openid",),
+        redirect_port=14999,
+    )
+    new_method = method.with_open_browser(my_open)
+    assert new_method is not method
+    assert new_method._open_browser is my_open  # noqa: SLF001
