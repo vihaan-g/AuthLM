@@ -22,18 +22,20 @@ def test_format_list_table_empty() -> None:
 
 
 def test_format_list_table_single_entry() -> None:
-    out = format_list_table([("openai", "default")], backend_name="Memory")
+    out = format_list_table([("openai", "default", "api_key")], backend_name="Memory")
     assert "PROVIDER" in out
     assert "ALIAS" in out
     assert "openai" in out
     assert "default" in out
+    assert "api_key" in out
     assert "Memory" in out
     assert out.endswith("\n")
 
 
 def test_format_list_table_multiple_entries() -> None:
     out = format_list_table(
-        [("openai", "personal"), ("openai", "work")], backend_name="Memory"
+        [("openai", "personal", "api_key"), ("openai", "work", "api_key")],
+        backend_name="Memory",
     )
     assert "personal" in out
     assert "work" in out

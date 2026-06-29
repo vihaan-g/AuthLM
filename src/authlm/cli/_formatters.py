@@ -11,28 +11,26 @@ if TYPE_CHECKING:
 
 
 def format_list_table(
-    entries: list[tuple[str, str]],
+    entries: list[tuple[str, str, str]],
     *,
     backend_name: str,
     metadata_store: MetadataStore | None = None,
 ) -> str:
-    """Render a `list`-style ASCII table for the given (provider, alias) pairs.
+    """Render a `list`-style ASCII table for the given credentials.
 
-    If ``metadata_store`` is provided, the table includes the method ID and
-    last-validated timestamp; otherwise those columns are blank.
+    ``entries`` is a list of ``(provider, alias, method_id)`` tuples. If
+    ``metadata_store`` is provided, the last-validated column is populated
+    from metadata; otherwise that column is blank.
     """
     if not entries:
         return "No credentials stored.\n"
     rows: list[tuple[str, str, str, str, str]] = []
-    for provider, alias in entries:
-        method_id = ""
+    for provider, alias, method_id in entries:
         last_validated = ""
         if metadata_store is not None:
             entry = metadata_store.get(provider, alias)
-            if entry is not None:
-                method_id = entry.method_id
-                if entry.last_validated_at is not None:
-                    last_validated = _format_datetime(entry.last_validated_at)
+            if entry is not None and entry.last_validated_at is not None:
+                last_validated = _format_datetime(entry.last_validated_at)
         rows.append((provider, alias, method_id, backend_name, last_validated))
 
     header = ("PROVIDER", "ALIAS", "METHOD", "BACKEND", "LAST VALIDATED")
