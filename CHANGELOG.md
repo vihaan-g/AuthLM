@@ -105,6 +105,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   `providers/`); `authlm.cli._context` provides `get_store()` and
   `is_tty()`; `authlm.cli._formatters` provides `format_list_table()` and
   `format_status_table()`.
+- Dependabot bumps: `anthropic` 0.112.0 → 0.113.0 (PR #6), `astral-sh/setup-uv`
+  SHA pin updated (PR #5).
 
 ### Fixed
 - `EncryptedFileStore` file permissions now work on Windows: replaced the
