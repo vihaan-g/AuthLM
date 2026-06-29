@@ -79,6 +79,32 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   `get_valid_credential`, `refresh` (handles refresh-token rotation
   and classifies errors per spec §5.3), `should_refresh`, `connect`
   (orchestrates method + store + metadata), and `validate`.
+- 5-command CLI in `authlm.cli` (Click group, entry point `authlm.cli:cli`):
+  `connect` (interactive method picker with `[y/N]` warning confirmation for
+  warned methods, refuses non-TTY without `--method`), `list` (ASCII table of
+  stored credentials with backend and last-validated columns), `status`
+  (per-credential metadata block; `--validate` probes the credential, `--force`
+  allows probing warned methods, `--all` iterates aliases), `disconnect`
+  (confirmation prompt; `--yes` to skip), `env` (exports credential as shell
+  env vars in `shell` / `docker` / `github` formats; `eval "$(authlm env openai)"`
+  for shell). The CLI is a thin sync wrapper: each command bridges to the
+  async `authlm.api` functions via `asyncio.run()` per spec §2.3.
+- Per-subcommand `--store` option mirrors the `AUTHLM_STORE` env
+  var (one of `keyring`, `encrypted_file`, `env`, `memory`); `--metadata-path`
+  mirrors `AUTHLM_METADATA_PATH`. Tests use `--store=memory` for isolation;
+  users can use it to override the store on a per-invocation basis. The
+  options live on each subcommand rather than the group, to avoid Click
+  option-precedence ambiguity.
+- `authlm.api.connect()` now accepts optional `on_prompt` and `open_browser`
+  keyword-only parameters. When passed, they are propagated to the
+  `OAuthDeviceCodeMethod` / `OAuthPKCEMethod` via new `with_on_prompt()` and
+  `with_open_browser()` methods (mirroring the existing
+  `APIKeyMethod.with_secret_prompt()`). Backward compatible: existing
+  callers that omit these params see no change.
+- `authlm.cli` is a subpackage (mirrors `connection_methods/` and
+  `providers/`); `authlm.cli._context` provides `get_store()` and
+  `is_tty()`; `authlm.cli._formatters` provides `format_list_table()` and
+  `format_status_table()`.
 
 ### Fixed
 - `EncryptedFileStore` file permissions now work on Windows: replaced the
@@ -118,6 +144,17 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   Removed unused logo-fetching logic (no library code reads from
   `_vendor/_logos/`). Updated vendored snapshot with latest live data for
   the 4 built-in providers.
+- `connect` (CLI) refuses to run with no `--method` on a non-TTY stdin and
+  prints a clear error message; this avoids hangs in CI / scripts and matches
+  the spec's "explicit over implicit" principle.
+- The CLI sets `logging.getLogger("authlm").setLevel(logging.WARNING)` at
+  startup so INFO-level logs from the OAuth methods (e.g. PKCE "Opening
+  browser" info) do not pollute `eval $(authlm env ...)` stdout. The
+  device-code URL and user code are routed to stderr via a custom `on_prompt`
+  callback.
+- `cli` group now uses `invoke_without_command=True` so `authlm` (no
+  subcommand) prints help text and exits 0 instead of Click's default
+  `MissingCommand` (exit 2). Implemented in commit `eab5f1f`.
 
 ### Deferred
 - `OllamaProvider` (no-auth) is deferred to a later milestone. The
