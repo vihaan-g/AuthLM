@@ -36,7 +36,7 @@ dependencies = [
 
 [project.optional-dependencies]
 openai = ["openai>=2.0"]
-anthropic = ["anthropic>=0.40"]
+anthropic = ["anthropic>=0.113.0"]
 google = ["google-genai>=1.0"]
 all = ["authlm[openai,anthropic,google]"]
 test = [
