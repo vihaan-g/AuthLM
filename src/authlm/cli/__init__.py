@@ -11,10 +11,13 @@ from authlm.cli import list_cmd as _list_cmd
 from authlm.cli import status as _status
 
 
-@click.group()
-def cli() -> None:
+@click.group(invoke_without_command=True)
+@click.pass_context
+def cli(ctx: click.Context) -> None:
     """AuthLM credential manager."""
     logging.getLogger("authlm").setLevel(logging.WARNING)
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
 
 
 cli.add_command(_list_cmd.list_cmd)
