@@ -14,7 +14,7 @@ AuthLM is a Python library that manages authentication and credentials for AI pr
 
 **Pre-release. v0.1.0 in development. Not yet on PyPI.**
 
-**Implemented today** (milestones 0, 1, 2 done; all tests passing on macOS/Linux/Windows × Python 3.11/3.12/3.13/3.14):
+**Implemented today** (milestones 0, 1, 2, 3 done; 242 unit tests passing on macOS/Linux/Windows × Python 3.11/3.12/3.13/3.14):
 
 - Pydantic `Credential` types (`ApiKeyCredential`, `OAuthCredential`) with discriminated union
 - Exception hierarchy (`AuthLMError` + 8 specific subclasses)
@@ -29,12 +29,12 @@ AuthLM is a Python library that manages authentication and credentials for AI pr
 - `models_dev` integration with vendored snapshot fallback (offline)
 - `validation.validate()` — async probe; refuses warned methods without `force=True`
 - Public async API: `get_credential`, `get_valid_credential`, `refresh`, `should_refresh`, `connect`, `validate`
+- **5-command Click CLI** (`authlm connect | list | status | disconnect | env`) with `--store` / `--metadata-path` overrides, 3 `env` export formats (`shell` / `docker` / `github`), warned-method `[y/N]` confirmation, and non-TTY refusal
 - NTFS ACL enforcement on Windows (owner-only file permissions, not just POSIX `chmod 0o600`)
 - OAuth error body redaction (`redact_body` in `connection_methods._oauth_helpers`)
 
 **Planned for v0.1.0** (not yet implemented):
 
-- 5-command CLI (`cli.py`): `connect`, `list`, `status`, `disconnect`, `env` — this is the final M2-era milestone
 - Ollama provider (no-auth edge case) — deferred alongside the `AuthMethod.NONE` enum value it requires
 
 See the [design spec](.agents/specs/v0.1.0-authlm.md) for the full v0.1.0 architecture.
@@ -58,7 +58,7 @@ AuthLM is the dedicated auth layer. OS keychain by default, OAuth flows, token r
 - **Plugin system** — pluggy-based (same engine as `pytest`). Third-party providers and stores register via entry points.
 - **Public OAuth client IDs** — OpenAI Codex, Anthropic Claude Code, Google AI Studio client IDs are bundled in `_auth_table.py` (the same client IDs the official CLI tools use), so OAuth flows work out-of-the-box. Override per-provider via `AUTHLM_{OPENAI,ANTHROPIC,GOOGLE}_CLIENT_ID` env vars.
 - **Validation probes** — `await authlm.validate(cred, force=True)` issues a lightweight API call (`GET /v1/models`, etc.) to confirm a credential works. Warned methods (Anthropic Claude Pro) require `force=True` and the library tells you why.
-- **5-command CLI** — `connect`, `list`, `status`, `disconnect`, `env`. *(planned for the final M2-era milestone)*
+- **5-command CLI** — `connect`, `list`, `status`, `disconnect`, `env`. `eval "$(authlm env openai)"` for shell; `--export-format github` for workflow `env:` blocks; non-TTY `connect` refuses to hang in CI.
 - **Zero telemetry** — no analytics, no phone-home, no crash reports. By design.
 
 ## What it is not
@@ -104,7 +104,7 @@ pip install "authlm[all]"                # all provider SDK extras
 
 ## Quick start
 
-> **Note:** The async API below is the v0.1.0 target. The M2 implementation (all 6 functions) is in place; the CLI wrapper is the final M2-era milestone. See [Status](#status) for what works today.
+> **Note:** The async API below is the v0.1.0 target. The M3 implementation is complete (all 6 public functions + the 5-command CLI). See [Status](#status) for what works today.
 
 ```python
 import authlm
@@ -156,10 +156,11 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync --all-extras                # install all deps including test extras
-uv run pytest                       # 196 unit tests, sub-second
+uv run pytest                       # 242 unit tests, sub-second
 uv run ruff check .                 # lint
 uv run ruff format .                # format
 uv run mypy src/authlm              # typecheck (strict)
+uv run authlm --help                # CLI smoke test
 ```
 
 CI runs the full matrix on every push: 3 OS (Ubuntu, macOS, Windows) × 4 Python (3.11, 3.12, 3.13, 3.14), plus `pip-audit`, `secrets-grep`, ruff, and mypy strict.

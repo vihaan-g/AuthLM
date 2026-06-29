@@ -15,7 +15,15 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
   - `connection_methods/` — `api_key.py` (APIKeyMethod), `oauth_pkce.py` (OAuthPKCEMethod with loopback HTTP server), `oauth_device.py` (OAuthDeviceCodeMethod with polling), `_oauth_helpers.py` (PKCE generation, URL redaction, token-endpoint error classification, body redaction), `__init__.py` re-exports.
   - `stores/` — `base.py` (`CredentialStore` Protocol), `memory_store.py`, `env_store.py`, `keyring_store.py`, `encrypted_file_store.py`, `__init__.py` (`get_default_store` auto-selection).
   - `hookspecs.py`, `plugins.py` — pluggy plugin system (hookspecs + `PluginManager` loader). `DEFAULT_PLUGINS` registers the 4 built-in provider modules.
-  - `cli.py` — Click CLI (5 commands: connect, list, status, disconnect, env) — **planned (M3)**
+  - `cli/` — Click CLI subpackage, entry point `authlm.cli:cli` (`[project.scripts]` in `pyproject.toml`):
+    - `__init__.py` — `cli` Click group; registers the 5 subcommands; sets `logging.getLogger("authlm").setLevel(logging.WARNING)` at startup so OAuth INFO logs don't pollute `eval $(authlm env ...)` stdout. Uses `invoke_without_command=True` so `authlm` (no subcommand) prints help.
+    - `_context.py` — `get_store(*, store_name)` factory (delegates to `authlm.stores.get_default_store` when `None`) and `is_tty()`.
+    - `_formatters.py` — pure string functions `format_list_table` and `format_status_table` for the `list` and `status` commands.
+    - `connect.py` — `authlm connect` command: provider lookup, method picker (interactive or `--method`), warned-method filtering (`--include-warned`), `[y/N]` confirmation, Click-aware secret/device-code/browser callbacks, non-TTY refusal per spec §2.3.
+    - `list_cmd.py` — `authlm list` command: ASCII table of stored credentials.
+    - `status.py` — `authlm status` command: per-credential metadata block, `--validate` / `--force` / `--all` flags.
+    - `disconnect.py` — `authlm disconnect` command: `[y/N]` confirmation, `--yes` to skip.
+    - `env.py` — `authlm env` command: exports credential as `KEY=VALUE` lines in `shell` / `docker` / `github` formats.
   - `errors.py` — exception hierarchy (`AuthLMError` base + `SecretStoreError`, `CredentialNotFound`, `RefreshFailed`, `ReconnectionRequired`, `AccessDenied`, `TokenEndpointError`, `ProviderNotAvailable`, `AliasCollisionError`).
 - `tests/` — `unit/`, `integration/`, `security/`, `cassettes/` (VCR.py)
 - `.agents/specs/` — design specs (read before architectural work)
@@ -36,8 +44,9 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
 - **Format:** `uv run ruff format .` — run after changes
 - **Typecheck:** `uv run mypy src/authlm` — must pass with `--strict`
 - **Test (focused):** `uv run pytest tests/unit/<area>` — run for the area you changed
-- **Test (full):** `uv run pytest` — currently 196 unit tests, sub-second; run freely
+- **Test (full):** `uv run pytest` — currently 242 unit tests, sub-second; run freely
 - **Build:** `uv run python -m build`
+- **CLI smoke test:** `uv run authlm --help` — should list all 5 subcommands (`connect`, `list`, `status`, `disconnect`, `env`).
 
 ## Conventions
 
@@ -101,6 +110,7 @@ All Python code follows `.agents/rules/general.md` and the `python-conventions` 
 - `src/authlm/_auth_table.py` — OAuth client IDs, endpoints, scopes. Adding a new provider or changing an existing endpoint must be done as a single atomic change with the matching test update.
 - `src/authlm/api.py` — public async API. The `refresh()` path handles refresh-token rotation; any change to it must preserve the "keep the old refresh token if the server omits one" fallback.
 - `src/authlm/validation.py` — validation probes and warned-method policy. `validate()` raises `PermissionError` for warned-method refusals — this is a deliberate choice over `AuthLMError`; do not change without updating the spec.
+- `src/authlm/cli/` — the CLI surface (5 commands). Changes to CLI semantics (e.g., how warnings are surfaced, how `eval $(authlm env ...)` is routed) require careful review. The CLI uses `click.prompt(..., hide_input=True)` for secret input and routes device-code prompts to stderr; do not change these without confirming `tests/unit/test_cli_connect.py` and `tests/unit/test_cli_env.py` still pass.
 - VCR cassettes — must be scrubbed of all secrets.
 - `SECURITY.md` — threat model and disclosure process.
 

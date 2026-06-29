@@ -8,3 +8,4 @@
 - [ ] No new runtime dependency added (or justified in PR description)
 - [ ] No `print()` calls in library code
 - [ ] Type hints on all new functions
+- [ ] If `src/authlm/cli/` is touched: `uv run authlm --help` lists all 5 subcommands; `uv run pytest tests/unit/test_cli_*.py` passes
