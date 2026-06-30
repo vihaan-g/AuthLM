@@ -232,3 +232,6 @@ opencode.json
 # Git worktrees
 .worktrees/
 worktrees/
+
+# Local ideation scratch doc
+IDEA.md
