@@ -226,6 +226,9 @@ opencode.json
 # Agent session plans (scratch space, regenerated per session)
 .agents/plans/
 
+# Release-readiness audits and other agent-generated review docs
+.agents/audits/
+
 # macOS Finder metadata (canonical Python.gitignore is OS-agnostic)
 .DS_Store
 
