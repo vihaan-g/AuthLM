@@ -153,6 +153,7 @@ class EncryptedFileStore(CredentialStore):
         old_umask = os.umask(0o077)
         try:
             tmp_path.write_text(file.model_dump_json(indent=2))
+            _restrict_permissions(tmp_path)
         finally:
             os.umask(old_umask)
         os.replace(tmp_path, self._path)
