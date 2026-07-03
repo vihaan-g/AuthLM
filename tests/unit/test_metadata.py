@@ -82,3 +82,27 @@ def test_optional_fields_default() -> None:
     assert entry.last_validated_at is None
     assert entry.warning_acknowledged_at is None
     assert entry.scopes == []
+
+
+def test_metadata_entry_has_fingerprint_field() -> None:
+    from datetime import UTC, datetime
+
+    entry = MetadataEntry(
+        provider_display_name="OpenAI",
+        method_id="api_key",
+        connected_at=datetime.now(UTC),
+        fingerprint="abc123",
+    )
+    assert entry.fingerprint == "abc123"
+
+
+def test_metadata_entry_has_client_id_field() -> None:
+    from datetime import UTC, datetime
+
+    entry = MetadataEntry(
+        provider_display_name="OpenAI",
+        method_id="oauth_browser",
+        connected_at=datetime.now(UTC),
+        client_id="app_test123",
+    )
+    assert entry.client_id == "app_test123"

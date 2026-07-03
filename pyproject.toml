@@ -5,6 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "authlm"
 dynamic = ["version"]
+authors = [{ name = "Vihaan Gupta" }]
 description = "Authentication and credential management for AI provider libraries."
 readme = "README.md"
 requires-python = ">=3.11"
