@@ -14,7 +14,7 @@ from authlm.cli import status as _status
 @click.group(invoke_without_command=True)
 @click.pass_context
 def cli(ctx: click.Context) -> None:
-    """AuthLM credential manager."""
+    """AuthLM credential manager — OS-keychain auth for AI providers."""
     logging.getLogger("authlm").setLevel(logging.WARNING)
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
