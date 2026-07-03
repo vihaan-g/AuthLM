@@ -35,7 +35,7 @@ def format_list_table(
 
     header = ("PROVIDER", "ALIAS", "METHOD", "BACKEND", "LAST VALIDATED")
     widths = [
-        max(_display_width(header[i]), *(len(row[i]) for row in rows)) for i in range(5)
+        max(len(header[i]), *(len(row[i]) for row in rows)) for i in range(5)
     ]
     sep = "-+-".join("-" * w for w in widths)
     lines = [
@@ -75,9 +75,6 @@ def format_status_table(
             lines.append(f"Scopes:    {', '.join(metadata.scopes)}")
     return "\n".join(lines) + "\n"
 
-
-def _display_width(s: str) -> int:
-    return len(s)
 
 
 def _format_datetime(dt: datetime) -> str:
