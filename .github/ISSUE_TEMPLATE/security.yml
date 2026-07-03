@@ -11,7 +11,7 @@ body:
         AuthLM uses GitHub's private vulnerability reporting. To disclose
         a vulnerability securely:
 
-        1. Go to the **Security** tab on the repository page.
+        1. Go to the Security Advisories tab.
         2. Click **"Report a vulnerability"**.
         3. Provide as much detail as possible (see SECURITY.md).
 
