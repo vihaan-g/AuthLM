@@ -19,6 +19,8 @@ ANTHROPIC_CLAUDE_PRO_WARNING = (
 
 
 class AnthropicProvider(Provider):
+    """Anthropic provider: api_key + warned Claude Pro OAuth (browser + headless)."""
+
     def __init__(
         self,
         *,

@@ -13,6 +13,8 @@ from authlm.providers.base import ConnectionMethod, Provider
 
 
 class OpenAIProvider(Provider):
+    """OpenAI provider: api_key + ChatGPT OAuth (PKCE) + ChatGPT OAuth (device-code)."""
+
     def __init__(
         self,
         *,
