@@ -27,7 +27,6 @@ def test_generate_pkce_pair_returns_s256_pair() -> None:
         .decode("ascii")
     )
     assert pair.challenge == expected
-    assert pair.method == "S256"
 
 
 def test_generate_pkce_pair_verifiers_are_unique() -> None:

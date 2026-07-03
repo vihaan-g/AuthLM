@@ -48,10 +48,6 @@ class _FakeProvider:
     def docs_url(self) -> str | None:
         return "https://platform.openai.com/api-keys"
 
-    @property
-    def logo_url(self) -> str | None:
-        return None
-
     def connection_methods(self, *, include_warned: bool) -> Sequence[ConnectionMethod]:
         return [_FakeMethod()]
 

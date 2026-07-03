@@ -121,16 +121,6 @@ class OAuthPKCEMethod(ConnectionMethod):
         return OAuthGrant.AUTHORIZATION_CODE_PKCE
 
     @override
-    async def validate(self, cred: Credential, *, force: bool) -> bool:
-        if not isinstance(cred, OAuthCredential):
-            return False
-        if cred.expires_at is None:
-            return True
-        if cred.expires_at.tzinfo is None:
-            return cred.expires_at > datetime.now()
-        return cred.expires_at > datetime.now(UTC)
-
-    @override
     async def connect(self, *, store: CredentialStore) -> Credential:
         if self._http_client is None:
             raise RuntimeError("http_client is required for connect()")
@@ -164,7 +154,6 @@ class OAuthPKCEMethod(ConnectionMethod):
     def _start_loopback(
         self, captured: dict[str, str], expected_state: str
     ) -> _LoopbackServer:
-        outer_self = self
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:  # noqa: N802
@@ -186,9 +175,7 @@ class OAuthPKCEMethod(ConnectionMethod):
             def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
                 return
 
-        server = outer_self._loopback_factory(
-            ("127.0.0.1", outer_self._redirect_port), Handler
-        )
+        server = self._loopback_factory(("127.0.0.1", self._redirect_port), Handler)
         threading.Thread(target=server.serve_forever, daemon=True).start()
         return server
 

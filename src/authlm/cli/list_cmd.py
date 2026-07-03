@@ -28,8 +28,9 @@ def list_cmd(store_name: str | None, metadata_path: Path | None) -> None:
     """List stored credentials."""
     store: CredentialStore = _context.get_store(store_name=store_name)
     entries = sorted(
-        (provider, alias, _method_id(store, provider, alias))
+        (provider, alias, cred.method_id if cred is not None else "")
         for provider, alias in store.list()
+        for cred in [store.get(provider, alias)]
     )
     metadata_store = (
         MetadataStore(path=metadata_path) if metadata_path is not None else None
@@ -41,8 +42,3 @@ def list_cmd(store_name: str | None, metadata_path: Path | None) -> None:
             metadata_store=metadata_store,
         )
     )
-
-
-def _method_id(store: CredentialStore, provider: str, alias: str) -> str:
-    cred = store.get(provider, alias)
-    return cred.method_id if cred is not None else ""

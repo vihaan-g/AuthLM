@@ -2,12 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from authlm.connection_methods.api_key import _default_secret_prompt
 from authlm.errors import AuthLMError
 from authlm.providers.base import ConnectionMethod, Provider
-
-
-def _default_secret_prompt(prompt: str) -> str:
-    return input(prompt)
 
 
 def _build_providers() -> Sequence[Provider]:

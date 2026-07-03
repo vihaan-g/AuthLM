@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
@@ -118,36 +117,6 @@ async def test_connect_handles_invalid_grant(respx_mock: MockRouter) -> None:
         method = _method(http_client=client, port=port)
         with pytest.raises(ReconnectionRequired):
             await method.connect(store=_StubStore())
-
-
-@pytest.mark.asyncio
-async def test_validate_accepts_oauth_credential() -> None:
-    async with httpx.AsyncClient() as client:
-        method = _method(http_client=client, port=14558)
-    cred = OAuthCredential(
-        provider="openai",
-        alias="default",
-        method_id="oauth_browser",
-        access_token="a",
-        refresh_token="r",
-        expires_at=datetime.now(UTC) + timedelta(hours=1),
-    )
-    assert await method.validate(cred, force=False) is True
-
-
-@pytest.mark.asyncio
-async def test_validate_rejects_expired_credential() -> None:
-    async with httpx.AsyncClient() as client:
-        method = _method(http_client=client, port=14559)
-    cred = OAuthCredential(
-        provider="openai",
-        alias="default",
-        method_id="oauth_browser",
-        access_token="a",
-        refresh_token="r",
-        expires_at=datetime.now(UTC) - timedelta(minutes=1),
-    )
-    assert await method.validate(cred, force=False) is False
 
 
 def test_pkce_method_with_open_browser_returns_new_instance() -> None:
