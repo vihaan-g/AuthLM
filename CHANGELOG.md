@@ -157,7 +157,37 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - `cli` group now uses `invoke_without_command=True` so `authlm` (no
   subcommand) prints help text and exits 0 instead of Click's default
   `MissingCommand` (exit 2). Implemented in commit `eab5f1f`.
+- Updated v0.1.0 design spec (`.agents/specs/v0.1.0-authlm.md`) to reflect
+  v0.1.0 reality: plugin system and models.dev integration removed from
+  v0.1.0 scope (deferred to v0.2.0), `authlm status --backend` and
+  `authlm.set_store()` added to v0.1.0 scope, `compute_fingerprint` wired
+  into `MetadataEntry` for change detection, `Field(repr=False)` on all
+  secret fields, `ProviderNotAvailable`/`AliasCollisionError` deferred to
+  v0.2.0, `ConnectionMethod.validate()` removed from Protocol (validation
+  goes through `validation.validate()` directly), roadmap replaced with
+  4-version plan (v0.2.0 → v1.0.0).
+- Created version spec outlines: `.agents/specs/v0.2.0-authlm.md`
+  (Extensibility & Ecosystem), `.agents/specs/v0.3.0-authlm.md`
+  (Robustness & More Stores), `.agents/specs/v1.0.0-authlm.md`
+  (Stable Release).
+- Updated `AGENTS.md` to reflect v0.1.0 reality (first-party providers
+  only, no plugin system, `set_store()` in stores, `--backend` in status
+  command, `Field(repr=False)` on secrets, version spec references).
+- Updated `README.md` with honest v0.1.0 scope, roadmap section, and
+  removed plugin system / models.dev from the features list.
 
 ### Deferred
-- `OllamaProvider` (no-auth) is deferred to a later milestone. The
-  `_ENV_VAR_MAP` and CLI will be extended when ollama lands.
+- `OllamaProvider` (no-auth) is deferred to v0.2.0. See
+  `.agents/specs/v0.2.0-authlm.md`.
+- Plugin system (pluggy) is deferred to v0.2.0. See
+  `.agents/specs/v0.2.0-authlm.md`.
+- `models_dev` integration is deferred to v0.2.0. See
+  `.agents/specs/v0.2.0-authlm.md`.
+- `AwsCredential` / `AzureAdCredential` are deferred to v0.2.0. See
+  `.agents/specs/v0.2.0-authlm.md`.
+- `authlm import llm` / `authlm export` are deferred to v0.2.0. See
+  `.agents/specs/v0.2.0-authlm.md`.
+- File-locking (multi-process refresh safety) is deferred to v0.3.0. See
+  `.agents/specs/v0.3.0-authlm.md`.
+- Additional store backends (Vault, Bitwarden, 1Password) are deferred to
+  v0.3.0. See `.agents/specs/v0.3.0-authlm.md`.
