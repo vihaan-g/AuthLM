@@ -30,12 +30,12 @@ dependencies = [
     "platformdirs>=4",
     "pydantic>=2.0",
     "pywin32>=307; sys_platform == 'win32'",
-    "typing_extensions>=4.12",
+    "typing_extensions>=4.16.0",
 ]
 
 [project.optional-dependencies]
 openai = ["openai>=2.0"]
-anthropic = ["anthropic>=0.113.0"]
+anthropic = ["anthropic>=0.116.0"]
 google = ["google-genai>=1.0"]
 all = ["authlm[openai,anthropic,google]"]
 test = [
