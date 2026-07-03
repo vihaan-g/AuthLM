@@ -4,10 +4,8 @@ import pytest
 
 from authlm.errors import (
     AccessDenied,
-    AliasCollisionError,
     AuthLMError,
     CredentialNotFound,
-    ProviderNotAvailable,
     ReconnectionRequired,
     RefreshFailed,
     SecretStoreError,
@@ -20,8 +18,6 @@ SUBCLASSES: list[type[AuthLMError]] = [
     ReconnectionRequired,
     AccessDenied,
     TokenEndpointError,
-    ProviderNotAvailable,
-    AliasCollisionError,
     SecretStoreError,
 ]
 
