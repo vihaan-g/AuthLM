@@ -155,3 +155,29 @@ def test_compute_fingerprint_unique_per_secret() -> None:
 def test_compute_fingerprint_empty() -> None:
     fp = compute_fingerprint("")
     assert len(fp) == 16
+
+
+def test_api_key_credential_repr_does_not_leak_secret() -> None:
+    cred = ApiKeyCredential(
+        provider="openai",
+        alias="default",
+        method_id="api_key",
+        secret="sk-supersecret123",
+    )
+    repr_str = repr(cred)
+    assert "sk-supersecret123" not in repr_str
+
+
+def test_oauth_credential_repr_does_not_leak_tokens() -> None:
+    cred = OAuthCredential(
+        provider="openai",
+        alias="default",
+        method_id="oauth_browser",
+        access_token="ya29.secret-token",
+        refresh_token="rt-refresh-secret",
+        expires_at=None,
+        scopes=["openid"],
+    )
+    repr_str = repr(cred)
+    assert "ya29.secret-token" not in repr_str
+    assert "rt-refresh-secret" not in repr_str

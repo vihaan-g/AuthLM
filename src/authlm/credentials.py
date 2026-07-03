@@ -16,13 +16,13 @@ class Credential(BaseModel):
 
 class ApiKeyCredential(Credential):
     type: Literal["api_key"] = "api_key"
-    secret: str
+    secret: str = Field(repr=False)
 
 
 class OAuthCredential(Credential):
     type: Literal["oauth"] = "oauth"
-    access_token: str
-    refresh_token: str | None
+    access_token: str = Field(repr=False)
+    refresh_token: str | None = Field(default=None, repr=False)
     expires_at: datetime | None
     scopes: list[str] = Field(default_factory=list)
     client_id: str | None = None
