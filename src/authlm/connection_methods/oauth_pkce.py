@@ -154,7 +154,6 @@ class OAuthPKCEMethod(ConnectionMethod):
     def _start_loopback(
         self, captured: dict[str, str], expected_state: str
     ) -> _LoopbackServer:
-        outer_self = self
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:  # noqa: N802
@@ -176,8 +175,8 @@ class OAuthPKCEMethod(ConnectionMethod):
             def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
                 return
 
-        server = outer_self._loopback_factory(
-            ("127.0.0.1", outer_self._redirect_port), Handler
+        server = self._loopback_factory(
+            ("127.0.0.1", self._redirect_port), Handler
         )
         threading.Thread(target=server.serve_forever, daemon=True).start()
         return server
