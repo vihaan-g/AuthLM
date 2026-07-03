@@ -6,6 +6,7 @@ from typing import Any
 
 import httpx
 import pytest
+import respx
 from pydantic import HttpUrl
 from respx import MockRouter
 
@@ -301,3 +302,48 @@ async def test_connect_propagates_open_browser_to_pkce_method(
         open_browser=my_open,
     )
     assert captured == [my_open]
+
+
+@pytest.mark.asyncio
+async def test_refresh_keeps_old_refresh_token_when_server_omits_it() -> None:
+    old_refresh = "rt-old-token"
+    store = MemoryStore()
+    cred = OAuthCredential(
+        provider="openai",
+        alias="default",
+        method_id="oauth_browser",
+        access_token="at-old",
+        refresh_token=old_refresh,
+        expires_at=datetime.now(UTC) - timedelta(minutes=10),
+    )
+    store.set(cred)
+
+    with respx.mock:
+        respx.post(
+            "https://auth.openai.com/oauth/token",
+        ).respond(
+            200,
+            json={"access_token": "at-new", "expires_in": 3600},
+        )
+
+        result = await refresh("openai", alias="default", store=store)
+
+    assert result.access_token == "at-new"
+    assert result.refresh_token == old_refresh
+
+
+@pytest.mark.asyncio
+async def test_refresh_raises_reconnection_required_when_no_refresh_token() -> None:
+    store = MemoryStore()
+    cred = OAuthCredential(
+        provider="openai",
+        alias="default",
+        method_id="oauth_browser",
+        access_token="at-expired",
+        refresh_token=None,
+        expires_at=datetime.now(UTC) - timedelta(minutes=10),
+    )
+    store.set(cred)
+
+    with pytest.raises(ReconnectionRequired):
+        await refresh("openai", alias="default", store=store)

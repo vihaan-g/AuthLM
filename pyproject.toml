@@ -41,6 +41,7 @@ all = ["authlm[openai,anthropic,google]"]
 test = [
     "pytest>=8",
     "pytest-asyncio>=0.23",
+    "pytest-cov>=6",
     "pytest-httpx>=0.33",
     "respx>=0.21",
     "mypy>=1.10",
@@ -94,3 +95,15 @@ warn_required_dynamic_aliases = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+addopts = "--strict-markers"
+markers = [
+    "slow: tests that take >5 seconds",
+    "unit: fast unit tests (no network)",
+]
+
+[tool.coverage.run]
+source = ["src/authlm"]
+omit = ["tests/*", "src/authlm/_vendor/*"]
+
+[tool.coverage.report]
+fail_under = 80
