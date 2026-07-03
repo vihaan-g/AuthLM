@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 from pathlib import Path
 
 import click
 
-from authlm import api as _api
 from authlm.cli import _context
 from authlm.cli._formatters import format_status_table
+from authlm.credentials import ApiKeyCredential, OAuthCredential, compute_fingerprint
 from authlm.errors import AuthLMError
 from authlm.metadata import MetadataStore
 from authlm.stores.base import CredentialStore
 from authlm.validation import _is_warned
+from authlm.validation import validate as _validate
 
 
 @click.command("status")
@@ -45,6 +47,13 @@ from authlm.validation import _is_warned
     help="Credential store backend (env: AUTHLM_STORE).",
 )
 @click.option(
+    "--backend",
+    "show_backend",
+    is_flag=True,
+    default=False,
+    help="Print the active store backend name and exit.",
+)
+@click.option(
     "--metadata-path",
     type=click.Path(dir_okay=False, path_type=Path),  # type: ignore[type-var]
     default=None,
@@ -57,10 +66,14 @@ def status(
     do_validate: bool,
     force: bool,
     store_name: str | None,
+    show_backend: bool,
     metadata_path: Path | None,
 ) -> None:
     """Show credential metadata; --validate to probe."""
     store: CredentialStore = _context.get_store(store_name=store_name)
+    if show_backend:
+        click.echo(store.backend_name())
+        return
     meta = MetadataStore(path=metadata_path) if metadata_path is not None else None
     pairs: list[tuple[str, str]]
     if provider_id is None:
@@ -81,6 +94,20 @@ def status(
         click.echo(
             format_status_table(cred, metadata, backend_name=store.backend_name())
         )
+        if metadata is not None and metadata.fingerprint is not None:
+            current_secret: str | None = None
+            if isinstance(cred, ApiKeyCredential):
+                current_secret = cred.secret
+            elif isinstance(cred, OAuthCredential):
+                current_secret = cred.access_token
+            if current_secret is not None:
+                current_fp = compute_fingerprint(current_secret)
+                if current_fp != metadata.fingerprint:
+                    click.echo(
+                        "WARNING: Secret has changed since last connect "
+                        "(key may have been rotated externally).",
+                        err=True,
+                    )
         if do_validate:
             if force and _is_warned(cred.method_id):
                 click.echo(
@@ -89,7 +116,12 @@ def status(
                     err=True,
                 )
             try:
-                result = asyncio.run(_api.validate(cred, force=force))
+                result = asyncio.run(_validate(cred, force=force))
             except (AuthLMError, PermissionError) as exc:
                 raise click.ClickException(str(exc)) from exc
+            if result and meta is not None:
+                entry = meta.get(provider, a)
+                if entry is not None:
+                    entry.last_validated_at = datetime.now(UTC)
+                    meta.set(provider, a, entry)
             click.echo(f"Validation: {'Valid' if result else 'Invalid'}")

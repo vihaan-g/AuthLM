@@ -15,6 +15,8 @@ class MetadataEntry(BaseModel):
     last_validated_at: datetime | None = None
     warning_acknowledged_at: datetime | None = None
     scopes: list[str] = Field(default_factory=list)
+    client_id: str | None = None
+    fingerprint: str | None = None
 
 
 class MetadataStore:

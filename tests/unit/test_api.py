@@ -15,7 +15,6 @@ from authlm.api import (
     get_valid_credential,
     refresh,
     should_refresh,
-    validate,
 )
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
@@ -194,13 +193,15 @@ async def test_connect_stores_credential() -> None:
 async def test_validate_delegates_to_validation_module(
     respx_mock: MockRouter,
 ) -> None:
+    from authlm.validation import validate as _validate
+
     respx_mock.get("https://api.openai.com/v1/models").respond(
         200, json={"data": [{"id": "gpt-4o"}]}
     )
     cred = ApiKeyCredential(
         provider="openai", alias="default", method_id="api_key", secret="sk-test"
     )
-    assert await validate(cred, force=False) is True
+    assert await _validate(cred, force=False) is True
 
 
 @pytest.mark.asyncio

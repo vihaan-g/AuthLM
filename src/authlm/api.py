@@ -14,7 +14,12 @@ from authlm.connection_methods._oauth_helpers import (
 from authlm.connection_methods.api_key import APIKeyMethod
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
-from authlm.credentials import Credential, OAuthCredential
+from authlm.credentials import (
+    ApiKeyCredential,
+    Credential,
+    OAuthCredential,
+    compute_fingerprint,
+)
 from authlm.errors import (
     AuthLMError,
     CredentialNotFound,
@@ -33,6 +38,19 @@ _log = logging.getLogger(__name__)
 
 
 def should_refresh(cred: Credential, *, margin: timedelta) -> bool:
+    """Return True if the credential is expired or within margin of expiry.
+
+    Args:
+        cred: The credential to check.
+        margin: If the credential expires within this window, it is
+            considered in need of refresh.
+
+    Returns:
+        True if the credential should be refreshed. For credentials
+        without ``expires_at`` (e.g. ``ApiKeyCredential``), returns False.
+
+    Sync — pure datetime arithmetic, no I/O. Safe to call from any context.
+    """
     if not isinstance(cred, OAuthCredential) or cred.expires_at is None:
         return False
     now = datetime.now(UTC)
@@ -45,6 +63,23 @@ async def get_credential(
     alias: str,
     store: CredentialStore | None = None,
 ) -> Credential:
+    """Return the stored credential as-is, even if expired.
+
+    No I/O. Use when you need the raw credential value and will check
+    expiry yourself. For automatic refresh, use ``get_valid_credential``.
+
+    Args:
+        provider: Provider ID (e.g. ``"openai"``).
+        alias: Credential alias (e.g. ``"default"``).
+        store: Credential store backend. Uses ``get_default_store()`` if
+            ``None``.
+
+    Returns:
+        The stored credential.
+
+    Raises:
+        CredentialNotFound: No credential stored for (provider, alias).
+    """
     backend = store or get_default_store()
     cred = backend.get(provider, alias)
     if cred is None:
@@ -58,13 +93,40 @@ async def get_valid_credential(
     alias: str,
     margin: timedelta,
     store: CredentialStore | None = None,
+    metadata_store: MetadataStore | None = None,
 ) -> Credential:
+    """Return a credential that is currently usable.
+
+    If the credential is expired or within ``margin`` of expiry, attempts
+    a refresh via the provider's token endpoint. Makes a network call only
+    when refresh is needed.
+
+    Args:
+        provider: Provider ID (e.g. ``"openai"``).
+        alias: Credential alias (e.g. ``"default"``).
+        margin: Refresh window. Recommended: ``timedelta(minutes=5)``.
+        store: Credential store backend. Uses ``get_default_store()`` if
+            ``None``.
+        metadata_store: Optional metadata store for fingerprint updates
+            after refresh.
+
+    Returns:
+        A valid credential, refreshed if necessary.
+
+    Raises:
+        CredentialNotFound: No credential stored for (provider, alias).
+        ReconnectionRequired: Refresh token is dead; re-run ``connect()``.
+        RefreshFailed: Transient network error from token endpoint.
+        TokenEndpointError: Other token endpoint error.
+    """
     backend = store or get_default_store()
     cred = backend.get(provider, alias)
     if cred is None:
         raise CredentialNotFound(f"No credential stored for {provider}:{alias}")
     if should_refresh(cred, margin=margin):
-        return await refresh(provider, alias=alias, store=backend)
+        return await refresh(
+            provider, alias=alias, store=backend, metadata_store=metadata_store
+        )
     return cred
 
 
@@ -73,7 +135,33 @@ async def refresh(
     *,
     alias: str,
     store: CredentialStore | None = None,
+    metadata_store: MetadataStore | None = None,
 ) -> Credential:
+    """Force-refresh the credential regardless of expiry.
+
+    POSTs to the provider's token endpoint with the stored refresh token.
+    Persists the new access token and (if provided) the new refresh token.
+    If the server omits a new refresh token, the old one is kept.
+
+    Args:
+        provider: Provider ID (e.g. ``"openai"``).
+        alias: Credential alias (e.g. ``"default"``).
+        store: Credential store backend. Uses ``get_default_store()`` if
+            ``None``.
+        metadata_store: Optional metadata store for fingerprint updates
+            after refresh.
+
+    Returns:
+        The refreshed credential.
+
+    Raises:
+        CredentialNotFound: No credential stored for (provider, alias).
+        ReconnectionRequired: Refresh token is dead (invalid_grant);
+            re-run ``connect()``.
+        RefreshFailed: Transient network error or 5xx from token endpoint.
+        TokenEndpointError: Other token endpoint error.
+        AuthLMError: Provider has no OAuth config.
+    """
     backend = store or get_default_store()
     cred = backend.get(provider, alias)
     if cred is None:
@@ -135,6 +223,12 @@ async def refresh(
         }
     )
     backend.set(new_cred)
+    if metadata_store is not None:
+        fp = compute_fingerprint(new_cred.access_token)
+        meta = metadata_store.get(provider, alias)
+        if meta is not None:
+            meta.fingerprint = fp
+            metadata_store.set(provider, alias, meta)
     return new_cred
 
 
@@ -174,24 +268,21 @@ async def connect(
     backend.set(cred)
 
     if metadata_store is not None:
+        secret_value: str | None = None
+        if isinstance(cred, ApiKeyCredential):
+            secret_value = cred.secret
+        elif isinstance(cred, OAuthCredential):
+            secret_value = cred.access_token
+
         entry = MetadataEntry(
             provider_display_name=_get_provider(provider).display_name,
             method_id=cred.method_id,
             connected_at=datetime.now(UTC),
             scopes=list(cred.scopes) if isinstance(cred, OAuthCredential) else [],
             warning_acknowledged_at=datetime.now(UTC) if method.warning else None,
+            client_id=cred.client_id if isinstance(cred, OAuthCredential) else None,
+            fingerprint=compute_fingerprint(secret_value) if secret_value else None,
         )
         metadata_store.set(provider, alias, entry)
 
     return cred
-
-
-async def validate(
-    cred: Credential,
-    *,
-    force: bool,
-) -> bool:
-    """Probe a credential against the provider's validation URL."""
-    from authlm.validation import validate as _validate
-
-    return await _validate(cred, force=force)

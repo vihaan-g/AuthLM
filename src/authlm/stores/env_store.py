@@ -6,6 +6,7 @@ from collections.abc import Iterator, Mapping
 from typing_extensions import override
 
 from authlm.credentials import ApiKeyCredential, Credential
+from authlm.errors import CredentialNotFound, SecretStoreError
 from authlm.stores.base import CredentialStore
 
 _ENV_VAR_MAP: dict[str, str] = {
@@ -25,7 +26,9 @@ class EnvStore(CredentialStore):
     @override
     def get(self, provider: str, alias: str) -> Credential | None:
         if alias != "default":
-            return None
+            raise CredentialNotFound(
+                f"EnvStore only supports alias='default', got {alias!r}"
+            )
         env_var = self._mapping.get(provider)
         if env_var is None:
             return None
@@ -41,11 +44,15 @@ class EnvStore(CredentialStore):
 
     @override
     def set(self, credential: Credential) -> None:
-        raise NotImplementedError("EnvStore is read-only")
+        raise SecretStoreError(
+            "EnvStore is read-only; set environment variables instead"
+        )
 
     @override
     def delete(self, provider: str, alias: str) -> bool:
-        raise NotImplementedError("EnvStore is read-only")
+        raise SecretStoreError(
+            "EnvStore is read-only; unset the environment variable instead"
+        )
 
     @override
     def list(self) -> Iterator[tuple[str, str]]:
