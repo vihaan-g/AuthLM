@@ -1,6 +1,20 @@
 # Contributing to AuthLM
 
-## Development setup
+Thank you for taking the time to contribute.
+
+## Code of Conduct
+
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
+By participating, you are expected to uphold this code. Please report
+unacceptable behavior via GitHub's private reporting.
+
+## Security vulnerabilities
+
+**Do not file public issues for security vulnerabilities.** See
+[SECURITY.md](SECURITY.md) for the coordinated disclosure process and the
+project's threat model.
+
+## Getting started
 
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
@@ -11,52 +25,74 @@ uv sync --extra test --all-extras
 source .venv/bin/activate
 ```
 
-Run the test suite:
+### Run everything locally
 
 ```bash
-uv run pytest                       # 240+ unit tests
+uv run pytest                       # unit tests
 uv run ruff check .                 # lint
 uv run ruff format .                # format
 uv run mypy src/authlm              # typecheck (strict)
 uv run authlm --help                # CLI smoke test
 ```
 
-## How to add a provider
+CI runs the full matrix on every push: three OSes (Ubuntu, macOS, Windows)
+across four Python versions (3.11, 3.12, 3.13, 3.14), plus pip-audit,
+secrets-grep, ruff, and mypy strict.
 
-v0.1.0 supports in-tree providers only. v0.2.0 will add a plugin system.
+## Submitting changes
 
-To add a provider in v0.1.0:
+1. Create a short-lived feature branch off `main`.
+2. Make your changes, and add or update tests in `tests/unit/`.
+3. Run the full pre-commit check before pushing:
 
-1. Add the provider's OAuth configuration to `src/authlm/_auth_table.py` if it supports OAuth.
-2. Create `src/authlm/providers/<provider_id>.py` implementing the `Provider` Protocol (see `providers/base.py`).
+   ```bash
+   uv run ruff check . && uv run ruff format . && uv run mypy src/authlm && uv run pytest
+   ```
+
+4. Commit with a [Conventional Commits][conventional-commits] message (imperative,
+   present tense, under 72 characters). Sign commits with `git commit -S` — no
+   `--signoff`.
+
+5. Push and open a pull request against `main`. Every PR must pass all CI jobs
+   before merge. Merges are squash-merged.
+
+[conventional-commits]: https://www.conventionalcommits.org
+
+### Changelog
+
+Every user-facing PR must add a line under `## [Unreleased]` in
+`CHANGELOG.md`, categorized as `### Added`, `### Fixed`, or `### Changed`.
+
+### Writing tests
+
+Tests use `respx` for HTTP mocking and `MemoryStore` for credential storage.
+Never use real API keys. Conftest fixtures (`stub_store`, `runner`) are shared
+across test modules.
+
+### Adding a new provider
+
+v0.1.0 uses in-tree providers. A plugin system is planned for v0.2.0.
+
+1. Add the provider's OAuth configuration to `src/authlm/_auth_table.py`.
+2. Create `src/authlm/providers/<provider_id>.py` implementing the `Provider`
+   Protocol (see `providers/base.py`).
 3. Register the provider in `providers/registry.py:_build_providers()`.
 4. Add tests in `tests/unit/test_providers_<provider_id>.py`.
-5. If the provider needs an SDK, add it to `[project.optional-dependencies]` in `pyproject.toml`.
+5. If the provider needs an SDK, add it to `[project.optional-dependencies]` in
+   `pyproject.toml`.
 6. Add the env var mapping to `src/authlm/stores/env_store.py:_ENV_VAR_MAP`.
 
-## Testing rule
+## Community
 
-Any PR that touches a provider or connection method must add or update tests. Tests use `respx` for HTTP mocking and `MemoryStore` for credential storage. Never use real API keys in tests.
-
-## Security rule
-
-PRs that change credential storage (`stores/`), connection methods (`connection_methods/`), or the auth table (`_auth_table.py`) require maintainer review. If your PR changes how credentials are stored, transmitted, or redacted, update `SECURITY.md`.
-
-## Changelog rule
-
-Every user-facing PR must add a line under `## [Unreleased]` in `CHANGELOG.md`. Follow the existing format (categorize under `### Added`, `### Fixed`, or `### Changed`).
+See [AGENTS.md](AGENTS.md) for agent-facing conventions and
+[SECURITY.md](SECURITY.md) for the threat model and security policy.
 
 ## Release process
 
-1. All CI jobs must pass: lint, test (3 OS × 4 Python), CLI smoke, security (pip-audit).
-2. Confirm `## [Unreleased]` in `CHANGELOG.md` is the correct content for the release.
-3. Add `## [X.Y.Z] - YYYY-MM-DD` above `[Unreleased]`, leave `[Unreleased]` empty.
-4. `git tag -s vX.Y.Z -m "vX.Y.Z"`
-5. `git push origin main --follow-tags`
-6. CI's release workflow builds, attaches to GitHub Release, and publishes to PyPI via Trusted Publishing.
-
-## Commit conventions
-
-Conventional Commits: `<type>[scope]: <description>`. Imperative present tense, under 72 chars. Signed commits (`git commit -S`). No `--signoff`.
-
-See [AGENTS.md](AGENTS.md) for agent-facing coding conventions and [SECURITY.md](SECURITY.md) for the threat model.
+1. All CI jobs pass on `main`.
+2. Update `CHANGELOG.md` — replace `[Unreleased]` with a version heading and
+   date, then clear the unreleased section.
+3. Run `uv run python -m build` to verify the wheel.
+4. Tag the release: `git tag -s vX.Y.Z -m "vX.Y.Z"`.
+5. Push: `git push origin main --follow-tags`.
+6. CI publishes to PyPI via Trusted Publishing.
