@@ -44,11 +44,6 @@ class AnthropicProvider(Provider):
     def docs_url(self) -> str | None:
         return "https://console.anthropic.com/settings/keys"
 
-    @property
-    @override
-    def logo_url(self) -> str | None:
-        return None
-
     @override
     def connection_methods(self, *, include_warned: bool) -> Sequence[ConnectionMethod]:
         client = self._http_client or httpx.AsyncClient()

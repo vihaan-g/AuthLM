@@ -67,11 +67,6 @@ class Provider(Protocol):
         """Link to the provider's API key signup page."""
         ...
 
-    @property
-    def logo_url(self) -> str | None:
-        """Optional logo for CLI/UI rendering."""
-        ...
-
     def connection_methods(self, *, include_warned: bool) -> Sequence[ConnectionMethod]:
         """Return connection methods. Exclude warned unless include_warned."""
         ...

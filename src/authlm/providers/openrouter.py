@@ -29,11 +29,6 @@ class OpenRouterProvider(Provider):
     def docs_url(self) -> str | None:
         return "https://openrouter.ai/keys"
 
-    @property
-    @override
-    def logo_url(self) -> str | None:
-        return None
-
     @override
     def connection_methods(self, *, include_warned: bool) -> Sequence[ConnectionMethod]:
         return [
