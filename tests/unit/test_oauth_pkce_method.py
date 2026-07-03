@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from http.server import HTTPServer
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
@@ -12,7 +13,7 @@ from respx import MockRouter
 
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.credentials import Credential, OAuthCredential
-from authlm.errors import ReconnectionRequired
+from authlm.errors import AuthLMError, ReconnectionRequired
 from authlm.providers.base import OAuthGrant
 
 
@@ -134,3 +135,51 @@ def test_pkce_method_with_open_browser_returns_new_instance() -> None:
     new_method = method.with_open_browser(my_open)
     assert new_method is not method
     assert new_method._open_browser is my_open  # noqa: SLF001
+
+
+@pytest.mark.asyncio
+async def test_handler_rejects_wrong_state() -> None:
+    """The loopback Handler returns 400 when state doesn't match."""
+    from urllib.error import HTTPError
+
+    method = OAuthPKCEMethod(
+        provider_id="test",
+        authorize_url=HttpUrl("https://example.com/auth"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        redirect_port=0,
+    )
+
+    captured: dict[str, str] = {}
+    server = method._start_loopback(captured, "expected-state")  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+    port = server.server_address[1]
+    try:
+        with pytest.raises(HTTPError) as exc_info:
+            urlopen(f"http://127.0.0.1:{port}/callback?state=wrong&code=testcode")
+        assert exc_info.value.code == 400
+        assert "code" not in captured
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+@pytest.mark.asyncio
+async def test_port_collision_raises_authlm_error() -> None:
+    """When the loopback factory raises OSError, raise AuthLMError."""
+
+    def _failing_factory(addr: tuple[str, int], handler: Any) -> HTTPServer:
+        raise OSError("Address already in use")
+
+    method = OAuthPKCEMethod(
+        provider_id="test",
+        authorize_url=HttpUrl("https://example.com/auth"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        redirect_port=14597,
+        loopback_factory=_failing_factory,
+    )
+
+    with pytest.raises(AuthLMError, match="in use"):
+        method._start_loopback({}, "state")  # type: ignore[reportPrivateUsage]  # noqa: SLF001

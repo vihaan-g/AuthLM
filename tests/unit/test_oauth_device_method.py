@@ -194,3 +194,33 @@ async def test_connect_handles_slow_down() -> None:
     )
     cred = await method.connect(store=_StubStore())
     assert isinstance(cred, OAuthCredential)
+
+
+@pytest.mark.asyncio
+async def test_connect_times_out_when_always_authorization_pending() -> None:
+    store = _StubStore()
+
+    def _always_pending(request: httpx.Request) -> httpx.Response:
+        if "device/code" in str(request.url):
+            return httpx.Response(
+                200,
+                json={
+                    "device_code": "dc-1",
+                    "user_code": "UC-1",
+                    "verification_uri": "https://example.com/activate",
+                },
+            )
+        return httpx.Response(400, json={"error": "authorization_pending"})
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="test",
+        device_code_url=HttpUrl("https://example.com/device/code"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        poll_interval_seconds=0.1,
+        poll_timeout_seconds=0.5,
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(_always_pending)),
+    )
+    with pytest.raises(TimeoutError):
+        await method.connect(store=store)

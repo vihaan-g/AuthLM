@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import keyring
 import pytest
 from keyring import errors
 from keyring.backend import KeyringBackend
+from keyring.errors import KeyringError
 from typing_extensions import override
 
 from authlm.credentials import ApiKeyCredential, OAuthCredential
+from authlm.errors import SecretStoreError
 from authlm.stores.base import CredentialStore
 from authlm.stores.keyring_store import KeyringStore
 
@@ -123,3 +126,15 @@ def test_set_overwrites(in_memory_keyring: InMemoryKeyring, tmp_path: Path) -> N
     assert cred is not None
     assert isinstance(cred, ApiKeyCredential)
     assert cred.secret == "sk-new"
+
+
+def test_set_raises_secret_store_error_on_keyring_error(tmp_path: Path) -> None:
+    store = KeyringStore(index_path=tmp_path / "index.json")
+    cred = ApiKeyCredential(
+        provider="openai", alias="default", method_id="api_key", secret="sk-test"
+    )
+    with (
+        patch("keyring.set_password", side_effect=KeyringError("keyring locked")),
+        pytest.raises(SecretStoreError, match="keyring locked"),
+    ):
+        store.set(cred)
