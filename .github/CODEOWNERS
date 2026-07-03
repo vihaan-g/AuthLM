@@ -1,0 +1,12 @@
+# Default owner
+* @vihaan-g
+
+# Security-sensitive areas — require explicit owner review
+src/authlm/stores/          @vihaan-g
+src/authlm/connection_methods/ @vihaan-g
+src/authlm/_auth_table.py   @vihaan-g
+src/authlm/api.py           @vihaan-g
+src/authlm/validation.py    @vihaan-g
+src/authlm/cli/             @vihaan-g
+src/authlm/credentials.py   @vihaan-g
+SECURITY.md                 @vihaan-g
