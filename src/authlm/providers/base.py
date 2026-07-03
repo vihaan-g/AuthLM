@@ -43,10 +43,6 @@ class ConnectionMethod(Protocol):
         """Run the auth flow interactively; persist the result; return it."""
         ...
 
-    async def validate(self, cred: Credential, *, force: bool) -> bool:
-        """Probe whether the credential is currently usable."""
-        ...
-
 
 @runtime_checkable
 class Provider(Protocol):
@@ -65,11 +61,6 @@ class Provider(Protocol):
     @property
     def docs_url(self) -> str | None:
         """Link to the provider's API key signup page."""
-        ...
-
-    @property
-    def logo_url(self) -> str | None:
-        """Optional logo for CLI/UI rendering."""
         ...
 
     def connection_methods(self, *, include_warned: bool) -> Sequence[ConnectionMethod]:

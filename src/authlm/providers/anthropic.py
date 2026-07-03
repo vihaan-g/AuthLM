@@ -44,11 +44,6 @@ class AnthropicProvider(Provider):
     def docs_url(self) -> str | None:
         return "https://console.anthropic.com/settings/keys"
 
-    @property
-    @override
-    def logo_url(self) -> str | None:
-        return None
-
     @override
     def connection_methods(self, *, include_warned: bool) -> Sequence[ConnectionMethod]:
         client = self._http_client or httpx.AsyncClient()
@@ -58,9 +53,6 @@ class AnthropicProvider(Provider):
         api_key = APIKeyMethod(
             provider_id=self.id,
             secret_prompt=self._secret_prompt,
-            validation_url=str(self._entry.validation_url)
-            if self._entry.validation_url
-            else None,
         )
 
         methods: list[ConnectionMethod] = [api_key]

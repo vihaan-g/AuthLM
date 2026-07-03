@@ -23,15 +23,12 @@ class OAuthConfig(BaseModel):
     client_id: str
     default_scopes: list[str] = Field(default_factory=list)
     loopback_port: int | None = None
-    rotates_refresh_token: bool = False
 
 
 class AuthTableEntry(BaseModel):
     provider_id: str
-    credential_types: list[str]
     oauth: OAuthConfig | None = None
     validation_url: HttpUrl | None = None
-    key_issuance_url: HttpUrl | None = None
 
 
 def _resolve_client_id(provider_id: str, default: str) -> str:
@@ -43,85 +40,58 @@ def _resolve_client_id(provider_id: str, default: str) -> str:
     return default
 
 
-def _openai_oauth() -> OAuthConfig:
-    cfg = OAuthConfig(
-        authorize_url=HttpUrl("https://auth.openai.com/oauth/authorize"),
-        token_url=HttpUrl("https://auth.openai.com/oauth/token"),
-        device_code_url=HttpUrl(
-            "https://auth.openai.com/api/accounts/deviceauth/usercode"
-        ),
-        client_id=_DEFAULT_CLIENT_ID["openai"],
-        default_scopes=["openid", "profile", "email", "offline_access"],
-        loopback_port=1455,
-        rotates_refresh_token=True,
-    )
-    return cfg.model_copy(
-        update={"client_id": _resolve_client_id("openai", cfg.client_id)}
-    )
-
-
-def _anthropic_oauth() -> OAuthConfig:
-    cfg = OAuthConfig(
-        authorize_url=HttpUrl("https://claude.ai/oauth/authorize"),
-        token_url=HttpUrl("https://console.anthropic.com/v1/oauth/token"),
-        device_code_url=HttpUrl("https://console.anthropic.com/v1/oauth/device/code"),
-        client_id=_DEFAULT_CLIENT_ID["anthropic"],
-        default_scopes=["org:create_api_key", "user:profile", "user:inference"],
-        loopback_port=5454,
-        rotates_refresh_token=True,
-    )
-    return cfg.model_copy(
-        update={"client_id": _resolve_client_id("anthropic", cfg.client_id)}
-    )
-
-
-def _google_oauth() -> OAuthConfig:
-    cfg = OAuthConfig(
-        authorize_url=HttpUrl("https://accounts.google.com/o/oauth2/v2/auth"),
-        token_url=HttpUrl("https://oauth2.googleapis.com/token"),
-        client_id=_DEFAULT_CLIENT_ID["google"],
-        default_scopes=[
-            "openid",
-            "https://www.googleapis.com/auth/generative-language.retriever",
-        ],
-        loopback_port=8085,
-        rotates_refresh_token=False,
-    )
-    return cfg.model_copy(
-        update={"client_id": _resolve_client_id("google", cfg.client_id)}
-    )
-
-
 AUTH_TABLE: dict[str, AuthTableEntry] = {
     "openai": AuthTableEntry(
         provider_id="openai",
-        credential_types=["api_key", "oauth"],
-        oauth=_openai_oauth(),
+        oauth=OAuthConfig(
+            authorize_url=HttpUrl("https://auth.openai.com/oauth/authorize"),
+            token_url=HttpUrl("https://auth.openai.com/oauth/token"),
+            device_code_url=HttpUrl(
+                "https://auth.openai.com/api/accounts/deviceauth/usercode"
+            ),
+            client_id=_DEFAULT_CLIENT_ID["openai"],
+            default_scopes=["openid", "profile", "email", "offline_access"],
+            loopback_port=1455,
+        ),
         validation_url=HttpUrl("https://api.openai.com/v1/models"),
-        key_issuance_url=HttpUrl("https://platform.openai.com/api-keys"),
     ),
     "anthropic": AuthTableEntry(
         provider_id="anthropic",
-        credential_types=["api_key", "oauth"],
-        oauth=_anthropic_oauth(),
+        oauth=OAuthConfig(
+            authorize_url=HttpUrl("https://claude.ai/oauth/authorize"),
+            token_url=HttpUrl("https://console.anthropic.com/v1/oauth/token"),
+            device_code_url=HttpUrl(
+                "https://console.anthropic.com/v1/oauth/device/code"
+            ),
+            client_id=_DEFAULT_CLIENT_ID["anthropic"],
+            default_scopes=[
+                "org:create_api_key",
+                "user:profile",
+                "user:inference",
+            ],
+            loopback_port=5454,
+        ),
         validation_url=HttpUrl("https://api.anthropic.com/v1/models"),
-        key_issuance_url=HttpUrl("https://console.anthropic.com/settings/keys"),
     ),
     "google": AuthTableEntry(
         provider_id="google",
-        credential_types=["api_key", "oauth"],
-        oauth=_google_oauth(),
+        oauth=OAuthConfig(
+            authorize_url=HttpUrl("https://accounts.google.com/o/oauth2/v2/auth"),
+            token_url=HttpUrl("https://oauth2.googleapis.com/token"),
+            client_id=_DEFAULT_CLIENT_ID["google"],
+            default_scopes=[
+                "openid",
+                "https://www.googleapis.com/auth/generative-language.retriever",
+            ],
+            loopback_port=8085,
+        ),
         validation_url=HttpUrl(
             "https://generativelanguage.googleapis.com/v1beta/models"
         ),
-        key_issuance_url=HttpUrl("https://aistudio.google.com/apikey"),
     ),
     "openrouter": AuthTableEntry(
         provider_id="openrouter",
-        credential_types=["api_key"],
-        oauth=None,
         validation_url=HttpUrl("https://openrouter.ai/api/v1/auth/key"),
-        key_issuance_url=HttpUrl("https://openrouter.ai/keys"),
     ),
 }
 
