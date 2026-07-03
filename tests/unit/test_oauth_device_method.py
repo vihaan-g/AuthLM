@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
 from typing import Any
 
 import httpx
@@ -9,27 +8,10 @@ from pydantic import HttpUrl
 from respx import MockRouter
 
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
-from authlm.credentials import Credential, OAuthCredential
+from authlm.credentials import OAuthCredential
 from authlm.errors import ReconnectionRequired
 from authlm.providers.base import OAuthGrant
-from authlm.stores.base import CredentialStore
-
-
-class _StubStore(CredentialStore):
-    def get(self, provider: str, alias: str) -> Credential | None:
-        return None
-
-    def set(self, credential: Credential) -> None:
-        pass
-
-    def delete(self, provider: str, alias: str) -> bool:
-        return False
-
-    def list(self) -> Iterator[tuple[str, str]]:
-        return iter(())
-
-    def backend_name(self) -> str:
-        return "stub"
+from tests.conftest import _StubStore
 
 
 def _device_response(device_code: str = "DEVCODE") -> dict[str, Any]:
@@ -194,3 +176,33 @@ async def test_connect_handles_slow_down() -> None:
     )
     cred = await method.connect(store=_StubStore())
     assert isinstance(cred, OAuthCredential)
+
+
+@pytest.mark.asyncio
+async def test_connect_times_out_when_always_authorization_pending() -> None:
+    store = _StubStore()
+
+    def _always_pending(request: httpx.Request) -> httpx.Response:
+        if "device/code" in str(request.url):
+            return httpx.Response(
+                200,
+                json={
+                    "device_code": "dc-1",
+                    "user_code": "UC-1",
+                    "verification_uri": "https://example.com/activate",
+                },
+            )
+        return httpx.Response(400, json={"error": "authorization_pending"})
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="test",
+        device_code_url=HttpUrl("https://example.com/device/code"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        poll_interval_seconds=0.1,
+        poll_timeout_seconds=0.5,
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(_always_pending)),
+    )
+    with pytest.raises(TimeoutError):
+        await method.connect(store=store)

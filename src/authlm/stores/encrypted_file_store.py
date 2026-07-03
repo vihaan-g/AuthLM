@@ -11,7 +11,7 @@ from pathlib import Path
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from typing_extensions import override
 
 from authlm.credentials import Credential, parse_credential
@@ -144,8 +144,14 @@ class EncryptedFileStore(CredentialStore):
     def _read(self) -> _EncryptedFile:
         if not self._path.exists():
             return _EncryptedFile(iterations=self._iterations)
-        data = json.loads(self._path.read_text())
-        return _EncryptedFile.model_validate(data)
+        try:
+            data = json.loads(self._path.read_text())
+        except json.JSONDecodeError as exc:
+            raise SecretStoreError("Credential store is corrupted") from exc
+        try:
+            return _EncryptedFile.model_validate(data)
+        except ValidationError:
+            return _EncryptedFile(iterations=self._iterations)
 
     def _write(self, file: _EncryptedFile) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)

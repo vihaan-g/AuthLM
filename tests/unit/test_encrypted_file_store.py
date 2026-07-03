@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
 import pytest
 
 from authlm.credentials import ApiKeyCredential, OAuthCredential
-from authlm.errors import AuthLMError
+from authlm.errors import AuthLMError, SecretStoreError
 from authlm.stores.base import CredentialStore
 from authlm.stores.encrypted_file_store import EncryptedFileStore
 
@@ -174,3 +175,26 @@ def _current_username() -> str:
     import getpass
 
     return getpass.getuser()
+
+
+def test_corrupted_json_raises_secret_store_error(tmp_path: Path) -> None:
+    path = tmp_path / "corrupt.enc.json"
+    path.write_text("not json")
+    store = EncryptedFileStore(path=path, passphrase="test", iterations=100_000)
+    with pytest.raises(SecretStoreError):
+        store.get("openai", "default")
+
+
+def test_missing_salt_returns_none(tmp_path: Path) -> None:
+    path = tmp_path / "no_salt.enc.json"
+    store = EncryptedFileStore(path=path, passphrase="test", iterations=100_000)
+    result = store.get("openai", "default")
+    assert result is None
+
+
+def test_invalid_base_structure_returns_none(tmp_path: Path) -> None:
+    path = tmp_path / "bad_struct.enc.json"
+    path.write_text(json.dumps({"not_salt": "x", "entries": "wrong_type"}))
+    store = EncryptedFileStore(path=path, passphrase="test", iterations=100_000)
+    result = store.get("openai", "default")
+    assert result is None
