@@ -11,7 +11,8 @@ from authlm.stores.base import CredentialStore
 
 
 def _default_secret_prompt(prompt: str) -> str:
-    return input(prompt)
+    import getpass
+    return getpass.getpass(prompt)
 
 
 class APIKeyMethod(ConnectionMethod):
