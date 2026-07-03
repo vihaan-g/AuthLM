@@ -12,6 +12,7 @@ from authlm.connection_methods._oauth_helpers import (
     build_authorize_url,
     classify_token_error,
     generate_pkce_pair,
+    redact_body,
     redact_url,
 )
 
@@ -146,3 +147,15 @@ def test_classify_token_error_invalid_request_nonfatal() -> None:
     assert result.status_code == 400
     assert result.error_code == "invalid_request"
     assert result.fatal is False
+
+
+def test_redact_body_short_bearer_token() -> None:
+    result = redact_body("error: Bearer abcdefgh for request")
+    assert "abcdefgh" not in result
+    assert "Bearer [REDACTED]" in result
+
+
+def test_redact_body_redacts_code_param() -> None:
+    result = redact_body('{"error":"invalid_grant","code":"auth-code-123"}')
+    assert "auth-code-123" not in result
+    assert "[REDACTED]" in result

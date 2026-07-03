@@ -13,6 +13,7 @@ from typing_extensions import override
 from authlm.connection_methods._oauth_helpers import (
     classify_token_error,
     exchange_code_for_token,
+    redact_body,
 )
 from authlm.credentials import Credential, OAuthCredential
 from authlm.errors import ReconnectionRequired, TokenEndpointError
@@ -111,7 +112,7 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
         if not (200 <= response.status_code < 300):
             raise TokenEndpointError(
                 f"device-code request failed: status={response.status_code} "
-                f"body={response.text[:300]}"
+                f"body={redact_body(response.text)}"
             )
         data = response.json()
         if (
@@ -155,7 +156,7 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
                 continue
             raise TokenEndpointError(
                 f"Token endpoint error: status={response.status_code} "
-                f"body={response.text[:300]}"
+                f"body={redact_body(response.text)}"
             )
 
     def _build_credential(self, data: dict[str, Any]) -> OAuthCredential:

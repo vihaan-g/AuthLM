@@ -21,9 +21,9 @@ _FATAL_ERROR_CODES: frozenset[str] = frozenset(
     {"invalid_grant", "expired_token", "expired_refresh_token", "revoked"}
 )
 _REDACTED_VALUE: str = "[REDACTED]"
-_BEARER_TOKEN_RE: re.Pattern[str] = re.compile(r"Bearer [A-Za-z0-9_-]{20,}")
+_BEARER_TOKEN_RE: re.Pattern[str] = re.compile(r"Bearer [A-Za-z0-9_-]{8,}")
 _TOKEN_PARAM_RE: re.Pattern[str] = re.compile(
-    r"\b(access_token|refresh_token|id_token|client_secret)\b"
+    r"\b(access_token|refresh_token|id_token|client_secret|code)\b"
     r"\s*[\"']?\s*[=:]\s*[\"']?"
     r"(\"[^\"]*\"|[^\s,;&}]+)"
 )

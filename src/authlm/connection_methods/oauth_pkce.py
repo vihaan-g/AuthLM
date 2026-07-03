@@ -21,6 +21,7 @@ from authlm.connection_methods._oauth_helpers import (
     classify_token_error,
     exchange_code_for_token,
     generate_pkce_pair,
+    redact_body,
     redact_url,
 )
 from authlm.credentials import Credential, OAuthCredential
@@ -212,7 +213,7 @@ class OAuthPKCEMethod(ConnectionMethod):
         if not (200 <= response.status_code < 300):
             raise TokenEndpointError(
                 f"Token endpoint error: status={response.status_code} "
-                f"body={response.text[:300]}"
+                f"body={redact_body(response.text)}"
             )
         data = response.json()
         return self._build_credential(data)
