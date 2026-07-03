@@ -71,6 +71,26 @@ include = ["src/authlm/_vendor/*.json"]
 [tool.hatch.build]
 dev-mode-dirs = ["src"]
 
+[tool.hatch.build.targets.sdist]
+include = [
+    "src",
+    "tests",
+    "scripts",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
+    "pyproject.toml",
+]
+exclude = [
+    ".agents",
+    ".github",
+    ".worktrees",
+    "opencode.json",
+]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 88
