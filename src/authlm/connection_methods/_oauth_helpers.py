@@ -18,7 +18,13 @@ _REDACTED_PARAMS: frozenset[str] = frozenset(
     {"code", "access_token", "refresh_token", "id_token", "token", "client_secret"}
 )
 _FATAL_ERROR_CODES: frozenset[str] = frozenset(
-    {"invalid_grant", "expired_token", "expired_refresh_token", "revoked"}
+    {
+        "invalid_grant",
+        "expired_token",
+        "expired_refresh_token",
+        "revoked",
+        "access_denied",
+    }
 )
 _REDACTED_VALUE: str = "[REDACTED]"
 _BEARER_TOKEN_RE: re.Pattern[str] = re.compile(r"Bearer [A-Za-z0-9_-]{8,}")
@@ -93,16 +99,30 @@ def redact_url(url: str) -> str:
 
 
 def redact_body(body: str) -> str:
-    """Return ``body`` with sensitive substrings replaced and truncated to 200 chars.
+    """Redact secrets in request/response bodies.
 
-    Scrubs ``Bearer <token>`` values and ``access_token``, ``refresh_token``,
-    ``id_token``, and ``client_secret`` parameters in both query-string
-    (``k=v``) and JSON (``"k":"v"``) formats. The result is truncated to 200
-    characters to bound the size of downstream exception messages.
+    Parses JSON bodies and redacts known secret keys. Falls back to
+    regex-based redaction for non-JSON content. Truncates to 200 chars.
     """
+    if not body:
+        return body
+    try:
+        data = json.loads(body)
+        if isinstance(data, dict):
+            _redact_dict(data)
+            return json.dumps(data)
+    except (json.JSONDecodeError, ValueError):
+        pass
     redacted = _BEARER_TOKEN_RE.sub(f"Bearer {_REDACTED_VALUE}", body)
     redacted = _TOKEN_PARAM_RE.sub(rf"\1={_REDACTED_VALUE}", redacted)
     return redacted[:200]
+
+
+def _redact_dict(data: dict[str, object]) -> None:
+    """Replace the values of known secret keys with a redacted placeholder."""
+    for key in ("access_token", "refresh_token", "code", "client_secret"):
+        if key in data:
+            data[key] = _REDACTED_VALUE
 
 
 def classify_token_error(*, status_code: int, body: str) -> TokenError:

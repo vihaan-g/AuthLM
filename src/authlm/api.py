@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -176,15 +177,20 @@ async def refresh(
     if oauth is None:
         raise AuthLMError(f"Provider {provider!r} has no OAuth config")
     async with httpx.AsyncClient() as client:
-        response = await client.post(
-            str(oauth.token_url),
-            data={
-                "grant_type": "refresh_token",
-                "refresh_token": cred.refresh_token,
-                "client_id": oauth.client_id,
-            },
-            timeout=30.0,
-        )
+        try:
+            response = await client.post(
+                str(oauth.token_url),
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": cred.refresh_token,
+                    "client_id": oauth.client_id,
+                },
+                timeout=30.0,
+            )
+        except httpx.HTTPError as exc:
+            raise RefreshFailed(
+                f"Token endpoint network error for {provider}:{alias}: {exc}"
+            ) from exc
     classification = classify_token_error(
         status_code=response.status_code, body=response.text
     )
@@ -200,7 +206,12 @@ async def refresh(
             f"Token endpoint error: status={response.status_code} "
             f"body={redact_body(response.text)}"
         )
-    data = response.json()
+    try:
+        data = response.json()
+    except json.JSONDecodeError as exc:
+        raise TokenEndpointError(
+            f"Token endpoint returned non-JSON body: body={redact_body(response.text)}"
+        ) from exc
     new_access = str(data.get("access_token", ""))
     if not new_access:
         raise TokenEndpointError("refresh response missing access_token")
@@ -265,6 +276,8 @@ async def connect(
     cred = await method.connect(store=backend)
     if cred.alias != alias:
         cred = cred.model_copy(update={"alias": alias})
+    if method.warning:
+        cred = cred.model_copy(update={"warning_acknowledged_at": datetime.now(UTC)})
     backend.set(cred)
 
     if metadata_store is not None:

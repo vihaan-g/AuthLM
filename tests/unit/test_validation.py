@@ -8,7 +8,7 @@ from respx import MockRouter
 from authlm.connection_methods._oauth_helpers import redact_body
 from authlm.credentials import ApiKeyCredential, OAuthCredential
 from authlm.errors import TokenEndpointError
-from authlm.validation import _is_warned, validate
+from authlm.validation import validate
 
 
 @pytest.mark.asyncio
@@ -97,13 +97,6 @@ async def test_validate_unknown_provider_returns_false() -> None:
         provider="unknown", alias="default", method_id="api_key", secret="x"
     )
     assert await validate(cred, force=False) is False
-
-
-def test_is_warned_helper() -> None:
-    assert _is_warned("claude_pro_oauth_browser") is True
-    assert _is_warned("claude_pro_oauth_device") is True
-    assert _is_warned("api_key") is False
-    assert _is_warned("oauth_browser") is False
 
 
 @pytest.mark.asyncio

@@ -11,8 +11,8 @@ from authlm.cli._formatters import format_status_table
 from authlm.credentials import ApiKeyCredential, OAuthCredential, compute_fingerprint
 from authlm.errors import AuthLMError
 from authlm.metadata import MetadataStore
+from authlm.providers.registry import get_method as _get_method
 from authlm.stores.base import CredentialStore
-from authlm.validation import _is_warned
 from authlm.validation import validate as _validate
 
 
@@ -109,12 +109,14 @@ def status(
                         err=True,
                     )
         if do_validate:
-            if force and _is_warned(cred.method_id):
-                click.echo(
-                    "WARNING: probing a warned method; this call may be "
-                    "detectable by the provider.",
-                    err=True,
-                )
+            if force:
+                method = _get_method(provider, cred.method_id)
+                if method.warning is not None:
+                    click.echo(
+                        "WARNING: probing a warned method; this call may be "
+                        "detectable by the provider.",
+                        err=True,
+                    )
             try:
                 result = asyncio.run(_validate(cred, force=force))
             except (AuthLMError, PermissionError) as exc:

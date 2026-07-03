@@ -145,3 +145,52 @@ def test_device_method_with_on_prompt_returns_new_instance() -> None:
     new_method = method.with_on_prompt(my_prompt)
     assert new_method is not method
     assert new_method._on_prompt is my_prompt  # noqa: SLF001
+
+
+@pytest.mark.asyncio
+async def test_connect_handles_slow_down() -> None:
+    import httpx
+
+    _calls = 0
+
+    def slow_down_sequence(request: httpx.Request) -> httpx.Response:
+        nonlocal _calls
+        if "device/code" in str(request.url):
+            return httpx.Response(
+                200,
+                json={
+                    "device_code": "dc-1",
+                    "user_code": "UC-1",
+                    "verification_uri": "https://example.com/activate",
+                    "interval": 1,
+                    "expires_in": 60,
+                },
+            )
+        _calls += 1
+        if _calls == 1:
+            return httpx.Response(400, json={"error": "slow_down"})
+        if _calls == 2:
+            return httpx.Response(400, json={"error": "authorization_pending"})
+        return httpx.Response(
+            200,
+            json={
+                "access_token": "at-1",
+                "refresh_token": "rt-1",
+                "expires_in": 3600,
+            },
+        )
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="test",
+        device_code_url=HttpUrl("https://example.com/device/code"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        poll_interval_seconds=0.1,
+        poll_timeout_seconds=30.0,
+        http_client=httpx.AsyncClient(
+            transport=httpx.MockTransport(slow_down_sequence)
+        ),
+    )
+    cred = await method.connect(store=_StubStore())
+    assert isinstance(cred, OAuthCredential)

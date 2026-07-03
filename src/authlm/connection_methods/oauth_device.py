@@ -99,7 +99,24 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
             raise RuntimeError("http_client is required for connect()")
         device = await self._request_device_code()
         self._on_prompt(str(device["verification_uri"]), str(device["user_code"]))
-        token = await self._poll_for_token(str(device["device_code"]))
+
+        effective_interval: float = self._poll_interval_seconds
+        server_interval = device.get("interval")
+        if isinstance(server_interval, (int, float)):
+            effective_interval = max(
+                float(server_interval), self._poll_interval_seconds
+            )
+
+        effective_timeout: float = self._poll_timeout_seconds
+        server_expires = device.get("expires_in")
+        if isinstance(server_expires, (int, float)):
+            effective_timeout = min(float(server_expires), self._poll_timeout_seconds)
+
+        token = await self._poll_for_token(
+            str(device["device_code"]),
+            interval=effective_interval,
+            timeout=effective_timeout,
+        )
         return self._build_credential(token)
 
     async def _request_device_code(self) -> dict[str, Any]:
@@ -123,10 +140,12 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
             raise TokenEndpointError("device-code response missing fields")
         return cast(dict[str, Any], data)
 
-    async def _poll_for_token(self, device_code: str) -> dict[str, Any]:
+    async def _poll_for_token(
+        self, device_code: str, *, interval: float, timeout: float
+    ) -> dict[str, Any]:
         assert self._http_client is not None
         loop = asyncio.get_running_loop()
-        deadline = loop.time() + self._poll_timeout_seconds
+        deadline = loop.time() + timeout
         while True:
             response = await exchange_code_for_token(
                 http_client=self._http_client,
@@ -146,13 +165,16 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
                 raise ReconnectionRequired(
                     f"Device-code flow failed fatally: {classification.error_code}"
                 )
-            if classification.error_code == "authorization_pending":
+            if classification.error_code in ("authorization_pending", "slow_down"):
                 if loop.time() >= deadline:
                     raise TimeoutError("Device-code flow timed out")
-                await asyncio.sleep(self._poll_interval_seconds)
+                wait = interval
+                if classification.error_code == "slow_down":
+                    wait += 5.0
+                await asyncio.sleep(wait)
                 continue
             if classification.status_code >= 500 or classification.status_code == 0:
-                await asyncio.sleep(self._poll_interval_seconds)
+                await asyncio.sleep(interval)
                 continue
             raise TokenEndpointError(
                 f"Token endpoint error: status={response.status_code} "

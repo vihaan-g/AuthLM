@@ -108,6 +108,30 @@ def test_env_oauth(
     )
     assert result.exit_code == 0, result.output
     assert "OPENAI_ACCESS_TOKEN=ACCESS" in result.output
+    assert "OPENAI_REFRESH_TOKEN" not in result.output
+
+
+def test_env_oauth_with_include_refresh_token(
+    runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store = MemoryStore()
+    store.set(
+        OAuthCredential(
+            provider="openai",
+            alias="default",
+            method_id="oauth_browser",
+            access_token="ACCESS",
+            refresh_token="REFRESH",
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
+        )
+    )
+    _patch_store(monkeypatch, store)
+    result = runner.invoke(
+        cli,
+        ["env", "openai", "--store", "memory", "--include-refresh-token"],
+    )
+    assert result.exit_code == 0, result.output
+    assert "OPENAI_ACCESS_TOKEN=ACCESS" in result.output
     assert "OPENAI_REFRESH_TOKEN=REFRESH" in result.output
 
 
