@@ -69,9 +69,7 @@ def build_store(*, store_name: str) -> CredentialStore:
     if store_name == "encrypted_file":
         passphrase = os.environ.get("AUTHLM_PASSPHRASE")
         if passphrase is None:
-            raise AuthLMError(
-                "AUTHLM_STORE=encrypted_file requires AUTHLM_PASSPHRASE"
-            )
+            raise AuthLMError("AUTHLM_STORE=encrypted_file requires AUTHLM_PASSPHRASE")
         _log.warning(
             "AUTHLM_PASSPHRASE sourced from environment; "
             "the passphrase is visible to child processes and "
