@@ -7,7 +7,10 @@ from datetime import UTC, datetime, timedelta
 import httpx
 
 from authlm._auth_table import get_oauth_config
-from authlm.connection_methods._oauth_helpers import classify_token_error
+from authlm.connection_methods._oauth_helpers import (
+    classify_token_error,
+    redact_body,
+)
 from authlm.connection_methods.api_key import APIKeyMethod
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
@@ -105,9 +108,9 @@ async def refresh(
     if 500 <= response.status_code < 600:
         raise RefreshFailed(f"Token endpoint 5xx: status={response.status_code}")
     if not (200 <= response.status_code < 300):
-        body = response.text[:300]
         raise TokenEndpointError(
-            f"Token endpoint error: status={response.status_code} body={body}"
+            f"Token endpoint error: status={response.status_code} "
+            f"body={redact_body(response.text)}"
         )
     data = response.json()
     new_access = str(data.get("access_token", ""))
