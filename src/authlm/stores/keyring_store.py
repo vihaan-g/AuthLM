@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 from collections.abc import Iterator
@@ -89,10 +90,8 @@ class KeyringStore(CredentialStore):
             self._index_path.write_text(json.dumps(entries))
         except OSError as exc:
             raise SecretStoreError(str(exc)) from exc
-        try:
+        with contextlib.suppress(OSError):
             os.chmod(self._index_path, 0o600)
-        except OSError:
-            pass
 
     def _index_add(self, provider: str, alias: str) -> None:
         entries = self._index_read()

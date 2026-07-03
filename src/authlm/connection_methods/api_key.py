@@ -12,6 +12,7 @@ from authlm.stores.base import CredentialStore
 
 def _default_secret_prompt(prompt: str) -> str:
     import getpass
+
     return getpass.getpass(prompt)
 
 
