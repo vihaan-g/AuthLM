@@ -8,15 +8,10 @@ import httpx
 from authlm._auth_table import AUTH_TABLE
 from authlm.connection_methods._oauth_helpers import redact_body
 from authlm.credentials import ApiKeyCredential, Credential, OAuthCredential
-from authlm.errors import AccessDenied, TokenEndpointError
+from authlm.errors import AccessDenied, RefreshFailed, TokenEndpointError
+from authlm.providers.registry import get_method as _get_method
 
 _log = logging.getLogger(__name__)
-
-_WARNED_METHODS = frozenset({"claude_pro_oauth_browser", "claude_pro_oauth_device"})
-
-
-def _is_warned(method_id: str) -> bool:
-    return method_id in _WARNED_METHODS
 
 
 async def validate(
@@ -33,14 +28,16 @@ async def validate(
     401/403/404. Raises AccessDenied on 403 with entitlement-denied, and
     TokenEndpointError on other 4xx.
     """
-    if _is_warned(cred.method_id) and not force:
+    entry = AUTH_TABLE.get(cred.provider)
+    if entry is None or entry.validation_url is None:
+        return False
+
+    method = _get_method(cred.provider, cred.method_id)
+    if method.warning is not None and not force:
         raise PermissionError(
             f"validate() refuses warned method {cred.method_id!r}; "
             "pass force=True to probe anyway"
         )
-    entry = AUTH_TABLE.get(cred.provider)
-    if entry is None or entry.validation_url is None:
-        return False
 
     headers: dict[str, str] = {}
     if isinstance(cred, ApiKeyCredential):
@@ -69,4 +66,4 @@ async def validate(
         raise TokenEndpointError(
             f"validation probe: status={status} body={redact_body(response.text)}"
         )
-    return False
+    raise RefreshFailed(f"validation probe: status={status} (provider may be down)")

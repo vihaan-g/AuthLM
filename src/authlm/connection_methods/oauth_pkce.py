@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import secrets
 import threading
-import time
 import webbrowser
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime, timedelta
@@ -25,7 +25,7 @@ from authlm.connection_methods._oauth_helpers import (
     redact_url,
 )
 from authlm.credentials import Credential, OAuthCredential
-from authlm.errors import ReconnectionRequired, TokenEndpointError
+from authlm.errors import AuthLMError, ReconnectionRequired, TokenEndpointError
 from authlm.providers.base import ConnectionMethod, OAuthGrant
 from authlm.stores.base import CredentialStore
 
@@ -143,7 +143,7 @@ class OAuthPKCEMethod(ConnectionMethod):
             )
             _log.info("Opening browser to %s", redact_url(authorize_url))
             self._open_browser(authorize_url)
-            code = self._wait_for_code(captured, timeout=300.0)
+            code = await self._wait_for_code(captured, timeout=300.0)
         finally:
             server.shutdown()
             server.server_close()
@@ -155,10 +155,28 @@ class OAuthPKCEMethod(ConnectionMethod):
     def _start_loopback(
         self, captured: dict[str, str], expected_state: str
     ) -> _LoopbackServer:
+        loop = asyncio.get_event_loop()
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:  # noqa: N802
                 query = parse_qs(urlparse(self.path).query)
+                received_error = query.get("error", [""])[0]
+                if received_error:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/html")
+                    self.end_headers()
+                    self.wfile.write(
+                        b"<html><body>Authorization denied."
+                        b" You may close this tab.</body></html>"
+                    )
+                    raise ReconnectionRequired(
+                        f"User denied authorization at provider: {received_error}"
+                    )
+                if "code" in captured:
+                    self.send_response(410)
+                    self.end_headers()
+                    self.wfile.write(b"already handled")
+                    return
                 received_state = query.get("state", [""])[0]
                 if received_state != expected_state:
                     self.send_response(400)
@@ -172,21 +190,41 @@ class OAuthPKCEMethod(ConnectionMethod):
                 self.wfile.write(
                     b"<html><body>Authorized. You may close this tab.</body></html>"
                 )
+                event = captured.get("_event")
+                if isinstance(event, asyncio.Event):
+                    loop.call_soon_threadsafe(event.set)
 
             def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
                 return
 
-        server = self._loopback_factory(("127.0.0.1", self._redirect_port), Handler)
+        try:
+            server = self._loopback_factory(("127.0.0.1", self._redirect_port), Handler)
+        except OSError as exc:
+            raise AuthLMError(
+                f"Port {self._redirect_port} is in use. "
+                f"Free the port or set AUTHLM_PKCE_PORT_OVERRIDE."
+            ) from exc
+
         threading.Thread(target=server.serve_forever, daemon=True).start()
         return server
 
-    def _wait_for_code(self, captured: dict[str, str], *, timeout: float) -> str:
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            if "code" in captured:
-                return captured["code"]
-            time.sleep(0.05)
-        raise TimeoutError("OAuth PKCE flow timed out waiting for callback")
+    async def _wait_for_code(self, captured: dict[str, str], *, timeout: float) -> str:
+        if "code" in captured:
+            return captured["code"]
+
+        event = asyncio.Event()
+        captured["_event"] = event  # type: ignore[assignment]
+
+        try:
+            await asyncio.wait_for(event.wait(), timeout=timeout)
+        except TimeoutError:
+            raise TimeoutError(
+                "OAuth PKCE flow timed out waiting for callback"
+            ) from None
+        finally:
+            captured.pop("_event", None)
+
+        return captured["code"]
 
     async def _exchange_code(
         self, *, code: str, pair: PKCEPair, redirect_uri: str
