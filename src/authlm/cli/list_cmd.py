@@ -42,4 +42,3 @@ def list_cmd(store_name: str | None, metadata_path: Path | None) -> None:
             metadata_store=metadata_store,
         )
     )
-

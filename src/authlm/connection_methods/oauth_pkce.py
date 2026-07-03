@@ -175,9 +175,7 @@ class OAuthPKCEMethod(ConnectionMethod):
             def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
                 return
 
-        server = self._loopback_factory(
-            ("127.0.0.1", self._redirect_port), Handler
-        )
+        server = self._loopback_factory(("127.0.0.1", self._redirect_port), Handler)
         threading.Thread(target=server.serve_forever, daemon=True).start()
         return server
 

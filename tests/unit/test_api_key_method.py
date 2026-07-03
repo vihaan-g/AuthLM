@@ -26,9 +26,6 @@ class _StubStore:
         return "stub"
 
 
-
-
-
 @pytest.fixture
 def stub_store() -> _StubStore:
     return _StubStore()
@@ -69,6 +66,3 @@ async def test_connect_rejects_empty(stub_store: _StubStore) -> None:
 
     with pytest.raises(AuthLMError):
         await method.connect(store=stub_store)
-
-
-
