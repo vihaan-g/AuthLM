@@ -39,7 +39,6 @@ body:
         - "3.11"
         - "3.12"
         - "3.13"
-        - "3.14"
         - "Other"
     validations:
       required: true
@@ -64,6 +63,8 @@ body:
         - "ollama"
         - "openrouter"
         - "Other / N/A"
+    validations:
+      required: false
 
   - type: dropdown
     id: connection-method
@@ -74,6 +75,8 @@ body:
         - "oauth_pkce"
         - "oauth_device"
         - "Other / N/A"
+    validations:
+      required: false
 
   - type: dropdown
     id: store
@@ -85,6 +88,8 @@ body:
         - "env"
         - "memory"
         - "default (unspecified)"
+    validations:
+      required: false
 
   - type: textarea
     id: what-happened
@@ -119,14 +124,5 @@ body:
     id: logs
     attributes:
       label: Relevant log output
-    description: |
-      Enable DEBUG logging before reproducing:
-
-      ```python
-      import logging
-      logging.basicConfig(level=logging.DEBUG)
-      ```
-
-      Secrets are redacted in logs, but please review your output for
-      anything sensitive before pasting.
-    render: shell
+      description: Use DEBUG logging: `import logging; logging.basicConfig(level=logging.DEBUG)`.
+      render: shell
