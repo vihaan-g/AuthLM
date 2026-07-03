@@ -22,7 +22,7 @@ See the [design spec](.agents/specs/v0.1.0-authlm.md) for the full v0.1.0 archit
 
 Most AI libraries treat credentials as an afterthought:
 
-- **`llm`** stores API keys as plaintext JSON in `~/.config/io.datasette.llm/keys.json`.
+- **`llm`** stores API keys in plaintext JSON by default (newer versions offer a keyring option).
 - **LiteLLM** and the **official provider SDKs** read from env vars or expect you to pass keys inline. No keychain, no OAuth, no refresh.
 - **No widely-used library** handles OAuth PKCE, device-code flows, refresh-token rotation, or multi-account keying for AI providers.
 

@@ -12,6 +12,8 @@ from authlm.providers.base import ConnectionMethod, Provider
 
 
 class GoogleProvider(Provider):
+    """Google AI provider: api_key + AI Studio OAuth (browser)."""
+
     def __init__(
         self,
         *,
