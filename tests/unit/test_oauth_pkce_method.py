@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
 from http.server import HTTPServer
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -12,26 +11,10 @@ from pydantic import HttpUrl
 from respx import MockRouter
 
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
-from authlm.credentials import Credential, OAuthCredential
+from authlm.credentials import OAuthCredential
 from authlm.errors import AuthLMError, ReconnectionRequired
 from authlm.providers.base import OAuthGrant
-
-
-class _StubStore:
-    def get(self, provider: str, alias: str) -> Credential | None:
-        return None
-
-    def set(self, credential: Credential) -> None:
-        pass
-
-    def delete(self, provider: str, alias: str) -> bool:
-        return False
-
-    def list(self) -> Iterator[tuple[str, str]]:
-        return iter(())
-
-    def backend_name(self) -> str:
-        return "stub"
+from tests.conftest import _StubStore
 
 
 def _token_response() -> dict[str, Any]:

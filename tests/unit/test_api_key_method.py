@@ -1,34 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
-
 import pytest
 
 from authlm.connection_methods.api_key import APIKeyMethod
-from authlm.credentials import ApiKeyCredential, Credential
+from authlm.credentials import ApiKeyCredential
 from authlm.errors import AuthLMError
-
-
-class _StubStore:
-    def get(self, provider: str, alias: str) -> Credential | None:
-        return None
-
-    def set(self, credential: Credential) -> None:
-        pass
-
-    def delete(self, provider: str, alias: str) -> bool:
-        return False
-
-    def list(self) -> Iterator[tuple[str, str]]:
-        return iter(())
-
-    def backend_name(self) -> str:
-        return "stub"
-
-
-@pytest.fixture
-def stub_store() -> _StubStore:
-    return _StubStore()
+from tests.conftest import _StubStore
 
 
 def test_api_key_method_metadata() -> None:

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
 from typing import Any
 
 import httpx
@@ -9,27 +8,10 @@ from pydantic import HttpUrl
 from respx import MockRouter
 
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
-from authlm.credentials import Credential, OAuthCredential
+from authlm.credentials import OAuthCredential
 from authlm.errors import ReconnectionRequired
 from authlm.providers.base import OAuthGrant
-from authlm.stores.base import CredentialStore
-
-
-class _StubStore(CredentialStore):
-    def get(self, provider: str, alias: str) -> Credential | None:
-        return None
-
-    def set(self, credential: Credential) -> None:
-        pass
-
-    def delete(self, provider: str, alias: str) -> bool:
-        return False
-
-    def list(self) -> Iterator[tuple[str, str]]:
-        return iter(())
-
-    def backend_name(self) -> str:
-        return "stub"
+from tests.conftest import _StubStore
 
 
 def _device_response(device_code: str = "DEVCODE") -> dict[str, Any]:
