@@ -22,10 +22,22 @@ def _build_providers() -> Sequence[Provider]:
 
 
 def list_providers() -> Sequence[Provider]:
+    """Return all registered providers."""
     return _build_providers()
 
 
 def get_provider(provider_id: str) -> Provider:
+    """Return a provider by ID.
+
+    Args:
+        provider_id: Stable provider identifier (e.g. ``"openai"``).
+
+    Returns:
+        The matching Provider instance.
+
+    Raises:
+        AuthLMError: No provider with the given ID is registered.
+    """
     for provider in list_providers():
         if provider.id == provider_id:
             return provider
@@ -33,6 +45,18 @@ def get_provider(provider_id: str) -> Provider:
 
 
 def get_method(provider_id: str, method_id: str) -> ConnectionMethod:
+    """Return a connection method by provider and method ID.
+
+    Args:
+        provider_id: Stable provider identifier (e.g. ``"openai"``).
+        method_id: Method identifier (e.g. ``"api_key"``).
+
+    Returns:
+        The matching ConnectionMethod instance.
+
+    Raises:
+        AuthLMError: No provider or method matches the given IDs.
+    """
     provider = get_provider(provider_id)
     for method in provider.connection_methods(include_warned=True):
         if method.id == method_id:

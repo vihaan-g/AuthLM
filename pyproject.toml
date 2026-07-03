@@ -56,10 +56,9 @@ authlm = "authlm.cli:cli"
 
 [project.urls]
 Homepage = "https://github.com/vihaan-g/authlm"
-Documentation = "https://authlm.readthedocs.io"
+Repository = "https://github.com/vihaan-g/authlm"
 Issues = "https://github.com/vihaan-g/authlm/issues"
 Changelog = "https://github.com/vihaan-g/authlm/releases"
-Source = "https://github.com/vihaan-g/authlm"
 
 [tool.hatch.version]
 source = "code"
