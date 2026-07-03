@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
@@ -64,4 +65,6 @@ class MetadataStore:
 
     def _write(self, data: dict[str, dict[str, dict[str, object]]]) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._path.write_text(json.dumps(data, indent=2))
+        tmp_path = self._path.with_suffix(self._path.suffix + ".tmp")
+        tmp_path.write_text(json.dumps(data, indent=2))
+        os.replace(tmp_path, self._path)
