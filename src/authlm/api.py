@@ -210,8 +210,7 @@ async def refresh(
         data = response.json()
     except json.JSONDecodeError as exc:
         raise TokenEndpointError(
-            "Token endpoint returned non-JSON body: "
-            f"body={redact_body(response.text)}"
+            f"Token endpoint returned non-JSON body: body={redact_body(response.text)}"
         ) from exc
     new_access = str(data.get("access_token", ""))
     if not new_access:
@@ -278,9 +277,7 @@ async def connect(
     if cred.alias != alias:
         cred = cred.model_copy(update={"alias": alias})
     if method.warning:
-        cred = cred.model_copy(
-            update={"warning_acknowledged_at": datetime.now(UTC)}
-        )
+        cred = cred.model_copy(update={"warning_acknowledged_at": datetime.now(UTC)})
     backend.set(cred)
 
     if metadata_store is not None:
