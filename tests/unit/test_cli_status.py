@@ -212,3 +212,13 @@ def test_status_validate_warned_without_force_returns_permission_error(
     assert result.exit_code != 0
     assert "traceback" not in result.output.lower()
     assert "warned" in result.output.lower()
+
+
+def test_status_backend_flag_prints_backend_name(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store = MemoryStore()
+    _patch_store(monkeypatch, store)
+    result = runner.invoke(cli, ["status", "--backend", "--store=memory"])
+    assert result.exit_code == 0, result.output
+    assert "Memory" in result.output

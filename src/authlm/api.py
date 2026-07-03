@@ -14,7 +14,12 @@ from authlm.connection_methods._oauth_helpers import (
 from authlm.connection_methods.api_key import APIKeyMethod
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
-from authlm.credentials import Credential, OAuthCredential
+from authlm.credentials import (
+    ApiKeyCredential,
+    Credential,
+    OAuthCredential,
+    compute_fingerprint,
+)
 from authlm.errors import (
     AuthLMError,
     CredentialNotFound,
@@ -88,6 +93,7 @@ async def get_valid_credential(
     alias: str,
     margin: timedelta,
     store: CredentialStore | None = None,
+    metadata_store: MetadataStore | None = None,
 ) -> Credential:
     """Return a credential that is currently usable.
 
@@ -101,6 +107,8 @@ async def get_valid_credential(
         margin: Refresh window. Recommended: ``timedelta(minutes=5)``.
         store: Credential store backend. Uses ``get_default_store()`` if
             ``None``.
+        metadata_store: Optional metadata store for fingerprint updates
+            after refresh.
 
     Returns:
         A valid credential, refreshed if necessary.
@@ -116,7 +124,9 @@ async def get_valid_credential(
     if cred is None:
         raise CredentialNotFound(f"No credential stored for {provider}:{alias}")
     if should_refresh(cred, margin=margin):
-        return await refresh(provider, alias=alias, store=backend)
+        return await refresh(
+            provider, alias=alias, store=backend, metadata_store=metadata_store
+        )
     return cred
 
 
@@ -125,6 +135,7 @@ async def refresh(
     *,
     alias: str,
     store: CredentialStore | None = None,
+    metadata_store: MetadataStore | None = None,
 ) -> Credential:
     """Force-refresh the credential regardless of expiry.
 
@@ -137,6 +148,8 @@ async def refresh(
         alias: Credential alias (e.g. ``"default"``).
         store: Credential store backend. Uses ``get_default_store()`` if
             ``None``.
+        metadata_store: Optional metadata store for fingerprint updates
+            after refresh.
 
     Returns:
         The refreshed credential.
@@ -210,6 +223,12 @@ async def refresh(
         }
     )
     backend.set(new_cred)
+    if metadata_store is not None:
+        fp = compute_fingerprint(new_cred.access_token)
+        meta = metadata_store.get(provider, alias)
+        if meta is not None:
+            meta.fingerprint = fp
+            metadata_store.set(provider, alias, meta)
     return new_cred
 
 
@@ -249,14 +268,21 @@ async def connect(
     backend.set(cred)
 
     if metadata_store is not None:
+        secret_value: str | None = None
+        if isinstance(cred, ApiKeyCredential):
+            secret_value = cred.secret
+        elif isinstance(cred, OAuthCredential):
+            secret_value = cred.access_token
+
         entry = MetadataEntry(
             provider_display_name=_get_provider(provider).display_name,
             method_id=cred.method_id,
             connected_at=datetime.now(UTC),
             scopes=list(cred.scopes) if isinstance(cred, OAuthCredential) else [],
             warning_acknowledged_at=datetime.now(UTC) if method.warning else None,
+            client_id=cred.client_id if isinstance(cred, OAuthCredential) else None,
+            fingerprint=compute_fingerprint(secret_value) if secret_value else None,
         )
         metadata_store.set(provider, alias, entry)
 
     return cred
-
