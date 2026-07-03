@@ -150,6 +150,9 @@ class EncryptedFileStore(CredentialStore):
     def _write(self, file: _EncryptedFile) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = self._path.with_suffix(self._path.suffix + ".tmp")
-        tmp_path.write_text(file.model_dump_json(indent=2))
-        _restrict_permissions(tmp_path)
+        old_umask = os.umask(0o077)
+        try:
+            tmp_path.write_text(file.model_dump_json(indent=2))
+        finally:
+            os.umask(old_umask)
         os.replace(tmp_path, self._path)
