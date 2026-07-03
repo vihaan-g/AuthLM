@@ -21,6 +21,8 @@ AuthLM uses GitHub's private vulnerability reporting. To disclose a vulnerabilit
 2. Click **"Report a vulnerability"**.
 3. Provide as much detail as possible: affected version, reproduction steps, impact assessment.
 
+If you cannot use GitHub Security Advisories, email security@authlm.dev as a fallback disclosure channel.
+
 **Response SLA:**
 
 - Acknowledgement: within **72 hours** of report.
@@ -37,7 +39,6 @@ We follow coordinated disclosure. We will work with you on an embargo period and
 - **Secrets appearing in VCR cassettes.** Recorded HTTP fixtures are scrubbed via `filter_headers`, `filter_post_data_parameters`, and `before_record_response` hooks.
 - **Token expiry going unnoticed.** The public `get_valid_credential()` API makes expiry explicit; consumers choose when to refresh rather than relying on silent auto-refresh on every read.
 - **Refresh-token rotation bugs.** The centralized implementation persists both new access and refresh tokens atomically on every refresh, preventing the common "kept the old refresh token" failure mode.
-- **Plugin supply-chain attacks via namespace confusion.** A strict `authlm` entry-point group and loud alias-collision detection at registration time prevent silent shadowing.
 
 ### AuthLM does NOT protect against
 
@@ -67,6 +68,7 @@ All log output, exception messages, and VCR cassettes are processed by a redacti
 - Query parameters named `code`, `state`, `token`
 
 Library code uses the `logging` module at `DEBUG` level. There are **no `print()` calls** in library code. Secrets are never passed through `str()` or `repr()` in error messages.
+- Pydantic credential models use `Field(repr=False)` on all secret fields (`ApiKeyCredential.secret`, `OAuthCredential.access_token`, `OAuthCredential.refresh_token`) so that `repr(cred)`, `print(cred)`, and debugger inspection do not leak secrets.
 
 ## Coordinated Disclosure
 
