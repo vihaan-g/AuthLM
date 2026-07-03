@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
+import httpx
 import pytest
+import respx
 from respx import MockRouter
 
 from authlm.connection_methods._oauth_helpers import redact_body
 from authlm.credentials import ApiKeyCredential, OAuthCredential
-from authlm.errors import TokenEndpointError
+from authlm.errors import AccessDenied, RefreshFailed, TokenEndpointError
 from authlm.validation import validate
 
 
@@ -138,3 +140,61 @@ async def test_validate_redacts_bearer_token_in_400_body(
 def test_redact_body_truncates_to_200_chars() -> None:
     redacted = redact_body("x" * 500)
     assert len(redacted) <= 200
+
+
+@pytest.mark.asyncio
+async def test_validate_404_returns_false() -> None:
+    cred = ApiKeyCredential(
+        provider="openai",
+        alias="default",
+        method_id="api_key",
+        secret="sk-test",
+    )
+    with respx.mock:
+        respx.get("https://api.openai.com/v1/models").respond(404)
+        result = await validate(cred, force=True)
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_validate_403_raises_access_denied() -> None:
+    cred = ApiKeyCredential(
+        provider="openai",
+        alias="default",
+        method_id="api_key",
+        secret="sk-test",
+    )
+    with respx.mock:
+        respx.get("https://api.openai.com/v1/models").respond(403)
+        with pytest.raises(AccessDenied):
+            await validate(cred, force=True)
+
+
+@pytest.mark.asyncio
+async def test_validate_5xx_raises_refresh_failed() -> None:
+    cred = ApiKeyCredential(
+        provider="openai",
+        alias="default",
+        method_id="api_key",
+        secret="sk-test",
+    )
+    with respx.mock:
+        respx.get("https://api.openai.com/v1/models").respond(503)
+        with pytest.raises(RefreshFailed):
+            await validate(cred, force=True)
+
+
+@pytest.mark.asyncio
+async def test_validate_network_error_raises_token_endpoint_error() -> None:
+    cred = ApiKeyCredential(
+        provider="openai",
+        alias="default",
+        method_id="api_key",
+        secret="sk-test",
+    )
+    with respx.mock:
+        respx.get("https://api.openai.com/v1/models").mock(
+            side_effect=httpx.ConnectError("connection refused")
+        )
+        with pytest.raises(TokenEndpointError):
+            await validate(cred, force=True)
