@@ -43,10 +43,6 @@ class ConnectionMethod(Protocol):
         """Run the auth flow interactively; persist the result; return it."""
         ...
 
-    async def validate(self, cred: Credential, *, force: bool) -> bool:
-        """Probe whether the credential is currently usable."""
-        ...
-
 
 @runtime_checkable
 class Provider(Protocol):

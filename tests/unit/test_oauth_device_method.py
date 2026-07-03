@@ -125,36 +125,6 @@ async def test_connect_handles_expired_token(respx_mock: MockRouter) -> None:
             await method.connect(store=_StubStore())
 
 
-@pytest.mark.asyncio
-async def test_validate_accepts_oauth_credential() -> None:
-    async with httpx.AsyncClient() as client:
-        method = _method(http_client=client)
-    cred = OAuthCredential(
-        provider="openai",
-        alias="default",
-        method_id="oauth_device",
-        access_token="a",
-        refresh_token="r",
-        expires_at=datetime.now(UTC) + timedelta(hours=1),
-    )
-    assert await method.validate(cred, force=False) is True
-
-
-@pytest.mark.asyncio
-async def test_validate_rejects_expired_credential() -> None:
-    async with httpx.AsyncClient() as client:
-        method = _method(http_client=client)
-    cred = OAuthCredential(
-        provider="openai",
-        alias="default",
-        method_id="oauth_device",
-        access_token="a",
-        refresh_token="r",
-        expires_at=datetime.now(UTC) - timedelta(minutes=1),
-    )
-    assert await method.validate(cred, force=False) is False
-
-
 def test_device_method_with_on_prompt_returns_new_instance() -> None:
     captured: list[tuple[str, str]] = []
 

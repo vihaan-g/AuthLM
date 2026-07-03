@@ -26,12 +26,7 @@ class _StubStore:
         return "stub"
 
 
-class _FakeResponse:
-    def __init__(self, status_code: int) -> None:
-        self.status_code = status_code
 
-    def json(self) -> dict[str, object]:
-        return {}
 
 
 @pytest.fixture
@@ -76,33 +71,4 @@ async def test_connect_rejects_empty(stub_store: _StubStore) -> None:
         await method.connect(store=stub_store)
 
 
-@pytest.mark.asyncio
-async def test_validate_with_valid_key() -> None:
-    calls: list[tuple[str, dict[str, str]]] = []
 
-    async def fake_http_get(url: str, *, headers: dict[str, str]) -> _FakeResponse:
-        calls.append((url, headers))
-        return _FakeResponse(status_code=200)
-
-    cred = ApiKeyCredential(
-        provider="openai",
-        alias="default",
-        method_id="api_key",
-        secret="sk-test",
-    )
-    method = APIKeyMethod(
-        provider_id="openai",
-        secret_prompt=lambda _: "sk-test",
-        validation_url="https://api.openai.com/v1/models",
-        http_get=fake_http_get,
-    )
-
-    result = await method.validate(cred, force=False)
-
-    assert result is True
-    assert calls == [
-        (
-            "https://api.openai.com/v1/models",
-            {"Authorization": "Bearer sk-test"},
-        )
-    ]

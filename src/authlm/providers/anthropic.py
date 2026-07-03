@@ -53,9 +53,6 @@ class AnthropicProvider(Provider):
         api_key = APIKeyMethod(
             provider_id=self.id,
             secret_prompt=self._secret_prompt,
-            validation_url=str(self._entry.validation_url)
-            if self._entry.validation_url
-            else None,
         )
 
         methods: list[ConnectionMethod] = [api_key]

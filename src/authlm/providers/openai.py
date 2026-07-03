@@ -47,9 +47,6 @@ class OpenAIProvider(Provider):
             APIKeyMethod(
                 provider_id=self.id,
                 secret_prompt=self._secret_prompt,
-                validation_url=str(self._entry.validation_url)
-                if self._entry.validation_url
-                else None,
             ),
             OAuthPKCEMethod(
                 provider_id=self.id,
