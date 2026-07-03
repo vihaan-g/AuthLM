@@ -129,7 +129,7 @@ def test_status_with_validate(
         )
     )
     _patch_store(monkeypatch, store)
-    with patch("authlm.api.validate", new=AsyncMock(return_value=True)):
+    with patch("authlm.cli.status._validate", new=AsyncMock(return_value=True)):
         result = runner.invoke(
             cli,
             [
@@ -160,7 +160,7 @@ def test_status_validate_force_warns_on_warned_method(
         )
     )
     _patch_store(monkeypatch, store)
-    with patch("authlm.api.validate", new=AsyncMock(return_value=True)):
+    with patch("authlm.cli.status._validate", new=AsyncMock(return_value=True)):
         result = runner.invoke(
             cli,
             [
@@ -194,7 +194,7 @@ def test_status_validate_warned_without_force_returns_permission_error(
     )
     _patch_store(monkeypatch, store)
     with patch(
-        "authlm.api.validate",
+        "authlm.cli.status._validate",
         new=AsyncMock(side_effect=PermissionError("warned method")),
     ):
         result = runner.invoke(

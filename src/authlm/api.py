@@ -33,6 +33,19 @@ _log = logging.getLogger(__name__)
 
 
 def should_refresh(cred: Credential, *, margin: timedelta) -> bool:
+    """Return True if the credential is expired or within margin of expiry.
+
+    Args:
+        cred: The credential to check.
+        margin: If the credential expires within this window, it is
+            considered in need of refresh.
+
+    Returns:
+        True if the credential should be refreshed. For credentials
+        without ``expires_at`` (e.g. ``ApiKeyCredential``), returns False.
+
+    Sync — pure datetime arithmetic, no I/O. Safe to call from any context.
+    """
     if not isinstance(cred, OAuthCredential) or cred.expires_at is None:
         return False
     now = datetime.now(UTC)
@@ -45,6 +58,23 @@ async def get_credential(
     alias: str,
     store: CredentialStore | None = None,
 ) -> Credential:
+    """Return the stored credential as-is, even if expired.
+
+    No I/O. Use when you need the raw credential value and will check
+    expiry yourself. For automatic refresh, use ``get_valid_credential``.
+
+    Args:
+        provider: Provider ID (e.g. ``"openai"``).
+        alias: Credential alias (e.g. ``"default"``).
+        store: Credential store backend. Uses ``get_default_store()`` if
+            ``None``.
+
+    Returns:
+        The stored credential.
+
+    Raises:
+        CredentialNotFound: No credential stored for (provider, alias).
+    """
     backend = store or get_default_store()
     cred = backend.get(provider, alias)
     if cred is None:
@@ -59,6 +89,28 @@ async def get_valid_credential(
     margin: timedelta,
     store: CredentialStore | None = None,
 ) -> Credential:
+    """Return a credential that is currently usable.
+
+    If the credential is expired or within ``margin`` of expiry, attempts
+    a refresh via the provider's token endpoint. Makes a network call only
+    when refresh is needed.
+
+    Args:
+        provider: Provider ID (e.g. ``"openai"``).
+        alias: Credential alias (e.g. ``"default"``).
+        margin: Refresh window. Recommended: ``timedelta(minutes=5)``.
+        store: Credential store backend. Uses ``get_default_store()`` if
+            ``None``.
+
+    Returns:
+        A valid credential, refreshed if necessary.
+
+    Raises:
+        CredentialNotFound: No credential stored for (provider, alias).
+        ReconnectionRequired: Refresh token is dead; re-run ``connect()``.
+        RefreshFailed: Transient network error from token endpoint.
+        TokenEndpointError: Other token endpoint error.
+    """
     backend = store or get_default_store()
     cred = backend.get(provider, alias)
     if cred is None:
@@ -74,6 +126,29 @@ async def refresh(
     alias: str,
     store: CredentialStore | None = None,
 ) -> Credential:
+    """Force-refresh the credential regardless of expiry.
+
+    POSTs to the provider's token endpoint with the stored refresh token.
+    Persists the new access token and (if provided) the new refresh token.
+    If the server omits a new refresh token, the old one is kept.
+
+    Args:
+        provider: Provider ID (e.g. ``"openai"``).
+        alias: Credential alias (e.g. ``"default"``).
+        store: Credential store backend. Uses ``get_default_store()`` if
+            ``None``.
+
+    Returns:
+        The refreshed credential.
+
+    Raises:
+        CredentialNotFound: No credential stored for (provider, alias).
+        ReconnectionRequired: Refresh token is dead (invalid_grant);
+            re-run ``connect()``.
+        RefreshFailed: Transient network error or 5xx from token endpoint.
+        TokenEndpointError: Other token endpoint error.
+        AuthLMError: Provider has no OAuth config.
+    """
     backend = store or get_default_store()
     cred = backend.get(provider, alias)
     if cred is None:
@@ -185,13 +260,3 @@ async def connect(
 
     return cred
 
-
-async def validate(
-    cred: Credential,
-    *,
-    force: bool,
-) -> bool:
-    """Probe a credential against the provider's validation URL."""
-    from authlm.validation import validate as _validate
-
-    return await _validate(cred, force=force)

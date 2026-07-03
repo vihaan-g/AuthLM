@@ -5,13 +5,13 @@ from pathlib import Path
 
 import click
 
-from authlm import api as _api
 from authlm.cli import _context
 from authlm.cli._formatters import format_status_table
 from authlm.errors import AuthLMError
 from authlm.metadata import MetadataStore
 from authlm.stores.base import CredentialStore
 from authlm.validation import _is_warned
+from authlm.validation import validate as _validate
 
 
 @click.command("status")
@@ -89,7 +89,7 @@ def status(
                     err=True,
                 )
             try:
-                result = asyncio.run(_api.validate(cred, force=force))
+                result = asyncio.run(_validate(cred, force=force))
             except (AuthLMError, PermissionError) as exc:
                 raise click.ClickException(str(exc)) from exc
             click.echo(f"Validation: {'Valid' if result else 'Invalid'}")
