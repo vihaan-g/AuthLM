@@ -35,7 +35,6 @@ class PKCEPair:
 
     verifier: str
     challenge: str
-    method: str
 
 
 @dataclass(frozen=True)
@@ -55,7 +54,7 @@ def generate_pkce_pair() -> PKCEPair:
         .rstrip(b"=")
         .decode("ascii")
     )
-    return PKCEPair(verifier=verifier, challenge=challenge, method="S256")
+    return PKCEPair(verifier=verifier, challenge=challenge)
 
 
 def build_authorize_url(

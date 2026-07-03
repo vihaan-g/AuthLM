@@ -25,13 +25,5 @@ class TokenEndpointError(AuthLMError):
     """Other 4xx from token endpoint. Surface provider's error message."""
 
 
-class ProviderNotAvailable(AuthLMError):
-    """Provider SDK not installed. Message includes install hint."""
-
-
-class AliasCollisionError(AuthLMError):
-    """Two plugins registered the same (provider, alias)."""
-
-
 class SecretStoreError(AuthLMError):
     """Secret store backend failed (keyring, encrypted file, etc.)."""

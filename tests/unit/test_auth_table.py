@@ -29,7 +29,6 @@ def test_oauth_config_fields() -> None:
 def test_auth_table_entry_fields() -> None:
     entry = AuthTableEntry(
         provider_id="openai",
-        credential_types=["api_key", "oauth"],
         oauth=OAuthConfig(
             authorize_url=HttpUrl("https://auth.example.com/authorize"),
             token_url=HttpUrl("https://auth.example.com/token"),
@@ -39,7 +38,6 @@ def test_auth_table_entry_fields() -> None:
         validation_url=HttpUrl("https://api.example.com/v1/models"),
     )
     assert entry.provider_id == "openai"
-    assert entry.credential_types == ["api_key", "oauth"]
     assert entry.oauth is not None
 
 

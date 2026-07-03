@@ -29,19 +29,11 @@ class OpenRouterProvider(Provider):
     def docs_url(self) -> str | None:
         return "https://openrouter.ai/keys"
 
-    @property
-    @override
-    def logo_url(self) -> str | None:
-        return None
-
     @override
     def connection_methods(self, *, include_warned: bool) -> Sequence[ConnectionMethod]:
         return [
             APIKeyMethod(
                 provider_id=self.id,
                 secret_prompt=self._secret_prompt,
-                validation_url=str(self._entry.validation_url)
-                if self._entry.validation_url
-                else None,
             ),
         ]
