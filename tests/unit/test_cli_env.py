@@ -142,3 +142,26 @@ def test_env_missing(
     result = runner.invoke(cli, ["env", "openai", "--store", "memory"])
     assert result.exit_code != 0
     assert "not found" in result.output.lower() or "openai" in result.output
+
+
+def test_docker_format_has_no_shell_quoting(
+    runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Docker format outputs bare KEY=VALUE without shlex.quote."""
+    store = MemoryStore()
+    store.set(
+        ApiKeyCredential(
+            provider="openai",
+            alias="default",
+            method_id="api_key",
+            secret="sk test value",
+        )
+    )
+    _patch_store(monkeypatch, store)
+    result = runner.invoke(
+        cli,
+        ["env", "openai", "--export-format", "docker", "--store", "memory"],
+    )
+    assert result.exit_code == 0, result.output
+    assert "'" not in result.output
+    assert "OPENAI_API_KEY=sk test value" in result.output
