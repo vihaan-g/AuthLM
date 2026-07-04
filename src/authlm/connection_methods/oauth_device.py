@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime, timedelta
@@ -131,7 +132,13 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
                 f"device-code request failed: status={response.status_code} "
                 f"body={redact_body(response.text)}"
             )
-        data = response.json()
+        try:
+            data = response.json()
+        except json.JSONDecodeError as exc:
+            raise TokenEndpointError(
+                f"Device-code endpoint returned non-JSON body: "
+                f"body={redact_body(response.text)}"
+            ) from exc
         if (
             not isinstance(data, dict)
             or "device_code" not in data
@@ -157,7 +164,13 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
                 },
             )
             if 200 <= response.status_code < 300:
-                return cast(dict[str, Any], response.json())
+                try:
+                    return cast(dict[str, Any], response.json())
+                except json.JSONDecodeError as exc:
+                    raise TokenEndpointError(
+                        f"Token endpoint returned non-JSON body: "
+                        f"body={redact_body(response.text)}"
+                    ) from exc
             classification = classify_token_error(
                 status_code=response.status_code, body=response.text
             )
