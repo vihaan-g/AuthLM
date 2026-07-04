@@ -109,3 +109,21 @@ def test_auto_select_env_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
         assert isinstance(store, EnvStore)
     finally:
         keyring.set_keyring(original)
+
+
+def test_encrypted_file_store_prompts_when_no_env_var(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """EncryptedFileStore prompts interactively when AUTHLM_PASSPHRASE is unset."""
+    import getpass
+
+    monkeypatch.delenv("AUTHLM_PASSPHRASE", raising=False)
+    monkeypatch.setenv("AUTHLM_STORE", "encrypted_file")
+    monkeypatch.setattr(getpass, "getpass", lambda p: "test-passphrase")
+    # Mock stdin.isatty to return True
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+
+    from authlm.stores import build_store
+
+    store = build_store(store_name="encrypted_file")
+    assert store is not None
