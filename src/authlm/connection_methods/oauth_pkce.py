@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import secrets
 import threading
@@ -253,7 +254,13 @@ class OAuthPKCEMethod(ConnectionMethod):
                 f"Token endpoint error: status={response.status_code} "
                 f"body={redact_body(response.text)}"
             )
-        data = response.json()
+        try:
+            data = response.json()
+        except json.JSONDecodeError as exc:
+            raise TokenEndpointError(
+                f"Token endpoint returned non-JSON body: "
+                f"body={redact_body(response.text)}"
+            ) from exc
         return self._build_credential(data)
 
     def _build_credential(self, data: dict[str, Any]) -> OAuthCredential:
