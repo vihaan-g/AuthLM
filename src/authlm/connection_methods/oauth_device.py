@@ -16,7 +16,7 @@ from authlm.connection_methods._oauth_helpers import (
     redact_body,
 )
 from authlm.credentials import Credential, OAuthCredential
-from authlm.errors import ReconnectionRequired, TokenEndpointError
+from authlm.errors import ConnectionTimeout, ReconnectionRequired, TokenEndpointError
 from authlm.providers.base import ConnectionMethod, OAuthGrant
 from authlm.stores.base import CredentialStore
 
@@ -167,7 +167,7 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
                 )
             if classification.error_code in ("authorization_pending", "slow_down"):
                 if loop.time() >= deadline:
-                    raise TimeoutError("Device-code flow timed out")
+                    raise ConnectionTimeout("Device-code flow timed out")
                 wait = interval
                 if classification.error_code == "slow_down":
                     wait += 5.0
