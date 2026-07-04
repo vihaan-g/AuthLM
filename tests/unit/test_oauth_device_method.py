@@ -9,7 +9,7 @@ from respx import MockRouter
 
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.credentials import OAuthCredential
-from authlm.errors import ReconnectionRequired
+from authlm.errors import ConnectionTimeout, ReconnectionRequired
 from authlm.providers.base import OAuthGrant
 from tests.conftest import _StubStore
 
@@ -204,5 +204,5 @@ async def test_connect_times_out_when_always_authorization_pending() -> None:
         poll_timeout_seconds=0.5,
         http_client=httpx.AsyncClient(transport=httpx.MockTransport(_always_pending)),
     )
-    with pytest.raises(TimeoutError):
+    with pytest.raises(ConnectionTimeout):
         await method.connect(store=store)
