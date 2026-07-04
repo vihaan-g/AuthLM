@@ -45,7 +45,9 @@ def test_api_key_method_warning() -> None:
 def test_oauth_browser_method_grant() -> None:
     p = _provider()
     method = next(
-        m for m in p.connection_methods(include_warned=False) if m.id == "chatgpt_oauth_browser"
+        m
+        for m in p.connection_methods(include_warned=False)
+        if m.id == "chatgpt_oauth_browser"
     )
     assert method.oauth_grant == OAuthGrant.AUTHORIZATION_CODE_PKCE
     assert method.warning is None
@@ -54,7 +56,9 @@ def test_oauth_browser_method_grant() -> None:
 def test_oauth_device_method_grant() -> None:
     p = _provider()
     method = next(
-        m for m in p.connection_methods(include_warned=False) if m.id == "chatgpt_oauth_device"
+        m
+        for m in p.connection_methods(include_warned=False)
+        if m.id == "chatgpt_oauth_device"
     )
     assert method.oauth_grant == OAuthGrant.DEVICE_CODE
     assert method.warning is None
@@ -75,7 +79,9 @@ def test_openai_provider_uses_env_var_client_id(
         secret_prompt=lambda _p: "", http_client=httpx.AsyncClient()
     )
     methods = provider.connection_methods(include_warned=False)
-    oauth_methods = [m for m in methods if m.id in ("chatgpt_oauth_browser", "chatgpt_oauth_device")]
+    oauth_methods = [
+        m for m in methods if m.id in ("chatgpt_oauth_browser", "chatgpt_oauth_device")
+    ]
     assert len(oauth_methods) > 0
     for m in oauth_methods:
         assert m._client_id == "custom-client-id"  # type: ignore[union-attr]  # noqa: SLF001

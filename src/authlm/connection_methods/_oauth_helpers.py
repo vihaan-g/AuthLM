@@ -20,7 +20,16 @@ from authlm.errors import TokenEndpointError
 _log = logging.getLogger(__name__)
 
 _REDACTED_PARAMS: frozenset[str] = frozenset(
-    {"code", "access_token", "refresh_token", "id_token", "token", "client_secret", "api_key", "secret"}
+    {
+        "code",
+        "access_token",
+        "refresh_token",
+        "id_token",
+        "token",
+        "client_secret",
+        "api_key",
+        "secret",
+    }
 )
 _FATAL_ERROR_CODES: frozenset[str] = frozenset(
     {

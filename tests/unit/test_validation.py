@@ -58,7 +58,7 @@ async def test_validate_oauth_uses_bearer_token(respx_mock: MockRouter) -> None:
     cred = OAuthCredential(
         provider="openai",
         alias="default",
-        method_id="oauth_browser",
+        method_id="chatgpt_oauth_browser",
         access_token="ACCESS",
         refresh_token=None,
         expires_at=None,
