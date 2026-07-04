@@ -12,7 +12,7 @@ from respx import MockRouter
 
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.credentials import OAuthCredential
-from authlm.errors import AuthLMError, ConnectionTimeout, ReconnectionRequired
+from authlm.errors import AuthLMError, ConnectionTimeout, ReconnectionRequired, TokenEndpointError
 from authlm.providers.base import OAuthGrant
 from tests.conftest import _StubStore
 
@@ -182,3 +182,28 @@ async def test_pkce_timeout_raises_connection_timeout() -> None:
     captured: dict[str, str] = {}
     with pytest.raises(ConnectionTimeout):
         await method._wait_for_code(captured, timeout=0.01)  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+
+
+@pytest.mark.asyncio
+async def test_non_json_token_response_raises_token_error() -> None:
+    """Non-JSON 200 from token endpoint raises TokenEndpointError."""
+
+    def _html_response(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="<html>Error</html>")
+
+    from authlm.connection_methods._oauth_helpers import PKCEPair
+
+    method = OAuthPKCEMethod(
+        provider_id="test",
+        authorize_url=HttpUrl("https://example.com/auth"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        redirect_port=0,
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(_html_response)),
+    )
+    pair = PKCEPair(verifier="test-verifier", challenge="test-challenge")
+    with pytest.raises(TokenEndpointError, match="non-JSON"):
+        await method._exchange_code(  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+            code="test-code", pair=pair, redirect_uri="http://127.0.0.1:0/callback"
+        )
