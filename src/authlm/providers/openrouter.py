@@ -4,7 +4,6 @@ from collections.abc import Callable, Sequence
 
 from typing_extensions import override
 
-from authlm._auth_table import get_auth_entry
 from authlm.connection_methods.api_key import APIKeyMethod
 from authlm.providers.base import ConnectionMethod, Provider
 
@@ -14,7 +13,6 @@ class OpenRouterProvider(Provider):
 
     def __init__(self, *, secret_prompt: Callable[[str], str]) -> None:
         self._secret_prompt = secret_prompt
-        self._entry = get_auth_entry("openrouter")
 
     @property
     @override
