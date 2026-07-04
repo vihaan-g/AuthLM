@@ -35,7 +35,7 @@ We follow coordinated disclosure. We will work with you on an embargo period and
 ### AuthLM protects against
 
 - **Secrets written to disk in plaintext.** The default backend is the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service). Plaintext file storage is opt-in and warns.
-- **Secrets appearing in log output or exception messages.** All logs route through a redaction layer in `authlm.logging` that scrubs `Authorization` headers, OAuth tokens, API keys, and client secrets.
+- **Secrets appearing in log output or exception messages.** All logs route through a redaction layer in `authlm.connection_methods._oauth_helpers` (`redact_body`, `redact_url`, `_redact_dict`) that scrubs `Authorization` headers, OAuth tokens, API keys, and client secrets.
 - **Secrets appearing in VCR cassettes.** Recorded HTTP fixtures are scrubbed via `filter_headers`, `filter_post_data_parameters`, and `before_record_response` hooks.
 - **Token expiry going unnoticed.** The public `get_valid_credential()` API makes expiry explicit; consumers choose when to refresh rather than relying on silent auto-refresh on every read.
 - **Refresh-token rotation bugs.** The centralized implementation persists both new access and refresh tokens atomically on every refresh, preventing the common "kept the old refresh token" failure mode.
@@ -64,8 +64,9 @@ All log output, exception messages, and VCR cassettes are processed by a redacti
 - `Authorization` headers (any scheme)
 - `access_token`, `refresh_token`, `id_token` fields in JSON
 - `api_key`, `secret`, `client_secret` fields in JSON
-- Cookie values
-- Query parameters named `code`, `state`, `token`
+- Query parameters named `code`, `token`
+
+`state` (the OAuth CSRF token) is intentionally NOT redacted: it is not a credential, redacting it would make OAuth flow debugging harder, and libraries like `authlib` similarly leave it unredacted. Logging `state=...` from authorize URLs and from loopback callbacks is safe and useful for diagnosing flow errors.
 
 Library code uses the `logging` module at `DEBUG` level. There are **no `print()` calls** in library code. Secrets are never passed through `str()` or `repr()` in error messages.
 - Pydantic credential models use `Field(repr=False)` on all secret fields (`ApiKeyCredential.secret`, `OAuthCredential.access_token`, `OAuthCredential.refresh_token`) so that `repr(cred)`, `print(cred)`, and debugger inspection do not leak secrets.
