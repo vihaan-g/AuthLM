@@ -96,7 +96,8 @@ All Python code follows `.agents/rules/general.md` and the `python-conventions` 
   - **Atomic commits:** one self-contained logical change per commit. Do not mix unrelated concerns.
   - **Signed commits:** use `git commit -S` (GPG/SSH signing) so commits show as "Verified" on GitHub. Do NOT use `--signoff` — no `Signed-off-by:` trailers in commit messages.
   - **Body:** add when context is needed; wrap at ~72 chars. Use a heredoc for multiline messages.
-  - **Footers:** `Fixes #123`, `Refs: #456`, `Co-authored-by:`. Use `BREAKING CHANGE:` footer for major changes.
+  - **Footers:** `Fixes #123`, `Refs: #456`, `BREAKING CHANGE:` footer for major changes.
+  - **No `Co-authored-by:` trailers.** Never add `Co-authored-by:` to commit messages.
 - Squash-merge to `main`. Trunk-based: `main` + short-lived feature branches.
 - PR template: `.github/PULL_REQUEST_TEMPLATE.md`.
 - On first push of a new branch: `git push -u origin <branch>`.
