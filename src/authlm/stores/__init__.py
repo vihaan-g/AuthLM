@@ -67,14 +67,23 @@ def build_store(*, store_name: str) -> CredentialStore:
     if store_name == "keyring":
         return KeyringStore(index_path=path / "keyring-index.json")
     if store_name == "encrypted_file":
+        import getpass
+        import sys
+
         passphrase = os.environ.get("AUTHLM_PASSPHRASE")
         if passphrase is None:
-            raise AuthLMError("AUTHLM_STORE=encrypted_file requires AUTHLM_PASSPHRASE")
-        _log.warning(
-            "AUTHLM_PASSPHRASE sourced from environment; "
-            "the passphrase is visible to child processes and "
-            "/proc/<pid>/environ on Linux. Prefer an interactive prompt."
-        )
+            if not sys.stdin.isatty():
+                raise AuthLMError(
+                    "AUTHLM_STORE=encrypted_file requires AUTHLM_PASSPHRASE "
+                    "(not a TTY, cannot prompt interactively)"
+                )
+            passphrase = getpass.getpass("Enter passphrase for encrypted store: ")
+        else:
+            _log.warning(
+                "AUTHLM_PASSPHRASE sourced from environment; "
+                "the passphrase is visible to child processes and "
+                "/proc/<pid>/environ on Linux. Prefer an interactive prompt."
+            )
         return EncryptedFileStore(
             path=path / "credentials.enc.json",
             passphrase=passphrase,
