@@ -31,15 +31,6 @@ class AuthTableEntry(BaseModel):
     validation_url: HttpUrl | None = None
 
 
-def _resolve_client_id(provider_id: str, default: str) -> str:
-    env_var = _ENV_CLIENT_ID.get(provider_id)
-    if env_var is not None:
-        override = os.environ.get(env_var)
-        if override:
-            return override
-    return default
-
-
 AUTH_TABLE: dict[str, AuthTableEntry] = {
     "openai": AuthTableEntry(
         provider_id="openai",
@@ -107,7 +98,12 @@ def get_oauth_config(provider_id: str) -> OAuthConfig | None:
     default_id = _DEFAULT_CLIENT_ID.get(provider_id)
     if default_id is None:
         return cfg
-    resolved = _resolve_client_id(provider_id, default_id)
+    env_var = _ENV_CLIENT_ID.get(provider_id)
+    resolved: str = default_id
+    if env_var is not None:
+        override = os.environ.get(env_var)
+        if override:
+            resolved = override
     if resolved == cfg.client_id:
         return cfg
     return cfg.model_copy(update={"client_id": resolved})
