@@ -61,3 +61,18 @@ def test_oauth_device_method_grant() -> None:
 
 def test_provider_satisfies_protocol() -> None:
     assert isinstance(_provider(), Provider)
+
+
+def test_openai_provider_uses_env_var_client_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    """AUTHLM_OPENAI_CLIENT_ID overrides the default client ID."""
+    monkeypatch.setenv("AUTHLM_OPENAI_CLIENT_ID", "custom-client-id")
+    from authlm.providers.openai import OpenAIProvider
+
+    provider = OpenAIProvider(
+        secret_prompt=lambda _p: "", http_client=httpx.AsyncClient()
+    )
+    methods = provider.connection_methods(include_warned=False)
+    oauth_methods = [m for m in methods if m.id in ("oauth_browser", "oauth_device")]
+    assert len(oauth_methods) > 0
+    for m in oauth_methods:
+        assert m._client_id == "custom-client-id"  # type: ignore[union-attr]  # noqa: SLF001
