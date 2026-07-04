@@ -80,6 +80,21 @@ class AnthropicProvider(Provider):
             def warning(self) -> str | None:
                 return ANTHROPIC_CLAUDE_PRO_WARNING
 
+            @override
+            def with_open_browser(self, callback: Callable[[str], None]) -> _WarnedPKCE:
+                return _WarnedPKCE(
+                    provider_id=self._provider_id,
+                    authorize_url=self._authorize_url,
+                    token_url=self._token_url,
+                    client_id=self._client_id,
+                    scopes=self._scopes,
+                    redirect_port=self._redirect_port,
+                    redirect_path=self._redirect_path,
+                    loopback_factory=self._loopback_factory,
+                    open_browser=callback,
+                    http_client=self._http_client,
+                )
+
         methods.append(
             _WarnedPKCE(
                 provider_id=outer.id,
@@ -108,6 +123,22 @@ class AnthropicProvider(Provider):
                 @override
                 def warning(self) -> str | None:
                     return ANTHROPIC_CLAUDE_PRO_WARNING
+
+                @override
+                def with_on_prompt(
+                    self, callback: Callable[[str, str], None]
+                ) -> _WarnedDevice:
+                    return _WarnedDevice(
+                        provider_id=self._provider_id,
+                        device_code_url=self._device_code_url,
+                        token_url=self._token_url,
+                        client_id=self._client_id,
+                        scopes=self._scopes,
+                        on_prompt=callback,
+                        poll_interval_seconds=self._poll_interval_seconds,
+                        poll_timeout_seconds=self._poll_timeout_seconds,
+                        http_client=self._http_client,
+                    )
 
             methods.append(
                 _WarnedDevice(
