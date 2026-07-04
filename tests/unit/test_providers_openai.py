@@ -3,6 +3,7 @@ from __future__ import annotations
 from urllib.parse import urlparse
 
 import httpx
+import pytest
 
 from authlm.providers.base import OAuthGrant, Provider
 from authlm.providers.openai import OpenAIProvider
@@ -63,7 +64,9 @@ def test_provider_satisfies_protocol() -> None:
     assert isinstance(_provider(), Provider)
 
 
-def test_openai_provider_uses_env_var_client_id(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_openai_provider_uses_env_var_client_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """AUTHLM_OPENAI_CLIENT_ID overrides the default client ID."""
     monkeypatch.setenv("AUTHLM_OPENAI_CLIENT_ID", "custom-client-id")
     from authlm.providers.openai import OpenAIProvider

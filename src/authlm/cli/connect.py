@@ -70,7 +70,7 @@ def _open_browser() -> Callable[[str], None]:
     "--metadata-path",
     type=click.Path(dir_okay=False, path_type=Path),  # type: ignore[type-var]
     default=None,
-    help="Path to metadata.json (default: ~/.local/share/authlm/metadata.json, env: AUTHLM_METADATA_PATH).",
+    help="Metadata path (default: platform user data dir).",
 )
 def connect(
     provider_id: str,
