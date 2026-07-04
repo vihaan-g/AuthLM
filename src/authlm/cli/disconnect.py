@@ -23,7 +23,10 @@ from authlm.stores.base import CredentialStore
     "--metadata-path",
     type=click.Path(dir_okay=False, path_type=Path),  # type: ignore[type-var]
     default=None,
-    help="Metadata path (default: platform user data dir).",
+    help=(
+        "Path to metadata.json "
+        "(default: platform user data dir, env: AUTHLM_METADATA_PATH)."
+    ),
 )
 def disconnect(
     provider_id: str,
