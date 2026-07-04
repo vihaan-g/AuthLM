@@ -53,7 +53,7 @@ async def validate(
         try:
             response = await client.get(str(entry.validation_url), headers=headers)
         except httpx.HTTPError as exc:
-            raise TokenEndpointError(f"validation probe failed: {exc}") from exc
+            raise RefreshFailed(f"validation probe failed: {exc}") from exc
 
     status = response.status_code
     if 200 <= status < 300:
