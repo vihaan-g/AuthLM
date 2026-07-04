@@ -10,7 +10,6 @@ from authlm.cli import _context
 from authlm.cli._formatters import format_status_table
 from authlm.credentials import ApiKeyCredential, OAuthCredential, compute_fingerprint
 from authlm.errors import AuthLMError
-from authlm.metadata import MetadataStore
 from authlm.providers.registry import get_method as _get_method
 from authlm.stores.base import CredentialStore
 from authlm.validation import validate as _validate
@@ -57,7 +56,7 @@ from authlm.validation import validate as _validate
     "--metadata-path",
     type=click.Path(dir_okay=False, path_type=Path),  # type: ignore[type-var]
     default=None,
-    help="Path to the metadata.json file (env: AUTHLM_METADATA_PATH).",
+    help="Path to metadata.json (default: ~/.local/share/authlm/metadata.json, env: AUTHLM_METADATA_PATH).",
 )
 def status(
     provider_id: str | None,
@@ -74,7 +73,7 @@ def status(
     if show_backend:
         click.echo(store.backend_name())
         return
-    meta = MetadataStore(path=metadata_path) if metadata_path is not None else None
+    meta = _context.get_metadata_store(metadata_path)
     pairs: list[tuple[str, str]]
     if provider_id is None:
         pairs = sorted(store.list())
@@ -90,7 +89,7 @@ def status(
         cred = store.get(provider, a)
         if cred is None:
             raise click.ClickException(f"{provider}:{a}: not found")
-        metadata = meta.get(provider, a) if meta is not None else None
+        metadata = meta.get(provider, a)
         click.echo(
             format_status_table(cred, metadata, backend_name=store.backend_name())
         )
@@ -121,7 +120,7 @@ def status(
                 result = asyncio.run(_validate(cred, force=force))
             except (AuthLMError, PermissionError) as exc:
                 raise click.ClickException(str(exc)) from exc
-            if result and meta is not None:
+            if result:
                 entry = meta.get(provider, a)
                 if entry is not None:
                     entry.last_validated_at = datetime.now(UTC)

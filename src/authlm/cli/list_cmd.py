@@ -6,7 +6,6 @@ import click
 
 from authlm.cli import _context
 from authlm.cli._formatters import format_list_table
-from authlm.metadata import MetadataStore
 from authlm.stores.base import CredentialStore
 
 
@@ -22,7 +21,7 @@ from authlm.stores.base import CredentialStore
     "--metadata-path",
     type=click.Path(dir_okay=False, path_type=Path),  # type: ignore[type-var]
     default=None,
-    help="Path to the metadata.json file (env: AUTHLM_METADATA_PATH).",
+    help="Path to metadata.json (default: ~/.local/share/authlm/metadata.json, env: AUTHLM_METADATA_PATH).",
 )
 def list_cmd(store_name: str | None, metadata_path: Path | None) -> None:
     """List stored credentials."""
@@ -32,9 +31,7 @@ def list_cmd(store_name: str | None, metadata_path: Path | None) -> None:
         for provider, alias in store.list()
         for cred in [store.get(provider, alias)]
     )
-    metadata_store = (
-        MetadataStore(path=metadata_path) if metadata_path is not None else None
-    )
+    metadata_store = _context.get_metadata_store(metadata_path)
     click.echo(
         format_list_table(
             entries,

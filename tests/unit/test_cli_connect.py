@@ -272,3 +272,20 @@ def test_connect_warned_method_declined(
     )
     assert result.exit_code != 0
     assert "Aborted" in result.output or "declined" in result.output.lower()
+
+
+def test_get_metadata_path_returns_default(tmp_path: Path) -> None:
+    """get_metadata_path(None) resolves to a metadata.json path."""
+    from authlm.cli._context import get_metadata_path
+
+    path = get_metadata_path(None)
+    assert path.name == "metadata.json"
+
+
+def test_get_metadata_path_respects_override(tmp_path: Path) -> None:
+    """get_metadata_path with explicit path returns that path."""
+    from authlm.cli._context import get_metadata_path
+
+    custom = tmp_path / "custom" / "meta.json"
+    path = get_metadata_path(custom)
+    assert path == custom
