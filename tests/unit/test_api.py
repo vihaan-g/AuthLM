@@ -373,3 +373,26 @@ async def test_refresh_sets_expires_at_none_when_expires_in_absent() -> None:
 
     assert result.access_token == "at-new"
     assert result.expires_at is None  # not the old stale value
+
+
+@pytest.mark.asyncio
+async def test_get_credential_returns_expired_oauth_as_is() -> None:
+    """get_credential returns expired OAuthCredential without refreshing."""
+    store = MemoryStore()
+    expired_cred = OAuthCredential(
+        provider="openai",
+        alias="default",
+        method_id="oauth_browser",
+        access_token="at-expired",
+        refresh_token="rt-valid",
+        expires_at=datetime.now(UTC) - timedelta(hours=1),
+        scopes=["openid"],
+    )
+    store.set(expired_cred)
+
+    result = await get_credential("openai", alias="default", store=store)
+
+    assert isinstance(result, OAuthCredential)
+    assert result.access_token == "at-expired"
+    assert result.expires_at is not None
+    assert result.expires_at < datetime.now(UTC)
