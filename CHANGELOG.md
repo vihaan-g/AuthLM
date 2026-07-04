@@ -31,10 +31,6 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - `KeyringStore` in `authlm.stores.keyring_store`: OS keychain-backed credential store
   via the `keyring` library, with a JSON index file for enumeration (keyring has no
   enumeration API).
-- Plugin loader in `authlm.plugins`: idempotent `pluggy.PluginManager` singleton
-  (`load_plugins` / `get_plugin_manager`) that registers hookspecs, skips
-  setuptools entry-point discovery under `sys._called_from_test`, and tolerates
-  broken `DEFAULT_PLUGINS` modules by logging a warning.
 - `EncryptedFileStore` in `authlm.stores.encrypted_file_store`: Fernet-encrypted
   credential file store, with PBKDF2-HMAC key derivation from a passphrase.
 - `get_default_store` in `authlm.stores`: auto-selects a `CredentialStore` from the
@@ -47,10 +43,6 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   (`authorization_code_pkce`, `device_code`). Both Protocols are
   `@runtime_checkable` for `isinstance()` tests; no implementations are included
   in v0.1.0 yet.
-- pluggy hookspecs in `authlm.hookspecs` defining `register_providers`,
-  `register_connection_methods`, and `register_stores` hooks for third-party
-  plugin registration of providers, connection methods, and credential store
-  backends, plus an exported `hookimpl` marker for plugin authors.
 - `authlm._auth_table` with v0.1.0 provider auth metadata: `OAuthConfig` and
   `AuthTableEntry` Pydantic models, an `AUTH_TABLE` covering `openai`,
   `anthropic`, `google`, and `openrouter` (with public OAuth client IDs and
@@ -68,9 +60,6 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Connection methods: `APIKeyMethod`, `OAuthPKCEMethod` (with loopback HTTP
   server), `OAuthDeviceCodeMethod` (with polling). All implement the
   `ConnectionMethod` Protocol.
-- `models_dev` module: live fetch from `https://models.dev/api.json`,
-  on-disk cache, and a vendored `_vendor/models-dev-snapshot.json`
-  offline fallback.
 - 4 built-in providers: `OpenAIProvider`, `AnthropicProvider` (with
   warned Claude Pro browser/headless methods),
   `GoogleProvider`, `OpenRouterProvider`.
@@ -175,6 +164,12 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   command, `Field(repr=False)` on secrets, version spec references).
 - Updated `README.md` with honest v0.1.0 scope, roadmap section, and
   removed plugin system / models.dev from the features list.
+
+### Removed Before Release
+
+- `authlm.plugins` — Plugin loader (deferred to v0.2.0)
+- `authlm.hookspecs` — pluggy hookspecs (deferred to v0.2.0)
+- `models_dev` module — models.dev integration (deferred to v0.2.0)
 
 ### Deferred
 - `OllamaProvider` (no-auth) is deferred to v0.2.0. See
