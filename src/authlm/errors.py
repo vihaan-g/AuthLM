@@ -27,3 +27,7 @@ class TokenEndpointError(AuthLMError):
 
 class SecretStoreError(AuthLMError):
     """Secret store backend failed (keyring, encrypted file, etc.)."""
+
+
+class ConnectionTimeout(AuthLMError):
+    """OAuth flow timed out waiting for user action or server response."""

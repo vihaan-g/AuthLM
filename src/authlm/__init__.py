@@ -19,6 +19,7 @@ from authlm.credentials import (
 from authlm.errors import (
     AccessDenied,
     AuthLMError,
+    ConnectionTimeout,
     CredentialNotFound,
     ReconnectionRequired,
     RefreshFailed,
@@ -62,6 +63,7 @@ __all__ = [
     "ConnectionMethod",
     "OAuthGrant",
     "AuthLMError",
+    "ConnectionTimeout",
     "CredentialNotFound",
     "RefreshFailed",
     "ReconnectionRequired",
