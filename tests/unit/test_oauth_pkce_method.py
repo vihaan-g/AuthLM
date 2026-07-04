@@ -12,7 +12,12 @@ from respx import MockRouter
 
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.credentials import OAuthCredential
-from authlm.errors import AuthLMError, ConnectionTimeout, ReconnectionRequired, TokenEndpointError
+from authlm.errors import (
+    AuthLMError,
+    ConnectionTimeout,
+    ReconnectionRequired,
+    TokenEndpointError,
+)
 from authlm.providers.base import OAuthGrant
 from tests.conftest import _StubStore
 

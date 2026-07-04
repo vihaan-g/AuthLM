@@ -26,7 +26,12 @@ from authlm.connection_methods._oauth_helpers import (
     redact_url,
 )
 from authlm.credentials import Credential, OAuthCredential
-from authlm.errors import AuthLMError, ConnectionTimeout, ReconnectionRequired, TokenEndpointError
+from authlm.errors import (
+    AuthLMError,
+    ConnectionTimeout,
+    ReconnectionRequired,
+    TokenEndpointError,
+)
 from authlm.providers.base import ConnectionMethod, OAuthGrant
 from authlm.stores.base import CredentialStore
 
