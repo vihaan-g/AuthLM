@@ -5,7 +5,7 @@ import pytest
 from authlm.connection_methods.api_key import APIKeyMethod
 from authlm.credentials import ApiKeyCredential
 from authlm.errors import AuthLMError
-from tests.conftest import _StubStore
+from authlm.stores.memory_store import MemoryStore
 
 
 def test_api_key_method_metadata() -> None:
@@ -17,7 +17,7 @@ def test_api_key_method_metadata() -> None:
     assert method.oauth_grant is None
 
 
-async def test_connect_returns_credential(stub_store: _StubStore) -> None:
+async def test_connect_returns_credential(stub_store: MemoryStore) -> None:
     method = APIKeyMethod(provider_id="openai", secret_prompt=lambda _: "sk-test")
 
     cred = await method.connect(store=stub_store)
@@ -29,7 +29,7 @@ async def test_connect_returns_credential(stub_store: _StubStore) -> None:
     assert cred.secret == "sk-test"
 
 
-async def test_connect_strips_whitespace(stub_store: _StubStore) -> None:
+async def test_connect_strips_whitespace(stub_store: MemoryStore) -> None:
     method = APIKeyMethod(provider_id="openai", secret_prompt=lambda _: "  sk-test  \n")
 
     cred = await method.connect(store=stub_store)
@@ -38,7 +38,7 @@ async def test_connect_strips_whitespace(stub_store: _StubStore) -> None:
     assert cred.secret == "sk-test"
 
 
-async def test_connect_rejects_empty(stub_store: _StubStore) -> None:
+async def test_connect_rejects_empty(stub_store: MemoryStore) -> None:
     method = APIKeyMethod(provider_id="openai", secret_prompt=lambda _: "   \n")
 
     with pytest.raises(AuthLMError):

@@ -19,7 +19,7 @@ from authlm.errors import (
     TokenEndpointError,
 )
 from authlm.providers.base import OAuthGrant
-from tests.conftest import _StubStore
+from authlm.stores.memory_store import MemoryStore
 
 
 def _token_response() -> dict[str, Any]:
@@ -78,7 +78,7 @@ async def test_connect_with_pkce_flow(respx_mock: MockRouter) -> None:
 
     async with httpx.AsyncClient() as client:
         method = _method(http_client=client, port=port)
-        cred = await method.connect(store=_StubStore())
+        cred = await method.connect(store=MemoryStore())
 
     assert token_route.called
     assert isinstance(cred, OAuthCredential)
@@ -105,7 +105,7 @@ async def test_connect_handles_invalid_grant(respx_mock: MockRouter) -> None:
     async with httpx.AsyncClient() as client:
         method = _method(http_client=client, port=port)
         with pytest.raises(ReconnectionRequired):
-            await method.connect(store=_StubStore())
+            await method.connect(store=MemoryStore())
 
 
 def test_pkce_method_with_open_browser_returns_new_instance() -> None:

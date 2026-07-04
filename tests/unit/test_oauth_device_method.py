@@ -11,7 +11,7 @@ from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.credentials import OAuthCredential
 from authlm.errors import ConnectionTimeout, ReconnectionRequired, TokenEndpointError
 from authlm.providers.base import OAuthGrant
-from tests.conftest import _StubStore
+from authlm.stores.memory_store import MemoryStore
 
 
 def _device_response(device_code: str = "DEVCODE") -> dict[str, Any]:
@@ -82,7 +82,7 @@ async def test_connect_polls_until_authorized(respx_mock: MockRouter) -> None:
 
     async with httpx.AsyncClient() as client:
         method = _method(http_client=client, on_prompt=on_prompt)
-        cred = await method.connect(store=_StubStore())
+        cred = await method.connect(store=MemoryStore())
 
     assert device_route.called
     assert token_route.call_count == 2
@@ -103,7 +103,7 @@ async def test_connect_handles_expired_token(respx_mock: MockRouter) -> None:
     async with httpx.AsyncClient() as client:
         method = _method(http_client=client, on_prompt=lambda _u, _c: None)
         with pytest.raises(ReconnectionRequired):
-            await method.connect(store=_StubStore())
+            await method.connect(store=MemoryStore())
 
 
 def test_device_method_with_on_prompt_returns_new_instance() -> None:
@@ -174,13 +174,13 @@ async def test_connect_handles_slow_down() -> None:
             transport=httpx.MockTransport(slow_down_sequence)
         ),
     )
-    cred = await method.connect(store=_StubStore())
+    cred = await method.connect(store=MemoryStore())
     assert isinstance(cred, OAuthCredential)
 
 
 @pytest.mark.asyncio
 async def test_connect_times_out_when_always_authorization_pending() -> None:
-    store = _StubStore()
+    store = MemoryStore()
 
     def _always_pending(request: httpx.Request) -> httpx.Response:
         if "device/code" in str(request.url):
@@ -224,7 +224,7 @@ async def test_non_json_device_code_response_raises_token_error() -> None:
         http_client=httpx.AsyncClient(transport=httpx.MockTransport(_html_response)),
     )
     with pytest.raises(TokenEndpointError, match="non-JSON"):
-        await method.connect(store=_StubStore())
+        await method.connect(store=MemoryStore())
 
 
 @pytest.mark.asyncio
