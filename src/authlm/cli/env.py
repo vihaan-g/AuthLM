@@ -24,9 +24,14 @@ def _format_github(lines: list[tuple[str, str]]) -> str:
     return "\n".join(f"{k}: ${{{{ secrets.{k} }}}}" for k, _ in lines) + "\n"
 
 
+def _format_docker(lines: list[tuple[str, str]]) -> str:
+    """Docker --env-file format: bare KEY=VALUE, no quoting."""
+    return "\n".join(f"{k}={v}" for k, v in lines) + "\n"
+
+
 _FORMATTERS = {
     EnvFormat.SHELL: _format_shell,
-    EnvFormat.DOCKER: _format_shell,
+    EnvFormat.DOCKER: _format_docker,
     EnvFormat.GITHUB: _format_github,
 }
 
