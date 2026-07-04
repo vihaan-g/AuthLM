@@ -4,6 +4,7 @@ import base64
 import hashlib
 
 import httpx
+import pytest
 from pydantic import HttpUrl
 
 from authlm.connection_methods._oauth_helpers import (
@@ -16,6 +17,7 @@ from authlm.connection_methods._oauth_helpers import (
     redact_body,
     redact_url,
 )
+from authlm.errors import TokenEndpointError
 
 
 def test_generate_pkce_pair_returns_s256_pair() -> None:
@@ -209,3 +211,11 @@ def test_build_oauth_credential_handles_scopes_as_list() -> None:
         data=data, provider="openai", alias="default", method_id="oauth_browser"
     )
     assert cred.scopes == ["openid", "email"]
+
+
+def test_build_oauth_credential_raises_on_missing_access_token() -> None:
+    data = {"expires_in": 3600}
+    with pytest.raises(TokenEndpointError):
+        build_oauth_credential(
+            data=data, provider="openai", alias="default", method_id="test"
+        )

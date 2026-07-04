@@ -25,8 +25,8 @@ async def validate(
     """Probe whether a credential is currently usable.
 
     Refuses warned methods unless force=True. Returns True on 2xx, False on
-    401/403/404. Raises AccessDenied on 403 with entitlement-denied, and
-    TokenEndpointError on other 4xx.
+    401/404. Raises AccessDenied on 403 with entitlement-denied, and
+    TokenEndpointError on other 4xx. Raises RefreshFailed on network errors.
     """
     entry = AUTH_TABLE.get(cred.provider)
     if entry is None or entry.validation_url is None:
