@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import logging
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
@@ -34,8 +33,6 @@ from authlm.providers.registry import get_method as _get_method
 from authlm.providers.registry import get_provider as _get_provider
 from authlm.stores import get_default_store
 from authlm.stores.base import CredentialStore
-
-_log = logging.getLogger(__name__)
 
 
 def should_refresh(cred: Credential, *, margin: timedelta) -> bool:

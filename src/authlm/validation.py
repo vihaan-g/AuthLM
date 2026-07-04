@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable
 
 import httpx
@@ -10,8 +9,6 @@ from authlm.connection_methods._oauth_helpers import redact_body
 from authlm.credentials import ApiKeyCredential, Credential, OAuthCredential
 from authlm.errors import AccessDenied, RefreshFailed, TokenEndpointError
 from authlm.providers.registry import get_method as _get_method
-
-_log = logging.getLogger(__name__)
 
 
 async def validate(

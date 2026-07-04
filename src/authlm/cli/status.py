@@ -56,7 +56,10 @@ from authlm.validation import validate as _validate
     "--metadata-path",
     type=click.Path(dir_okay=False, path_type=Path),  # type: ignore[type-var]
     default=None,
-    help="Metadata path (default: platform user data dir).",
+    help=(
+        "Path to metadata.json "
+        "(default: platform user data dir, env: AUTHLM_METADATA_PATH)."
+    ),
 )
 def status(
     provider_id: str | None,
