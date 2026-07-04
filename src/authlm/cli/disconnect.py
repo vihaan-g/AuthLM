@@ -5,7 +5,6 @@ from pathlib import Path
 import click
 
 from authlm.cli import _context
-from authlm.metadata import MetadataStore
 from authlm.stores.base import CredentialStore
 
 
@@ -24,7 +23,7 @@ from authlm.stores.base import CredentialStore
     "--metadata-path",
     type=click.Path(dir_okay=False, path_type=Path),  # type: ignore[type-var]
     default=None,
-    help="Path to the metadata.json file (env: AUTHLM_METADATA_PATH).",
+    help="Path to metadata.json (default: ~/.local/share/authlm/metadata.json, env: AUTHLM_METADATA_PATH).",
 )
 def disconnect(
     provider_id: str,
@@ -35,7 +34,7 @@ def disconnect(
 ) -> None:
     """Delete a credential and its metadata entry."""
     store: CredentialStore = _context.get_store(store_name=store_name)
-    meta = MetadataStore(path=metadata_path) if metadata_path is not None else None
+    meta = _context.get_metadata_store(metadata_path)
     cred = store.get(provider_id, alias)
     if cred is None:
         raise click.ClickException(f"Credential not found for {provider_id}:{alias}")
@@ -46,6 +45,5 @@ def disconnect(
         click.echo("Aborted.")
         return
     store.delete(provider_id, alias)
-    if meta is not None:
-        meta.delete(provider_id, alias)
+    meta.delete(provider_id, alias)
     click.echo(f"Deleted {provider_id}:{alias}")

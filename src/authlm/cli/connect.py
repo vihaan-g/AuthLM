@@ -11,7 +11,6 @@ import click
 from authlm import api as _api
 from authlm.cli import _context
 from authlm.errors import AuthLMError
-from authlm.metadata import MetadataStore
 from authlm.providers.base import ConnectionMethod
 from authlm.providers.registry import get_provider
 
@@ -71,7 +70,7 @@ def _open_browser() -> Callable[[str], None]:
     "--metadata-path",
     type=click.Path(dir_okay=False, path_type=Path),  # type: ignore[type-var]
     default=None,
-    help="Path to the metadata.json file (env: AUTHLM_METADATA_PATH).",
+    help="Path to metadata.json (default: ~/.local/share/authlm/metadata.json, env: AUTHLM_METADATA_PATH).",
 )
 def connect(
     provider_id: str,
@@ -116,7 +115,7 @@ def connect(
             raise click.Abort()
 
     store = _context.get_store(store_name=store_name)
-    meta = MetadataStore(path=metadata_path) if metadata_path is not None else None
+    meta = _context.get_metadata_store(metadata_path)
 
     try:
         cred = asyncio.run(
