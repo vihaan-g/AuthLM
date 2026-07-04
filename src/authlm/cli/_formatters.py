@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from authlm.credentials import Credential
-from authlm.metadata import MetadataEntry
-
-if TYPE_CHECKING:
-    from authlm.metadata import MetadataStore
+from authlm.metadata import MetadataEntry, MetadataStore
 
 
 def format_list_table(
