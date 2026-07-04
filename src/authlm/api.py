@@ -217,7 +217,7 @@ async def refresh(
         raise TokenEndpointError("refresh response missing access_token")
     new_refresh_token = data.get("refresh_token") or cred.refresh_token
     expires_in = data.get("expires_in")
-    expires_at: datetime | None = cred.expires_at
+    expires_at: datetime | None = None
     if isinstance(expires_in, (int, float)):
         expires_at = datetime.now(UTC) + timedelta(seconds=float(expires_in))
     scopes_field = data.get("scope") or data.get("scopes") or ""
