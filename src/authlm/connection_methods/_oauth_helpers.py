@@ -7,10 +7,15 @@ import logging
 import re
 import secrets
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import httpx
 from pydantic import HttpUrl
+
+from authlm.credentials import OAuthCredential
+from authlm.errors import TokenEndpointError
 
 _log = logging.getLogger(__name__)
 
@@ -162,3 +167,39 @@ async def exchange_code_for_token(
     """POST a token-endpoint form payload and return the raw response."""
     _log.debug("POST %s", redact_url(token_url))
     return await http_client.post(token_url, data=payload)
+
+
+def build_oauth_credential(
+    *,
+    data: dict[str, Any],
+    provider: str,
+    alias: str,
+    method_id: str,
+    client_id: str | None = None,
+) -> OAuthCredential:
+    """Parse a token-endpoint response into an OAuthCredential."""
+    access_token = data.get("access_token")
+    if not access_token:
+        raise TokenEndpointError("token response missing access_token")
+    raw_rt = data.get("refresh_token")
+    refresh_token = str(raw_rt) if raw_rt is not None else None
+    expires_in = data.get("expires_in")
+    expires_at: datetime | None = None
+    if isinstance(expires_in, (int, float)):
+        expires_at = datetime.now(UTC) + timedelta(seconds=float(expires_in))
+    raw_scopes = data.get("scope") or data.get("scopes")
+    scopes: list[str] = []
+    if isinstance(raw_scopes, str):
+        scopes = raw_scopes.split()
+    elif isinstance(raw_scopes, list):
+        scopes = [str(s) for s in raw_scopes]
+    return OAuthCredential(
+        provider=provider,
+        alias=alias,
+        method_id=method_id,
+        access_token=str(access_token),
+        refresh_token=refresh_token,
+        expires_at=expires_at,
+        scopes=scopes,
+        client_id=client_id,
+    )
