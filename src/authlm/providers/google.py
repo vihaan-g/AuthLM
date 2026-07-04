@@ -5,7 +5,7 @@ from collections.abc import Callable, Sequence
 import httpx
 from typing_extensions import override
 
-from authlm._auth_table import get_auth_entry
+from authlm._auth_table import get_auth_entry, get_oauth_config
 from authlm.connection_methods.api_key import APIKeyMethod
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.providers.base import ConnectionMethod, Provider
@@ -42,7 +42,7 @@ class GoogleProvider(Provider):
     @override
     def connection_methods(self, *, include_warned: bool) -> Sequence[ConnectionMethod]:
         client = self._http_client or httpx.AsyncClient()
-        oauth = self._entry.oauth
+        oauth = get_oauth_config("google")
         assert oauth is not None
         return [
             APIKeyMethod(
