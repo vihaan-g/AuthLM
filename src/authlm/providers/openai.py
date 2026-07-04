@@ -41,9 +41,7 @@ class _ChatGPTDevice(OAuthDeviceCodeMethod):
         return "chatgpt_oauth_device"
 
     @override
-    def with_on_prompt(
-        self, callback: Callable[[str, str], None]
-    ) -> _ChatGPTDevice:
+    def with_on_prompt(self, callback: Callable[[str, str], None]) -> _ChatGPTDevice:
         return _ChatGPTDevice(
             provider_id=self._provider_id,
             device_code_url=self._device_code_url,
