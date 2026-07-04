@@ -106,3 +106,12 @@ def test_metadata_entry_has_client_id_field() -> None:
         client_id="app_test123",
     )
     assert entry.client_id == "app_test123"
+
+
+def test_corrupted_metadata_returns_empty(tmp_path: Path) -> None:
+    """Corrupted metadata.json returns empty list, not JSONDecodeError."""
+    path = tmp_path / "metadata.json"
+    path.write_text("not valid json {{{")
+    store = MetadataStore(path=path)
+    result = list(store.list())
+    assert result == []

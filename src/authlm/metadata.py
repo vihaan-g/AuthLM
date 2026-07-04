@@ -58,9 +58,12 @@ class MetadataStore:
     def _read(self) -> dict[str, dict[str, dict[str, object]]]:
         if not self._path.exists():
             return {}
-        loaded: dict[str, dict[str, dict[str, object]]] = json.loads(
-            self._path.read_text()
-        )
+        try:
+            loaded: dict[str, dict[str, dict[str, object]]] = json.loads(
+                self._path.read_text()
+            )
+        except json.JSONDecodeError:
+            return {}
         return loaded
 
     def _write(self, data: dict[str, dict[str, dict[str, object]]]) -> None:
