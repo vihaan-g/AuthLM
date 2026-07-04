@@ -12,7 +12,7 @@ from respx import MockRouter
 
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.credentials import OAuthCredential
-from authlm.errors import AuthLMError, ReconnectionRequired
+from authlm.errors import AuthLMError, ConnectionTimeout, ReconnectionRequired
 from authlm.providers.base import OAuthGrant
 from tests.conftest import _StubStore
 
@@ -166,3 +166,19 @@ async def test_port_collision_raises_authlm_error() -> None:
 
     with pytest.raises(AuthLMError, match="in use"):
         method._start_loopback({}, "state")  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+
+
+@pytest.mark.asyncio
+async def test_pkce_timeout_raises_connection_timeout() -> None:
+    """PKCE flow raises ConnectionTimeout when callback never arrives."""
+    method = OAuthPKCEMethod(
+        provider_id="test",
+        authorize_url=HttpUrl("https://example.com/auth"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        redirect_port=0,
+    )
+    captured: dict[str, str] = {}
+    with pytest.raises(ConnectionTimeout):
+        await method._wait_for_code(captured, timeout=0.01)  # type: ignore[reportPrivateUsage]  # noqa: SLF001
