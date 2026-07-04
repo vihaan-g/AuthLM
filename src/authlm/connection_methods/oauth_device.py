@@ -124,7 +124,7 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
         assert self._http_client is not None
         response = await self._http_client.post(
             str(self._device_code_url),
-            json={"client_id": self._client_id, "scope": " ".join(self._scopes)},
+            data={"client_id": self._client_id, "scope": " ".join(self._scopes)},
             timeout=30.0,
         )
         if not (200 <= response.status_code < 300):
