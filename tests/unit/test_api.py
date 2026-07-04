@@ -347,3 +347,29 @@ async def test_refresh_raises_reconnection_required_when_no_refresh_token() -> N
 
     with pytest.raises(ReconnectionRequired):
         await refresh("openai", alias="default", store=store)
+
+
+@pytest.mark.asyncio
+async def test_refresh_sets_expires_at_none_when_expires_in_absent() -> None:
+    """When token endpoint omits expires_in, expires_at is None (not stale)."""
+    store = MemoryStore()
+    old_cred = OAuthCredential(
+        provider="openai",
+        alias="default",
+        method_id="oauth_browser",
+        access_token="at-old",
+        refresh_token="rt-old",
+        expires_at=datetime.now(UTC) - timedelta(hours=1),
+    )
+    store.set(old_cred)
+
+    with respx.mock:
+        respx.post("https://auth.openai.com/oauth/token").respond(
+            200,
+            json={"access_token": "at-new", "refresh_token": "rt-new"},
+            # no expires_in
+        )
+        result = await refresh("openai", alias="default", store=store)
+
+    assert result.access_token == "at-new"
+    assert result.expires_at is None  # not the old stale value
