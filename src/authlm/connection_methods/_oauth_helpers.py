@@ -15,7 +15,7 @@ from pydantic import HttpUrl
 _log = logging.getLogger(__name__)
 
 _REDACTED_PARAMS: frozenset[str] = frozenset(
-    {"code", "access_token", "refresh_token", "id_token", "token", "client_secret"}
+    {"code", "access_token", "refresh_token", "id_token", "token", "client_secret", "api_key", "secret"}
 )
 _FATAL_ERROR_CODES: frozenset[str] = frozenset(
     {
@@ -27,9 +27,12 @@ _FATAL_ERROR_CODES: frozenset[str] = frozenset(
     }
 )
 _REDACTED_VALUE: str = "[REDACTED]"
+_REDACT_DICT_KEYS: frozenset[str] = frozenset(
+    {"access_token", "refresh_token", "code", "client_secret", "api_key", "secret"}
+)
 _BEARER_TOKEN_RE: re.Pattern[str] = re.compile(r"Bearer [A-Za-z0-9_-]{8,}")
 _TOKEN_PARAM_RE: re.Pattern[str] = re.compile(
-    r"\b(access_token|refresh_token|id_token|client_secret|code)\b"
+    r"\b(access_token|refresh_token|id_token|client_secret|api_key|secret|code)\b"
     r"\s*[\"']?\s*[=:]\s*[\"']?"
     r"(\"[^\"]*\"|[^\s,;&}]+)"
 )
@@ -120,7 +123,7 @@ def redact_body(body: str) -> str:
 
 def _redact_dict(data: dict[str, object]) -> None:
     """Replace the values of known secret keys with a redacted placeholder."""
-    for key in ("access_token", "refresh_token", "code", "client_secret"):
+    for key in _REDACT_DICT_KEYS:
         if key in data:
             data[key] = _REDACTED_VALUE
 
