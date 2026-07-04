@@ -159,3 +159,15 @@ def test_redact_body_redacts_code_param() -> None:
     result = redact_body('{"error":"invalid_grant","code":"auth-code-123"}')
     assert "auth-code-123" not in result
     assert "[REDACTED]" in result
+
+
+def test_redact_body_redacts_api_key() -> None:
+    result = redact_body('{"api_key": "sk-secret123", "other": "ok"}')
+    assert "sk-secret123" not in result
+    assert "[REDACTED]" in result
+
+
+def test_redact_body_redacts_secret() -> None:
+    result = redact_body('{"secret": "my-secret-value", "other": "ok"}')
+    assert "my-secret-value" not in result
+    assert "[REDACTED]" in result
