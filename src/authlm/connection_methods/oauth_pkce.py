@@ -7,7 +7,6 @@ import secrets
 import threading
 import webbrowser
 from collections.abc import Callable, Sequence
-from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any, Protocol
 from urllib.parse import parse_qs, urlparse
@@ -19,6 +18,7 @@ from typing_extensions import override
 from authlm.connection_methods._oauth_helpers import (
     PKCEPair,
     build_authorize_url,
+    build_oauth_credential,
     classify_token_error,
     exchange_code_for_token,
     generate_pkce_pair,
@@ -266,29 +266,10 @@ class OAuthPKCEMethod(ConnectionMethod):
                 f"Token endpoint returned non-JSON body: "
                 f"body={redact_body(response.text)}"
             ) from exc
-        return self._build_credential(data)
-
-    def _build_credential(self, data: dict[str, Any]) -> OAuthCredential:
-        access = str(data.get("access_token", ""))
-        if not access:
-            raise TokenEndpointError("token response missing access_token")
-        refresh = data.get("refresh_token")
-        expires_in = data.get("expires_in")
-        expires_at: datetime | None = None
-        if isinstance(expires_in, (int, float)):
-            expires_at = datetime.now(UTC) + timedelta(seconds=float(expires_in))
-        scopes_field = data.get("scope") or data.get("scopes") or ""
-        if isinstance(scopes_field, str):
-            scopes = [s for s in scopes_field.split() if s]
-        else:
-            scopes = [str(s) for s in scopes_field]
-        return OAuthCredential(
+        return build_oauth_credential(
+            data=data,
             provider=self._provider_id,
             alias="default",
             method_id=self.id,
-            access_token=access,
-            refresh_token=str(refresh) if refresh else None,
-            expires_at=expires_at,
-            scopes=scopes,
             client_id=self._client_id,
         )

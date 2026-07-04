@@ -10,6 +10,7 @@ from authlm.connection_methods._oauth_helpers import (
     PKCEPair,
     TokenError,
     build_authorize_url,
+    build_oauth_credential,
     classify_token_error,
     generate_pkce_pair,
     redact_body,
@@ -171,3 +172,40 @@ def test_redact_body_redacts_secret() -> None:
     result = redact_body('{"secret": "my-secret-value", "other": "ok"}')
     assert "my-secret-value" not in result
     assert "[REDACTED]" in result
+
+
+def test_build_oauth_credential_parses_token_response() -> None:
+    data = {
+        "access_token": "at-test",
+        "refresh_token": "rt-test",
+        "expires_in": 3600,
+        "scope": "openid profile",
+    }
+    cred = build_oauth_credential(
+        data=data,
+        provider="openai",
+        alias="default",
+        method_id="oauth_browser",
+        client_id="test-client",
+    )
+    assert cred.access_token == "at-test"
+    assert cred.refresh_token == "rt-test"
+    assert cred.scopes == ["openid", "profile"]
+    assert cred.client_id == "test-client"
+    assert cred.expires_at is not None
+
+
+def test_build_oauth_credential_handles_missing_refresh_token() -> None:
+    data = {"access_token": "at-test", "expires_in": 3600}
+    cred = build_oauth_credential(
+        data=data, provider="openai", alias="default", method_id="oauth_browser"
+    )
+    assert cred.refresh_token is None
+
+
+def test_build_oauth_credential_handles_scopes_as_list() -> None:
+    data = {"access_token": "at-test", "scopes": ["openid", "email"]}
+    cred = build_oauth_credential(
+        data=data, provider="openai", alias="default", method_id="oauth_browser"
+    )
+    assert cred.scopes == ["openid", "email"]

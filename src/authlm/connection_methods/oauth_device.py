@@ -4,7 +4,6 @@ import asyncio
 import json
 import logging
 from collections.abc import Callable, Sequence
-from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
 import httpx
@@ -12,11 +11,12 @@ from pydantic import HttpUrl
 from typing_extensions import override
 
 from authlm.connection_methods._oauth_helpers import (
+    build_oauth_credential,
     classify_token_error,
     exchange_code_for_token,
     redact_body,
 )
-from authlm.credentials import Credential, OAuthCredential
+from authlm.credentials import Credential
 from authlm.errors import ConnectionTimeout, ReconnectionRequired, TokenEndpointError
 from authlm.providers.base import ConnectionMethod, OAuthGrant
 from authlm.stores.base import CredentialStore
@@ -118,7 +118,13 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
             interval=effective_interval,
             timeout=effective_timeout,
         )
-        return self._build_credential(token)
+        return build_oauth_credential(
+            data=token,
+            provider=self._provider_id,
+            alias="default",
+            method_id=self.id,
+            client_id=self._client_id,
+        )
 
     async def _request_device_code(self) -> dict[str, Any]:
         assert self._http_client is not None
@@ -193,28 +199,3 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
                 f"Token endpoint error: status={response.status_code} "
                 f"body={redact_body(response.text)}"
             )
-
-    def _build_credential(self, data: dict[str, Any]) -> OAuthCredential:
-        access = str(data.get("access_token", ""))
-        if not access:
-            raise TokenEndpointError("token response missing access_token")
-        refresh = data.get("refresh_token")
-        expires_in = data.get("expires_in")
-        expires_at: datetime | None = None
-        if isinstance(expires_in, (int, float)):
-            expires_at = datetime.now(UTC) + timedelta(seconds=float(expires_in))
-        scopes_field = data.get("scope") or data.get("scopes") or ""
-        if isinstance(scopes_field, str):
-            scopes = [s for s in scopes_field.split() if s]
-        else:
-            scopes = [str(s) for s in scopes_field]
-        return OAuthCredential(
-            provider=self._provider_id,
-            alias="default",
-            method_id=self.id,
-            access_token=access,
-            refresh_token=str(refresh) if refresh else None,
-            expires_at=expires_at,
-            scopes=scopes,
-            client_id=self._client_id,
-        )
