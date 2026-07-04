@@ -9,7 +9,7 @@ from respx import MockRouter
 
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.credentials import OAuthCredential
-from authlm.errors import ConnectionTimeout, ReconnectionRequired
+from authlm.errors import ConnectionTimeout, ReconnectionRequired, TokenEndpointError
 from authlm.providers.base import OAuthGrant
 from tests.conftest import _StubStore
 
@@ -206,3 +206,22 @@ async def test_connect_times_out_when_always_authorization_pending() -> None:
     )
     with pytest.raises(ConnectionTimeout):
         await method.connect(store=store)
+
+
+@pytest.mark.asyncio
+async def test_non_json_device_code_response_raises_token_error() -> None:
+    """Non-JSON 200 from device-code endpoint raises TokenEndpointError."""
+
+    def _html_response(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="<html>Error</html>")
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="test",
+        device_code_url=HttpUrl("https://example.com/device/code"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(_html_response)),
+    )
+    with pytest.raises(TokenEndpointError, match="non-JSON"):
+        await method.connect(store=_StubStore())
