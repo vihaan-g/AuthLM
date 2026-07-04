@@ -185,7 +185,7 @@ async def test_validate_5xx_raises_refresh_failed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_validate_network_error_raises_token_endpoint_error() -> None:
+async def test_validate_network_error_raises_refresh_failed() -> None:
     cred = ApiKeyCredential(
         provider="openai",
         alias="default",
@@ -196,5 +196,5 @@ async def test_validate_network_error_raises_token_endpoint_error() -> None:
         respx.get("https://api.openai.com/v1/models").mock(
             side_effect=httpx.ConnectError("connection refused")
         )
-        with pytest.raises(TokenEndpointError):
+        with pytest.raises(RefreshFailed):
             await validate(cred, force=True)
