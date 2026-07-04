@@ -66,6 +66,7 @@ All Python code follows `.agents/rules/general.md` and the `python-conventions` 
 
 ## Ground Rules
 
+- Be skeptical and do research. Verify before acting. Acknowledge uncertainty when you lack information.
 - Do not commit secrets, API keys, or real user data.
 - Do not add telemetry or hidden network calls. AuthLM has zero telemetry by design.
 - Do not edit `uv.lock` by hand. Use `uv lock`.
