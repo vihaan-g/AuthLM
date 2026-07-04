@@ -3,6 +3,7 @@
 ## Before coding
 - Restate the task goal and relevant assumptions before writing code.
 - Check whether the needed logic already exists before writing new code.
+- Be skeptical. Verify claims, do research, and acknowledge uncertainty. Strive for accuracy over speed.
 
 ## Scope and style
 - Follow DRY, KISS, and YAGNI. Prefer simple, direct solutions over clever ones.
