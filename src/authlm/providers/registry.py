@@ -6,19 +6,26 @@ from authlm.connection_methods.api_key import _default_secret_prompt
 from authlm.errors import AuthLMError
 from authlm.providers.base import ConnectionMethod, Provider
 
+_PROVIDERS: Sequence[Provider] | None = None
+
 
 def _build_providers() -> Sequence[Provider]:
+    global _PROVIDERS
+    if _PROVIDERS is not None:
+        return _PROVIDERS
+
     from authlm.providers.anthropic import AnthropicProvider
     from authlm.providers.google import GoogleProvider
     from authlm.providers.openai import OpenAIProvider
     from authlm.providers.openrouter import OpenRouterProvider
 
-    return [
+    _PROVIDERS = [
         OpenAIProvider(secret_prompt=_default_secret_prompt),
         AnthropicProvider(secret_prompt=_default_secret_prompt),
         GoogleProvider(secret_prompt=_default_secret_prompt),
         OpenRouterProvider(secret_prompt=_default_secret_prompt),
     ]
+    return _PROVIDERS
 
 
 def list_providers() -> Sequence[Provider]:
