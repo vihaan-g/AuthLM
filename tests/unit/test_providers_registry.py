@@ -42,3 +42,14 @@ def test_get_method_includes_warned() -> None:
 def test_all_providers_satisfy_protocol() -> None:
     for p in list_providers():
         assert isinstance(p, Provider)
+
+
+def test_get_provider_re_exported() -> None:
+    from authlm import get_method, get_provider, list_providers
+
+    provider = get_provider("openai")
+    assert provider.id == "openai"
+    providers = list_providers()
+    assert len(providers) >= 4
+    method = get_method("openai", "api_key")
+    assert method.id == "api_key"

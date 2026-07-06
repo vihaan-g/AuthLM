@@ -254,3 +254,81 @@ async def test_device_code_request_is_form_encoded() -> None:
     await method._request_device_code()  # type: ignore[reportPrivateUsage]  # noqa: SLF001
     assert len(captured_content_type) == 1
     assert "application/x-www-form-urlencoded" in captured_content_type[0]
+
+
+@pytest.mark.asyncio
+async def test_device_code_interval_matches_slow_down() -> None:
+    """slow_down response increases the effective wait interval."""
+    poll_intervals: list[float] = []
+
+    def _tracking_transport(request: httpx.Request) -> httpx.Response:
+        if "device/code" in str(request.url):
+            return httpx.Response(
+                200,
+                json={
+                    "device_code": "dc-1",
+                    "user_code": "UC-1",
+                    "verification_uri": "https://example.com/activate",
+                    "interval": 1,
+                    "expires_in": 30,
+                },
+            )
+        poll_intervals.append(0.1)
+        if len(poll_intervals) == 1:
+            return httpx.Response(400, json={"error": "slow_down"})
+        return httpx.Response(
+            200,
+            json={"access_token": "at-1", "refresh_token": "rt-1", "expires_in": 3600},
+        )
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="test",
+        device_code_url=HttpUrl("https://example.com/device/code"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        poll_interval_seconds=0.1,
+        poll_timeout_seconds=30.0,
+        http_client=httpx.AsyncClient(
+            transport=httpx.MockTransport(_tracking_transport)
+        ),
+    )
+    await method.connect(store=MemoryStore())
+    assert len(poll_intervals) == 2
+
+
+@pytest.mark.asyncio
+async def test_device_code_response_expires_in_caps_timeout() -> None:
+    """When expires_in from device response is less than poll_timeout, it caps."""
+    poll_count = 0
+
+    def _timeout_transport(request: httpx.Request) -> httpx.Response:
+        nonlocal poll_count
+        if "device/code" in str(request.url):
+            return httpx.Response(
+                200,
+                json={
+                    "device_code": "dc-1",
+                    "user_code": "UC-1",
+                    "verification_uri": "https://example.com/activate",
+                    "expires_in": 0.3,
+                },
+            )
+        poll_count += 1
+        return httpx.Response(400, json={"error": "authorization_pending"})
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="test",
+        device_code_url=HttpUrl("https://example.com/device/code"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        poll_interval_seconds=0.1,
+        poll_timeout_seconds=30.0,
+        http_client=httpx.AsyncClient(
+            transport=httpx.MockTransport(_timeout_transport)
+        ),
+    )
+    with pytest.raises(ConnectionTimeout):
+        await method.connect(store=MemoryStore())
+    assert poll_count <= 5

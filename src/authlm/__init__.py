@@ -26,7 +26,9 @@ from authlm.errors import (
     SecretStoreError,
     TokenEndpointError,
 )
+from authlm.metadata import MetadataEntry, MetadataStore
 from authlm.providers.base import ConnectionMethod, OAuthGrant, Provider
+from authlm.providers.registry import get_method, get_provider, list_providers
 from authlm.stores import (
     CredentialStore,
     EncryptedFileStore,
@@ -48,11 +50,16 @@ __all__ = [
     "validate",
     "set_store",
     "get_default_store",
+    "get_provider",
+    "list_providers",
+    "get_method",
     "CredentialStore",
     "KeyringStore",
     "EncryptedFileStore",
     "EnvStore",
     "MemoryStore",
+    "MetadataStore",
+    "MetadataEntry",
     "Credential",
     "ApiKeyCredential",
     "OAuthCredential",

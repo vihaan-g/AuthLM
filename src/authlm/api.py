@@ -64,8 +64,9 @@ async def get_credential(
 ) -> Credential:
     """Return the stored credential as-is, even if expired.
 
-    No I/O. Use when you need the raw credential value and will check
-    expiry yourself. For automatic refresh, use ``get_valid_credential``.
+    Fast store read, no network. Use when you need the raw credential value
+    and will check expiry yourself. For automatic refresh, use
+    ``get_valid_credential``.
 
     Args:
         provider: Provider ID (e.g. ``"openai"``).
