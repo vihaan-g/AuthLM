@@ -136,10 +136,16 @@ def redact_body(body: str) -> str:
 
 
 def _redact_dict(data: dict[str, object]) -> None:
-    """Replace the values of known secret keys with a redacted placeholder."""
-    for key in _REDACT_DICT_KEYS:
-        if key in data:
+    """Recursively replace values of known secret keys with a redacted placeholder."""
+    for key, value in data.items():
+        if key in _REDACT_DICT_KEYS:
             data[key] = _REDACTED_VALUE
+        elif isinstance(value, dict):
+            _redact_dict(value)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    _redact_dict(item)
 
 
 def classify_token_error(*, status_code: int, body: str) -> TokenError:
