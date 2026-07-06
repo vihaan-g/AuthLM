@@ -11,7 +11,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-import httpx
 from pydantic import HttpUrl
 
 from authlm.credentials import OAuthCredential
@@ -171,17 +170,6 @@ def classify_token_error(*, status_code: int, body: str) -> TokenError:
 
     fatal = error_code in _FATAL_ERROR_CODES
     return TokenError(status_code=status_code, error_code=error_code, fatal=fatal)
-
-
-async def exchange_code_for_token(
-    *,
-    http_client: httpx.AsyncClient,
-    token_url: str,
-    payload: dict[str, str],
-) -> httpx.Response:
-    """POST a token-endpoint form payload and return the raw response."""
-    _log.debug("POST %s", redact_url(token_url))
-    return await http_client.post(token_url, data=payload)
 
 
 def build_oauth_credential(

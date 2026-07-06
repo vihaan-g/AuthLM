@@ -13,8 +13,8 @@ from typing_extensions import override
 from authlm.connection_methods._oauth_helpers import (
     build_oauth_credential,
     classify_token_error,
-    exchange_code_for_token,
     redact_body,
+    redact_url,
 )
 from authlm.credentials import Credential
 from authlm.errors import ConnectionTimeout, ReconnectionRequired, TokenEndpointError
@@ -160,10 +160,10 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
         loop = asyncio.get_running_loop()
         deadline = loop.time() + timeout
         while True:
-            response = await exchange_code_for_token(
-                http_client=self._http_client,
-                token_url=str(self._token_url),
-                payload={
+            _log.debug("POST %s", redact_url(str(self._token_url)))
+            response = await self._http_client.post(
+                str(self._token_url),
+                data={
                     "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
                     "device_code": device_code,
                     "client_id": self._client_id,

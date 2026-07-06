@@ -8,6 +8,7 @@ import httpx
 
 from authlm._auth_table import get_oauth_config
 from authlm.connection_methods._oauth_helpers import (
+    build_oauth_credential,
     classify_token_error,
     redact_body,
 )
@@ -209,27 +210,20 @@ async def refresh(
         raise TokenEndpointError(
             f"Token endpoint returned non-JSON body: body={redact_body(response.text)}"
         ) from exc
-    new_access = str(data.get("access_token", ""))
-    if not new_access:
-        raise TokenEndpointError("refresh response missing access_token")
-    new_refresh_token = data.get("refresh_token") or cred.refresh_token
-    expires_in = data.get("expires_in")
-    expires_at: datetime | None = None
-    if isinstance(expires_in, (int, float)):
-        expires_at = datetime.now(UTC) + timedelta(seconds=float(expires_in))
-    scopes_field = data.get("scope") or data.get("scopes") or ""
-    if isinstance(scopes_field, str):
-        scopes = [s for s in scopes_field.split() if s]
-    else:
-        scopes = list(cred.scopes)
-    new_cred = cred.model_copy(
-        update={
-            "access_token": new_access,
-            "refresh_token": str(new_refresh_token) if new_refresh_token else None,
-            "expires_at": expires_at,
-            "scopes": scopes,
-        }
+    new_cred = build_oauth_credential(
+        data=data,
+        provider=cred.provider,
+        alias=cred.alias,
+        method_id=cred.method_id,
+        client_id=cred.client_id,
     )
+    update: dict[str, object] = {}
+    if new_cred.refresh_token is None and cred.refresh_token is not None:
+        update["refresh_token"] = cred.refresh_token
+    if not new_cred.scopes and cred.scopes:
+        update["scopes"] = list(cred.scopes)
+    update["warning_acknowledged_at"] = cred.warning_acknowledged_at
+    new_cred = new_cred.model_copy(update=update)
     backend.set(new_cred)
     if metadata_store is not None:
         fp = compute_fingerprint(new_cred.access_token)

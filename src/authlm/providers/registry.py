@@ -9,7 +9,8 @@ from authlm.providers.base import ConnectionMethod, Provider
 _PROVIDERS: Sequence[Provider] | None = None
 
 
-def _build_providers() -> Sequence[Provider]:
+def list_providers() -> Sequence[Provider]:
+    """Return all registered providers."""
     global _PROVIDERS
     if _PROVIDERS is not None:
         return _PROVIDERS
@@ -26,11 +27,6 @@ def _build_providers() -> Sequence[Provider]:
         OpenRouterProvider(secret_prompt=_default_secret_prompt),
     ]
     return _PROVIDERS
-
-
-def list_providers() -> Sequence[Provider]:
-    """Return all registered providers."""
-    return _build_providers()
 
 
 def get_provider(provider_id: str) -> Provider:
