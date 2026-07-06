@@ -4,11 +4,13 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from click.testing import CliRunner
 
-from authlm.cli import _context, cli
+from authlm.cli import cli
+from authlm.cli import connect as _connect_mod
 from authlm.credentials import OAuthCredential
 from authlm.providers.anthropic import AnthropicProvider
 from authlm.providers.base import ConnectionMethod, OAuthGrant
@@ -16,7 +18,13 @@ from authlm.stores import MemoryStore
 
 
 def _patch_context_store(monkeypatch: pytest.MonkeyPatch, store: MemoryStore) -> None:
-    monkeypatch.setattr(_context, "get_store", lambda *, store_name: store)
+    monkeypatch.setattr(_connect_mod, "build_store", lambda *, store_name: store)
+
+
+def _set_tty(monkeypatch: pytest.MonkeyPatch, value: bool) -> None:
+    mock_sys = MagicMock(name="mock_sys")
+    mock_sys.stdin.isatty.return_value = value
+    monkeypatch.setattr(_connect_mod, "sys", mock_sys)
 
 
 class _StubWarnedMethod:
@@ -163,7 +171,7 @@ def test_connect_interactive_picks_method(
     """Without --method, the CLI shows the picker and the user selects 1 (api_key)."""
     store = MemoryStore()
     _patch_context_store(monkeypatch, store)
-    monkeypatch.setattr(_context, "is_tty", lambda: True)
+    _set_tty(monkeypatch, True)
     result = runner.invoke(
         cli,
         [
@@ -185,7 +193,7 @@ def test_connect_non_tty_without_method_refuses(
     runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _patch_context_store(monkeypatch, MemoryStore())
-    monkeypatch.setattr(_context, "is_tty", lambda: False)
+    _set_tty(monkeypatch, False)
     result = runner.invoke(
         cli,
         [

@@ -4,9 +4,10 @@ from pathlib import Path
 
 import click
 
-from authlm.cli import _context
+from authlm.cli._context import get_metadata_path
 from authlm.cli._formatters import format_list_table
-from authlm.stores.base import CredentialStore
+from authlm.metadata import MetadataStore
+from authlm.stores import build_store, get_default_store
 
 
 @click.command("list")
@@ -28,13 +29,16 @@ from authlm.stores.base import CredentialStore
 )
 def list_cmd(store_name: str | None, metadata_path: Path | None) -> None:
     """List stored credentials."""
-    store: CredentialStore = _context.get_store(store_name=store_name)
+    if store_name is None:
+        store = get_default_store()
+    else:
+        store = build_store(store_name=store_name)
     entries = sorted(
         (provider, alias, cred.method_id if cred is not None else "")
         for provider, alias in store.list()
         for cred in [store.get(provider, alias)]
     )
-    metadata_store = _context.get_metadata_store(metadata_path)
+    metadata_store = MetadataStore(path=get_metadata_path(metadata_path))
     click.echo(
         format_list_table(
             entries,

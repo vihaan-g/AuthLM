@@ -6,13 +6,14 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from authlm.cli import _context, cli
+from authlm.cli import cli
+from authlm.cli import env as _env_mod
 from authlm.credentials import ApiKeyCredential, OAuthCredential
 from authlm.stores import MemoryStore
 
 
 def _patch_store(monkeypatch: pytest.MonkeyPatch, store: MemoryStore) -> None:
-    monkeypatch.setattr(_context, "get_store", lambda *, store_name: store)
+    monkeypatch.setattr(_env_mod, "build_store", lambda *, store_name: store)
 
 
 def test_env_api_key(

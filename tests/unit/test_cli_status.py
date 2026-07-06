@@ -7,14 +7,15 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from click.testing import CliRunner
 
-from authlm.cli import _context, cli
+from authlm.cli import cli
+from authlm.cli import status as _status_mod
 from authlm.credentials import ApiKeyCredential, compute_fingerprint
 from authlm.metadata import MetadataEntry, MetadataStore
 from authlm.stores import MemoryStore
 
 
 def _patch_store(monkeypatch: pytest.MonkeyPatch, store: MemoryStore) -> None:
-    monkeypatch.setattr(_context, "get_store", lambda *, store_name: store)
+    monkeypatch.setattr(_status_mod, "build_store", lambda *, store_name: store)
 
 
 def test_status_no_args_lists_all_providers(

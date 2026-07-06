@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 import webbrowser
 from collections.abc import Callable
 from pathlib import Path
@@ -9,10 +10,12 @@ from typing import cast
 import click
 
 from authlm import api as _api
-from authlm.cli import _context
+from authlm.cli._context import get_metadata_path
 from authlm.errors import AuthLMError
+from authlm.metadata import MetadataStore
 from authlm.providers.base import ConnectionMethod
 from authlm.providers.registry import get_provider
+from authlm.stores import build_store, get_default_store
 
 
 def _secret_prompt() -> Callable[[str], str]:
@@ -105,7 +108,7 @@ def connect(
             )
         chosen = next(m for m in methods if m.id == method_id)
     else:
-        if not _context.is_tty():
+        if not sys.stdin.isatty():
             raise click.ClickException(
                 "Interactive method selection requires a TTY. "
                 "Pass --method <id> to select a method non-interactively."
@@ -117,8 +120,11 @@ def connect(
         if not click.confirm("Continue?", default=False):
             raise click.Abort()
 
-    store = _context.get_store(store_name=store_name)
-    meta = _context.get_metadata_store(metadata_path)
+    if store_name is None:
+        store = get_default_store()
+    else:
+        store = build_store(store_name=store_name)
+    meta = MetadataStore(path=get_metadata_path(metadata_path))
 
     try:
         cred = asyncio.run(

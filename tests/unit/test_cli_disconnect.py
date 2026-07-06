@@ -6,14 +6,15 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from authlm.cli import _context, cli
+from authlm.cli import cli
+from authlm.cli import disconnect as _disconnect_mod
 from authlm.credentials import ApiKeyCredential
 from authlm.metadata import MetadataEntry, MetadataStore
 from authlm.stores import MemoryStore
 
 
 def _patch_store(monkeypatch: pytest.MonkeyPatch, store: MemoryStore) -> None:
-    monkeypatch.setattr(_context, "get_store", lambda *, store_name: store)
+    monkeypatch.setattr(_disconnect_mod, "build_store", lambda *, store_name: store)
 
 
 def test_disconnect_confirmed(

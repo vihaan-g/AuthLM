@@ -7,6 +7,7 @@ import pytest
 from click.testing import CliRunner
 
 from authlm.cli import cli
+from authlm.cli import list_cmd as _list_mod
 from authlm.credentials import ApiKeyCredential
 from authlm.metadata import MetadataEntry, MetadataStore
 from authlm.stores import MemoryStore
@@ -24,15 +25,13 @@ def test_list_empty(runner: CliRunner, tmp_path: Path) -> None:
 def test_list_single_entry(
     runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from authlm.cli import _context
-
     store = MemoryStore()
     store.set(
         ApiKeyCredential(
             provider="openai", alias="default", method_id="api_key", secret="redacted"
         )
     )
-    monkeypatch.setattr(_context, "get_store", lambda *, store_name: store)
+    monkeypatch.setattr(_list_mod, "build_store", lambda *, store_name: store)
     result = runner.invoke(
         cli,
         ["list", "--store", "memory", "--metadata-path", str(tmp_path / "m.json")],
@@ -47,15 +46,13 @@ def test_list_single_entry(
 def test_list_includes_metadata(
     runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from authlm.cli import _context
-
     store = MemoryStore()
     store.set(
         ApiKeyCredential(
             provider="openai", alias="default", method_id="api_key", secret="redacted"
         )
     )
-    monkeypatch.setattr(_context, "get_store", lambda *, store_name: store)
+    monkeypatch.setattr(_list_mod, "build_store", lambda *, store_name: store)
     meta_path = tmp_path / "m.json"
     meta = MetadataStore(path=meta_path)
     meta.set(
@@ -79,8 +76,6 @@ def test_list_includes_metadata(
 def test_list_multiple_entries(
     runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from authlm.cli import _context
-
     store = MemoryStore()
     store.set(
         ApiKeyCredential(
@@ -92,7 +87,7 @@ def test_list_multiple_entries(
             provider="openai", alias="work", method_id="api_key", secret="y"
         )
     )
-    monkeypatch.setattr(_context, "get_store", lambda *, store_name: store)
+    monkeypatch.setattr(_list_mod, "build_store", lambda *, store_name: store)
     result = runner.invoke(
         cli,
         ["list", "--store", "memory", "--metadata-path", str(tmp_path / "m.json")],

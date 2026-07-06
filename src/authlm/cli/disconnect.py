@@ -4,8 +4,9 @@ from pathlib import Path
 
 import click
 
-from authlm.cli import _context
-from authlm.stores.base import CredentialStore
+from authlm.cli._context import get_metadata_path
+from authlm.metadata import MetadataStore
+from authlm.stores import build_store, get_default_store
 
 
 @click.command("disconnect")
@@ -36,8 +37,11 @@ def disconnect(
     metadata_path: Path | None,
 ) -> None:
     """Delete a credential and its metadata entry."""
-    store: CredentialStore = _context.get_store(store_name=store_name)
-    meta = _context.get_metadata_store(metadata_path)
+    if store_name is None:
+        store = get_default_store()
+    else:
+        store = build_store(store_name=store_name)
+    meta = MetadataStore(path=get_metadata_path(metadata_path))
     cred = store.get(provider_id, alias)
     if cred is None:
         raise click.ClickException(f"Credential not found for {provider_id}:{alias}")
