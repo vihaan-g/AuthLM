@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -20,7 +21,8 @@ from authlm.api import (
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.credentials import ApiKeyCredential, OAuthCredential
-from authlm.errors import CredentialNotFound, ReconnectionRequired
+from authlm.errors import CredentialNotFound, ReconnectionRequired, RefreshFailed
+from authlm.metadata import MetadataStore
 from authlm.providers.registry import get_method
 from authlm.stores import MemoryStore
 
@@ -396,3 +398,73 @@ async def test_get_credential_returns_expired_oauth_as_is() -> None:
     assert result.access_token == "at-expired"
     assert result.expires_at is not None
     assert result.expires_at < datetime.now(UTC)
+
+
+@pytest.mark.asyncio
+async def test_get_valid_credential_refreshes_when_within_margin(
+    respx_mock: MockRouter,
+) -> None:
+    respx_mock.post("https://auth.openai.com/oauth/token").respond(
+        200,
+        json={
+            "access_token": "NEW",
+            "refresh_token": "NEW_RT",
+            "expires_in": 3600,
+            "scope": "openid",
+        },
+    )
+    store = MemoryStore()
+    store.set(
+        OAuthCredential(
+            provider="openai",
+            alias="default",
+            method_id="oauth_browser",
+            access_token="OLD",
+            refresh_token="OLD_RT",
+            expires_at=datetime.now(UTC) + timedelta(minutes=3),
+        )
+    )
+    result = await get_valid_credential(
+        "openai", alias="default", margin=timedelta(minutes=5), store=store
+    )
+    assert isinstance(result, OAuthCredential)
+    assert result.access_token == "NEW"
+
+
+@pytest.mark.asyncio
+async def test_connect_stores_fingerprint_in_metadata(tmp_path: Path) -> None:
+    store = MemoryStore()
+    meta_store = MetadataStore(path=tmp_path / "metadata.json")
+    method = get_method("openrouter", "api_key")
+    await connect(
+        "openrouter",
+        alias="default",
+        store=store,
+        method=method,
+        secret_prompt=lambda _p: "sk-or-test",
+        metadata_store=meta_store,
+    )
+    entry = meta_store.get("openrouter", "default")
+    assert entry is not None
+    assert entry.fingerprint is not None
+    assert len(entry.fingerprint) == 16
+
+
+@pytest.mark.asyncio
+async def test_refresh_raises_refresh_failed_on_503(
+    respx_mock: MockRouter,
+) -> None:
+    respx_mock.post("https://auth.openai.com/oauth/token").respond(503)
+    store = MemoryStore()
+    store.set(
+        OAuthCredential(
+            provider="openai",
+            alias="default",
+            method_id="oauth_browser",
+            access_token="a",
+            refresh_token="r",
+            expires_at=None,
+        )
+    )
+    with pytest.raises(RefreshFailed):
+        await refresh("openai", alias="default", store=store)

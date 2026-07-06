@@ -136,6 +136,7 @@ jobs:
               -e 'xoxb-[A-Za-z0-9-]+' \
               -e 'ghp_[A-Za-z0-9]{20,}' \
               -e 'ya29\.[A-Za-z0-9_-]+' \
+              -e 'AIza[A-Za-z0-9_-]{30,}' \
               -e 'Bearer [A-Za-z0-9_-]{20,}'; then
             echo "::error::Leaked credential pattern detected in tracked files."
             exit 1

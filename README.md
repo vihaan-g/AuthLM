@@ -142,7 +142,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync --all-extras                # install all deps including test extras
-uv run pytest                       # 259 unit tests, sub-second
+uv run pytest                       # 263 unit tests, sub-second
 uv run ruff check .                 # lint
 uv run ruff format .                # format
 uv run mypy src/authlm              # typecheck (strict)
