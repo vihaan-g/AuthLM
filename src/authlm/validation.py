@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-
 import httpx
 
 from authlm._auth_table import AUTH_TABLE
@@ -15,9 +13,6 @@ async def validate(
     cred: Credential,
     *,
     force: bool,
-    http_client_factory: Callable[[], httpx.AsyncClient] = lambda: httpx.AsyncClient(
-        timeout=15.0
-    ),
 ) -> bool:
     """Probe whether a credential is currently usable.
 
@@ -46,7 +41,7 @@ async def validate(
     elif isinstance(cred, OAuthCredential):
         headers["Authorization"] = f"Bearer {cred.access_token}"
 
-    async with http_client_factory() as client:
+    async with httpx.AsyncClient(timeout=15.0) as client:
         try:
             response = await client.get(str(entry.validation_url), headers=headers)
         except httpx.HTTPError as exc:

@@ -5,7 +5,7 @@ from collections.abc import Callable, Sequence
 import httpx
 from typing_extensions import override
 
-from authlm._auth_table import get_auth_entry, get_oauth_config
+from authlm._auth_table import get_oauth_config
 from authlm.connection_methods.api_key import APIKeyMethod
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.providers.base import ConnectionMethod, Provider
@@ -22,7 +22,6 @@ class GoogleProvider(Provider):
     ) -> None:
         self._secret_prompt = secret_prompt
         self._http_client = http_client
-        self._entry = get_auth_entry("google")
 
     @property
     @override

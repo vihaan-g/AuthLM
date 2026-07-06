@@ -26,6 +26,7 @@ __all__ = [
     "MemoryStore",
     "build_store",
     "get_default_store",
+    "get_user_data_path",
     "set_store",
 ]
 
@@ -48,6 +49,16 @@ def _user_data_path() -> Path:
     if env_path is not None:
         return Path(env_path)
     return PlatformDirs("authlm", appauthor=False).user_data_path
+
+
+def get_user_data_path() -> Path:
+    """Return the authlm user data directory.
+
+    Respects ``AUTHLM_USER_PATH`` env var. Falls back to platform-appropriate
+    user data dir (e.g. ``~/.local/share/authlm`` on Linux,
+    ``~/Library/Application Support/authlm`` on macOS).
+    """
+    return _user_data_path()
 
 
 def build_store(*, store_name: str) -> CredentialStore:

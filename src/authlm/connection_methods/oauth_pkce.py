@@ -21,7 +21,6 @@ from authlm.connection_methods._oauth_helpers import (
     build_authorize_url,
     build_oauth_credential,
     classify_token_error,
-    exchange_code_for_token,
     generate_pkce_pair,
     redact_body,
     redact_url,
@@ -64,7 +63,6 @@ class OAuthPKCEMethod(ConnectionMethod):
         client_id: str,
         scopes: Sequence[str],
         redirect_port: int,
-        redirect_path: str = "/callback",
         loopback_factory: Callable[
             [tuple[str, int], type[BaseHTTPRequestHandler]], HTTPServer
         ] = _default_loopback_factory,
@@ -88,7 +86,7 @@ class OAuthPKCEMethod(ConnectionMethod):
                     override,
                     redirect_port,
                 )
-        self._redirect_path = redirect_path
+        self._redirect_path = "/callback"
         self._loopback_factory = loopback_factory
         self._open_browser = open_browser
         self._http_client = http_client
@@ -107,7 +105,6 @@ class OAuthPKCEMethod(ConnectionMethod):
             client_id=self._client_id,
             scopes=self._scopes,
             redirect_port=self._redirect_port,
-            redirect_path=self._redirect_path,
             loopback_factory=self._loopback_factory,
             open_browser=callback,
             http_client=self._http_client,
@@ -249,11 +246,8 @@ class OAuthPKCEMethod(ConnectionMethod):
             "client_id": self._client_id,
             "code_verifier": pair.verifier,
         }
-        response = await exchange_code_for_token(
-            http_client=self._http_client,
-            token_url=str(self._token_url),
-            payload=payload,
-        )
+        _log.debug("POST %s", redact_url(str(self._token_url)))
+        response = await self._http_client.post(str(self._token_url), data=payload)
         classification = classify_token_error(
             status_code=response.status_code, body=response.text
         )

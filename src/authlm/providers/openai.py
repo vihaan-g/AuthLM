@@ -5,7 +5,7 @@ from collections.abc import Callable, Sequence
 import httpx
 from typing_extensions import override
 
-from authlm._auth_table import get_auth_entry, get_oauth_config
+from authlm._auth_table import get_oauth_config
 from authlm.connection_methods.api_key import APIKeyMethod
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
@@ -27,7 +27,6 @@ class _ChatGPTBrowserPKCE(OAuthPKCEMethod):
             client_id=self._client_id,
             scopes=self._scopes,
             redirect_port=self._redirect_port,
-            redirect_path=self._redirect_path,
             loopback_factory=self._loopback_factory,
             open_browser=callback,
             http_client=self._http_client,
@@ -66,7 +65,6 @@ class OpenAIProvider(Provider):
     ) -> None:
         self._secret_prompt = secret_prompt
         self._http_client = http_client
-        self._entry = get_auth_entry("openai")
 
     @property
     @override
