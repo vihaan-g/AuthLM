@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import secrets
 import threading
 import webbrowser
@@ -76,6 +77,17 @@ class OAuthPKCEMethod(ConnectionMethod):
         self._client_id = client_id
         self._scopes: tuple[str, ...] = tuple(scopes)
         self._redirect_port = redirect_port
+        override = os.environ.get("AUTHLM_PKCE_PORT_OVERRIDE")
+        if override is not None:
+            try:
+                self._redirect_port = int(override)
+            except ValueError:
+                _log.warning(
+                    "AUTHLM_PKCE_PORT_OVERRIDE=%r is not a valid port number; "
+                    "using default %d",
+                    override,
+                    redirect_port,
+                )
         self._redirect_path = redirect_path
         self._loopback_factory = loopback_factory
         self._open_browser = open_browser
