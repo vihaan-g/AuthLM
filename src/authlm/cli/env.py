@@ -5,9 +5,8 @@ from enum import StrEnum
 
 import click
 
-from authlm.cli import _context
 from authlm.credentials import ApiKeyCredential, OAuthCredential
-from authlm.stores.base import CredentialStore
+from authlm.stores import build_store, get_default_store
 
 
 class EnvFormat(StrEnum):
@@ -85,7 +84,10 @@ def env(
 
     Designed for use in shell: eval "$(authlm env openai)".
     """
-    store: CredentialStore = _context.get_store(store_name=store_name)
+    if store_name is None:
+        store = get_default_store()
+    else:
+        store = build_store(store_name=store_name)
     cred = store.get(provider_id, alias)
     if cred is None:
         raise click.ClickException(f"Credential not found for {provider_id}:{alias}")

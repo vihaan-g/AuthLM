@@ -6,12 +6,13 @@ from pathlib import Path
 
 import click
 
-from authlm.cli import _context
+from authlm.cli._context import get_metadata_path
 from authlm.cli._formatters import format_status_table
 from authlm.credentials import ApiKeyCredential, OAuthCredential, compute_fingerprint
 from authlm.errors import AuthLMError
+from authlm.metadata import MetadataStore
 from authlm.providers.registry import get_method as _get_method
-from authlm.stores.base import CredentialStore
+from authlm.stores import build_store, get_default_store
 from authlm.validation import validate as _validate
 
 
@@ -72,11 +73,14 @@ def status(
     metadata_path: Path | None,
 ) -> None:
     """Show credential metadata; --validate to probe."""
-    store: CredentialStore = _context.get_store(store_name=store_name)
+    if store_name is None:
+        store = get_default_store()
+    else:
+        store = build_store(store_name=store_name)
     if show_backend:
         click.echo(store.backend_name())
         return
-    meta = _context.get_metadata_store(metadata_path)
+    meta = MetadataStore(path=get_metadata_path(metadata_path))
     pairs: list[tuple[str, str]]
     if provider_id is None:
         pairs = sorted(store.list())
