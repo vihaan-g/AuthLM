@@ -213,6 +213,25 @@ def test_build_oauth_credential_handles_scopes_as_list() -> None:
     assert cred.scopes == ["openid", "email"]
 
 
+def test_redact_body_recursive_nested_secrets() -> None:
+    result = redact_body(
+        '{"error":"invalid_grant","details":{"access_token":"abc123","extra":"keep"}}'
+    )
+    assert "abc123" not in result
+    assert "[REDACTED]" in result
+
+
+def test_redact_body_recursive_lists_of_dicts() -> None:
+    result = redact_body(
+        '{"errors":[{"access_token":"at1"},{"refresh_token":"rt1","other":"ok"}]}'
+    )
+    assert "at1" not in result
+    assert "rt1" not in result
+    assert "[REDACTED]" in result
+    assert "other" in result
+    assert "ok" in result
+
+
 def test_build_oauth_credential_raises_on_missing_access_token() -> None:
     data = {"expires_in": 3600}
     with pytest.raises(TokenEndpointError):
