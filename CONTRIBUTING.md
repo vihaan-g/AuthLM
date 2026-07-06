@@ -21,7 +21,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 ```bash
 git clone https://github.com/vihaan-g/AuthLM.git
 cd AuthLM
-uv sync --extra test --all-extras
+uv sync --all-extras
 source .venv/bin/activate
 ```
 

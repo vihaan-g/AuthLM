@@ -35,7 +35,7 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
 
 - Requires Python 3.11+.
 - Install uv first: `pip install uv` (or use `brew install uv`).
-- Sync deps: `uv sync --extra test --all-extras`
+- Sync deps: `uv sync --all-extras`
 - Activate: `source .venv/bin/activate` (or use `uv run <cmd>`)
 
 ## Commands
