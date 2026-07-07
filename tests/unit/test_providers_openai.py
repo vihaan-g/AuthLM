@@ -113,3 +113,16 @@ def test_openai_method_labels_match_spec() -> None:
     assert labels["api_key"] == "Manually enter API key"
     assert labels["chatgpt_oauth_browser"] == "ChatGPT Pro/Plus (browser)"
     assert labels["chatgpt_oauth_device"] == "ChatGPT Pro/Plus (headless)"
+
+
+def test_connection_methods_accepts_http_client() -> None:
+    """connection_methods() uses the provider's http_client when none is passed."""
+    client = httpx.AsyncClient()
+    provider = OpenAIProvider(secret_prompt=lambda _p: "", http_client=client)
+
+    methods = list(provider.connection_methods(include_warned=True))
+    for m in methods:
+        if hasattr(m, "_http_client"):
+            assert m._http_client is client  # type: ignore[comparison-overlap]
+
+    assert provider._http_client is client

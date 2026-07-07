@@ -108,8 +108,10 @@ class AnthropicProvider(Provider):
         return "https://console.anthropic.com/settings/keys"
 
     @override
-    def connection_methods(self, *, include_warned: bool) -> Sequence[ConnectionMethod]:
-        client = self._http_client or httpx.AsyncClient()
+    def connection_methods(
+        self, *, include_warned: bool, http_client: httpx.AsyncClient | None = None
+    ) -> Sequence[ConnectionMethod]:
+        client = http_client or self._http_client or httpx.AsyncClient()
         oauth = get_oauth_config("anthropic")
         assert oauth is not None
 
