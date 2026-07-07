@@ -210,9 +210,7 @@ def test_parent_directory_permissions_owner_only(tmp_path: Path) -> None:
     )
     parent_mode = store_path.parent.stat().st_mode & 0o777
     if sys.platform != "win32":
-        assert parent_mode == 0o700, (
-            f"Expected 0o700, got {oct(parent_mode)}"
-        )
+        assert parent_mode == 0o700, f"Expected 0o700, got {oct(parent_mode)}"
 
 
 def test_invalid_schema_raises_secret_store_error(tmp_path: Path) -> None:
