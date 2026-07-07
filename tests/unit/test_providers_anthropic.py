@@ -73,3 +73,16 @@ def test_warning_constant_mentions_anthropic() -> None:
 
 def test_provider_satisfies_protocol() -> None:
     assert isinstance(_provider(), Provider)
+
+
+def test_connection_methods_accepts_http_client() -> None:
+    """connection_methods() reuses the provider's http_client."""
+    client = httpx.AsyncClient()
+    provider = AnthropicProvider(secret_prompt=lambda _p: "", http_client=client)
+
+    methods = list(provider.connection_methods(include_warned=True))
+    for m in methods:
+        if hasattr(m, "_http_client"):
+            assert m._http_client is client  # type: ignore[comparison-overlap]
+
+    assert provider._http_client is client  # noqa: SLF001

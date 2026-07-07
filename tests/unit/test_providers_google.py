@@ -48,3 +48,16 @@ def test_oauth_method_uses_pkce() -> None:
     assert oauth.oauth_grant == OAuthGrant.AUTHORIZATION_CODE_PKCE
     assert oauth.warning is None
     assert oauth.label == "Google AI Studio (browser)"
+
+
+def test_connection_methods_accepts_http_client() -> None:
+    """connection_methods() reuses the provider's http_client."""
+    client = httpx.AsyncClient()
+    provider = GoogleProvider(secret_prompt=lambda _p: "", http_client=client)
+
+    methods = list(provider.connection_methods(include_warned=False))
+    for m in methods:
+        if hasattr(m, "_http_client"):
+            assert m._http_client is client  # type: ignore[comparison-overlap]
+
+    assert provider._http_client is client  # noqa: SLF001
