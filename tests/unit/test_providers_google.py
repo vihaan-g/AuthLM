@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import httpx
 
+from authlm.connection_methods.api_key import _default_secret_prompt
+from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.providers.base import OAuthGrant
 from authlm.providers.google import GoogleProvider
 
@@ -61,3 +63,22 @@ def test_connection_methods_accepts_http_client() -> None:
             assert m._http_client is client  # type: ignore[comparison-overlap]
 
     assert provider._http_client is client  # noqa: SLF001
+
+
+def test_google_provider_oauth_browser_method() -> None:
+    """Google provider exposes an oauth_browser PKCE method with scopes."""
+    provider = GoogleProvider(
+        secret_prompt=_default_secret_prompt,
+        http_client=httpx.AsyncClient(),
+    )
+    methods = list(provider.connection_methods(include_warned=True))
+    oauth_methods = [m for m in methods if m.oauth_grant is not None]
+    assert len(oauth_methods) == 1
+    pkce = oauth_methods[0]
+    assert pkce.id == "oauth_browser"
+    assert pkce.label == "Google AI Studio (browser)"
+    assert pkce.warning is None
+    assert pkce.oauth_grant is not None
+    assert isinstance(pkce, OAuthPKCEMethod)
+    assert len(pkce._scopes) > 0  # type: ignore[union-attr]  # noqa: SLF001
+    assert "openid" in pkce._scopes  # type: ignore[union-attr]  # noqa: SLF001
