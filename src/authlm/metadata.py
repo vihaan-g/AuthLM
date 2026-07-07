@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 from collections.abc import Iterator
@@ -70,4 +71,6 @@ class MetadataStore:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = self._path.with_suffix(self._path.suffix + ".tmp")
         tmp_path.write_text(json.dumps(data, indent=2))
+        with contextlib.suppress(OSError):
+            os.chmod(tmp_path, 0o600)
         os.replace(tmp_path, self._path)

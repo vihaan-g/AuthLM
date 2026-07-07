@@ -24,7 +24,7 @@ from authlm.validation import validate as _validate
     "show_all",
     is_flag=True,
     default=False,
-    help="Show all aliases for the given provider.",
+    help="Show all aliases for the given provider. Ignored when no provider is given.",
 )
 @click.option(
     "--validate",
