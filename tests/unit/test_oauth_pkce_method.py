@@ -170,8 +170,7 @@ async def test_handler_returns_denied_html() -> None:
     port = server.server_address[1]
     try:
         response = urlopen(
-            f"http://127.0.0.1:{port}/callback"
-            "?error=access_denied&state=expected-state"
+            f"http://127.0.0.1:{port}/callback?error=access_denied&state=expected-state"
         )
         assert response.status == 200
         body = response.read().decode()
@@ -260,9 +259,7 @@ async def test_exchange_code_network_error_raises_refresh_failed() -> None:
         client_id="test",
         scopes=["openid"],
         redirect_port=0,
-        http_client=httpx.AsyncClient(
-            transport=httpx.MockTransport(_network_error)
-        ),
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(_network_error)),
     )
     pair = PKCEPair(verifier="test-verifier", challenge="test-challenge")
     with pytest.raises(RefreshFailed, match="network error"):
@@ -287,9 +284,7 @@ async def test_exchange_code_503_raises_refresh_failed() -> None:
         client_id="test",
         scopes=["openid"],
         redirect_port=0,
-        http_client=httpx.AsyncClient(
-            transport=httpx.MockTransport(_server_error)
-        ),
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(_server_error)),
     )
     pair = PKCEPair(verifier="test-verifier", challenge="test-challenge")
     with pytest.raises(RefreshFailed):

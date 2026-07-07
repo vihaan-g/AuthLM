@@ -197,8 +197,7 @@ async def refresh(
     if classification.fatal:
         if classification.fatal_reason == "access_denied":
             raise AccessDenied(
-                f"Token refresh for {provider}:{alias}: "
-                f"{classification.error_code}"
+                f"Token refresh for {provider}:{alias}: {classification.error_code}"
             )
         raise ReconnectionRequired(
             f"Refresh token for {provider}:{alias} is dead; "
