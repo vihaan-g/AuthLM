@@ -11,6 +11,9 @@ import click
 
 from authlm import api as _api
 from authlm.cli._context import get_metadata_path
+from authlm.connection_methods.api_key import APIKeyMethod
+from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
+from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.errors import AuthLMError
 from authlm.metadata import MetadataStore
 from authlm.providers.base import ConnectionMethod
@@ -133,9 +136,15 @@ def connect(
                 alias=alias,
                 method=chosen,
                 store=store,
-                secret_prompt=_secret_prompt() if chosen.id == "api_key" else None,
-                on_prompt=_on_prompt() if chosen.id == "oauth_device" else None,
-                open_browser=_open_browser() if chosen.id == "oauth_browser" else None,
+                secret_prompt=_secret_prompt()
+                if isinstance(chosen, APIKeyMethod)
+                else None,
+                on_prompt=_on_prompt()
+                if isinstance(chosen, OAuthDeviceCodeMethod)
+                else None,
+                open_browser=_open_browser()
+                if isinstance(chosen, OAuthPKCEMethod)
+                else None,
                 metadata_store=meta,
             )
         )

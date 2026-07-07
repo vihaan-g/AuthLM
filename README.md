@@ -1,10 +1,10 @@
 # AuthLM
 
-[![CI](https://github.com/vihaan-g/AuthLM/actions/workflows/ci.yml/badge.svg)](https://github.com/vihaan-g/AuthLM/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/vihaan-g/AuthLM/actions/workflows/codeql.yml/badge.svg)](https://github.com/vihaan-g/AuthLM/actions/workflows/codeql.yml)
+[![CI](https://github.com/vihaan-g/authlm/actions/workflows/ci.yml/badge.svg)](https://github.com/vihaan-g/authlm/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/vihaan-g/authlm/actions/workflows/codeql.yml/badge.svg)](https://github.com/vihaan-g/authlm/actions/workflows/codeql.yml)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Status](https://img.shields.io/badge/status-pre--release-orange)](https://github.com/vihaan-g/AuthLM/releases)
+[![Status](https://img.shields.io/badge/status-stable-blue)](https://github.com/vihaan-g/authlm/releases)
 
 **OS-keychain-backed authentication for AI providers. API keys, OAuth, token refresh, and multi-account support — auth only, composes with any inference library.**
 
@@ -12,7 +12,7 @@ AuthLM is a Python library that manages authentication and credentials for AI pr
 
 ## Status
 
-**Pre-release. v0.1.0 in development. Not yet on PyPI.**
+**v0.1.0 — Foundation release.** OS-keychain credential management for AI providers. Now available on PyPI.
 
 v0.1.0 ships 4 first-party providers, 3 connection methods, 4 credential stores, and a 5-command CLI. The plugin system, models.dev integration, and long-tail providers are deferred to v0.2.0. See [Roadmap](#roadmap) below.
 
@@ -63,20 +63,18 @@ AuthLM is the dedicated auth layer. OS keychain by default, OAuth flows, token r
 
 ## Installation
 
-**Not yet on PyPI.** Install from source for development or experimentation:
-
-```bash
-git clone https://github.com/vihaan-g/AuthLM.git
-cd AuthLM
-uv sync --all-extras
-```
-
-Once v0.1.0 ships, the install will be:
-
 ```bash
 pip install authlm                       # base + 4 providers
 pip install "authlm[openai]"             # installs openai SDK extra
 pip install "authlm[all]"                # all provider SDK extras
+```
+
+Or install from source for development:
+
+```bash
+git clone https://github.com/vihaan-g/authlm.git
+cd authlm
+uv sync --all-extras
 ```
 
 ## Quick start
