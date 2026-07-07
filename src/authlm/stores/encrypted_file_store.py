@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import getpass
 import json
 import os
@@ -157,6 +158,8 @@ class EncryptedFileStore(CredentialStore):
 
     def _write(self, file: _EncryptedFile) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
+        with contextlib.suppress(OSError):
+            os.chmod(self._path.parent, 0o700)
         tmp_path = self._path.with_suffix(self._path.suffix + ".tmp")
         old_umask = os.umask(0o077)
         try:

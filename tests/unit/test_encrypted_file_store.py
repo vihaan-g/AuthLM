@@ -192,6 +192,29 @@ def test_missing_salt_returns_none(tmp_path: Path) -> None:
     assert result is None
 
 
+def test_parent_directory_permissions_owner_only(tmp_path: Path) -> None:
+    """The parent directory containing the encrypted file is chmod 0o700."""
+    store_path = tmp_path / "subdir" / "creds.enc.json"
+    store = EncryptedFileStore(
+        path=store_path,
+        passphrase="test-password",
+        iterations=100_000,
+    )
+    store.set(
+        ApiKeyCredential(
+            provider="openai",
+            alias="default",
+            method_id="api_key",
+            secret="sk-test",
+        )
+    )
+    parent_mode = store_path.parent.stat().st_mode & 0o777
+    if sys.platform != "win32":
+        assert parent_mode == 0o700, (
+            f"Expected 0o700, got {oct(parent_mode)}"
+        )
+
+
 def test_invalid_schema_raises_secret_store_error(tmp_path: Path) -> None:
     path = tmp_path / "bad_struct.enc.json"
     path.write_text(json.dumps({"not_salt": "x", "entries": "wrong_type"}))
