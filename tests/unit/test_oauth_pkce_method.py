@@ -16,6 +16,7 @@ from authlm.errors import (
     AuthLMError,
     ConnectionTimeout,
     ReconnectionRequired,
+    RefreshFailed,
     TokenEndpointError,
 )
 from authlm.providers.base import OAuthGrant
@@ -153,6 +154,35 @@ async def test_handler_rejects_wrong_state() -> None:
 
 
 @pytest.mark.asyncio
+async def test_handler_returns_denied_html() -> None:
+    """The loopback Handler returns 200 + denial HTML when user denies."""
+    method = OAuthPKCEMethod(
+        provider_id="test",
+        authorize_url=HttpUrl("https://example.com/auth"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        redirect_port=0,
+    )
+
+    captured: dict[str, str] = {}
+    server = method._start_loopback(captured, "expected-state")  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+    port = server.server_address[1]
+    try:
+        response = urlopen(
+            f"http://127.0.0.1:{port}/callback"
+            "?error=access_denied&state=expected-state"
+        )
+        assert response.status == 200
+        body = response.read().decode()
+        assert "denied" in body.lower()
+        assert "code" not in captured
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+@pytest.mark.asyncio
 async def test_port_collision_raises_authlm_error() -> None:
     """When the loopback factory raises OSError, raise AuthLMError."""
 
@@ -209,6 +239,60 @@ async def test_non_json_token_response_raises_token_error() -> None:
     )
     pair = PKCEPair(verifier="test-verifier", challenge="test-challenge")
     with pytest.raises(TokenEndpointError, match="non-JSON"):
+        await method._exchange_code(  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+            code="test-code", pair=pair, redirect_uri="http://127.0.0.1:0/callback"
+        )
+
+
+@pytest.mark.asyncio
+async def test_exchange_code_network_error_raises_refresh_failed() -> None:
+    """_exchange_code() wraps httpx.HTTPError in RefreshFailed."""
+
+    def _network_error(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused")
+
+    from authlm.connection_methods._oauth_helpers import PKCEPair
+
+    method = OAuthPKCEMethod(
+        provider_id="test",
+        authorize_url=HttpUrl("https://example.com/auth"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        redirect_port=0,
+        http_client=httpx.AsyncClient(
+            transport=httpx.MockTransport(_network_error)
+        ),
+    )
+    pair = PKCEPair(verifier="test-verifier", challenge="test-challenge")
+    with pytest.raises(RefreshFailed, match="network error"):
+        await method._exchange_code(  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+            code="test-code", pair=pair, redirect_uri="http://127.0.0.1:0/callback"
+        )
+
+
+@pytest.mark.asyncio
+async def test_exchange_code_503_raises_refresh_failed() -> None:
+    """_exchange_code() raises RefreshFailed on 503, not TokenEndpointError."""
+
+    def _server_error(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, json={"error": "server_error"})
+
+    from authlm.connection_methods._oauth_helpers import PKCEPair
+
+    method = OAuthPKCEMethod(
+        provider_id="test",
+        authorize_url=HttpUrl("https://example.com/auth"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        redirect_port=0,
+        http_client=httpx.AsyncClient(
+            transport=httpx.MockTransport(_server_error)
+        ),
+    )
+    pair = PKCEPair(verifier="test-verifier", challenge="test-challenge")
+    with pytest.raises(RefreshFailed):
         await method._exchange_code(  # type: ignore[reportPrivateUsage]  # noqa: SLF001
             code="test-code", pair=pair, redirect_uri="http://127.0.0.1:0/callback"
         )

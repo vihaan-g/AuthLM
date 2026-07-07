@@ -27,9 +27,11 @@ from authlm.connection_methods._oauth_helpers import (
 )
 from authlm.credentials import Credential, OAuthCredential
 from authlm.errors import (
+    AccessDenied,
     AuthLMError,
     ConnectionTimeout,
     ReconnectionRequired,
+    RefreshFailed,
     TokenEndpointError,
 )
 from authlm.providers.base import ConnectionMethod, OAuthGrant
@@ -165,6 +167,7 @@ class OAuthPKCEMethod(ConnectionMethod):
         self, captured: dict[str, str], expected_state: str
     ) -> HTTPServer:
         loop = asyncio.get_event_loop()
+        provider_id = self._provider_id
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:  # noqa: N802
@@ -178,8 +181,9 @@ class OAuthPKCEMethod(ConnectionMethod):
                         b"<html><body>Authorization denied."
                         b" You may close this tab.</body></html>"
                     )
-                    raise ReconnectionRequired(
-                        f"User denied authorization at provider: {received_error}"
+                    raise TokenEndpointError(
+                        f"Authorization denied by user for {provider_id}: "
+                        f"{received_error}"
                     )
                 if "code" in captured:
                     self.send_response(410)
@@ -247,13 +251,31 @@ class OAuthPKCEMethod(ConnectionMethod):
             "code_verifier": pair.verifier,
         }
         _log.debug("POST %s", redact_url(str(self._token_url)))
-        response = await self._http_client.post(str(self._token_url), data=payload)
+        try:
+            response = await self._http_client.post(
+                str(self._token_url), data=payload
+            )
+        except httpx.HTTPError as exc:
+            raise RefreshFailed(
+                f"Token exchange network error for {self._provider_id}: "
+                f"POST {redact_url(str(self._token_url))}"
+            ) from exc
         classification = classify_token_error(
             status_code=response.status_code, body=response.text
         )
         if classification.fatal:
+            if classification.fatal_reason == "access_denied":
+                raise AccessDenied(
+                    f"Token exchange error for {self._provider_id}: "
+                    f"{classification.error_code}"
+                )
             code = classification.error_code or str(response.status_code)
             raise ReconnectionRequired(f"Token endpoint returned {code}")
+        if 500 <= response.status_code < 600:
+            raise RefreshFailed(
+                f"Token exchange server error for {self._provider_id}: "
+                f"HTTP {response.status_code}"
+            )
         if not (200 <= response.status_code < 300):
             raise TokenEndpointError(
                 f"Token endpoint error: status={response.status_code} "

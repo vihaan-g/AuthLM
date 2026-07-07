@@ -162,6 +162,41 @@ def test_classify_token_error_entitlement_denied_fatal() -> None:
     assert result.fatal is True
 
 
+def test_classify_token_error_entitlement_denied_is_access_denied() -> None:
+    """entitlement_denied → fatal_reason='access_denied' per spec §5.3."""
+    result = classify_token_error(
+        status_code=400, body='{"error":"entitlement_denied"}'
+    )
+
+    assert result.fatal is True
+    assert result.fatal_reason == "access_denied"
+
+
+def test_classify_token_error_invalid_grant_is_reconnection() -> None:
+    """invalid_grant → fatal_reason='reconnection' per spec §5.3."""
+    result = classify_token_error(status_code=400, body='{"error":"invalid_grant"}')
+
+    assert result.fatal is True
+    assert result.fatal_reason == "reconnection"
+
+
+def test_classify_token_error_non_fatal_has_no_reason() -> None:
+    """Non-fatal errors should have fatal_reason=None."""
+    result = classify_token_error(
+        status_code=400, body='{"error":"invalid_request"}'
+    )
+    assert result.fatal is False
+    assert result.fatal_reason is None
+
+
+def test_classify_token_error_5xx_nonfatal_has_no_reason() -> None:
+    """5xx non-fatal errors should have fatal_reason=None."""
+    result = classify_token_error(status_code=503, body="Service Unavailable")
+
+    assert result.fatal is False
+    assert result.fatal_reason is None
+
+
 def test_redact_body_short_bearer_token() -> None:
     result = redact_body("error: Bearer abcdefgh for request")
     assert "abcdefgh" not in result
