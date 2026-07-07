@@ -40,7 +40,11 @@ class ConnectionMethod(Protocol):
         ...
 
     async def connect(self, *, store: CredentialStore) -> Credential:
-        """Run the auth flow interactively; persist the result; return it."""
+        """Run the auth flow interactively and return the resulting credential.
+
+        Persistence is the caller's responsibility. The method does not call
+        ``store.set()`` itself.
+        """
         ...
 
 

@@ -18,6 +18,11 @@ class _ChatGPTBrowserPKCE(OAuthPKCEMethod):
     def id(self) -> str:
         return "chatgpt_oauth_browser"
 
+    @property
+    @override
+    def label(self) -> str:
+        return "ChatGPT Pro/Plus (browser)"
+
     @override
     def with_open_browser(self, callback: Callable[[str], None]) -> _ChatGPTBrowserPKCE:
         return _ChatGPTBrowserPKCE(
@@ -38,6 +43,11 @@ class _ChatGPTDevice(OAuthDeviceCodeMethod):
     @override
     def id(self) -> str:
         return "chatgpt_oauth_device"
+
+    @property
+    @override
+    def label(self) -> str:
+        return "ChatGPT Pro/Plus (headless)"
 
     @override
     def with_on_prompt(self, callback: Callable[[str, str], None]) -> _ChatGPTDevice:

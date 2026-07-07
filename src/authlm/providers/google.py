@@ -11,6 +11,32 @@ from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.providers.base import ConnectionMethod, Provider
 
 
+class _GoogleOAuthBrowser(OAuthPKCEMethod):
+    @property
+    @override
+    def id(self) -> str:
+        return "oauth_browser"
+
+    @property
+    @override
+    def label(self) -> str:
+        return "Google AI Studio (browser)"
+
+    @override
+    def with_open_browser(self, callback: Callable[[str], None]) -> _GoogleOAuthBrowser:
+        return _GoogleOAuthBrowser(
+            provider_id=self._provider_id,
+            authorize_url=self._authorize_url,
+            token_url=self._token_url,
+            client_id=self._client_id,
+            scopes=self._scopes,
+            redirect_port=self._redirect_port,
+            loopback_factory=self._loopback_factory,
+            open_browser=callback,
+            http_client=self._http_client,
+        )
+
+
 class GoogleProvider(Provider):
     """Google AI provider: api_key + AI Studio OAuth (browser)."""
 
@@ -48,7 +74,7 @@ class GoogleProvider(Provider):
                 provider_id=self.id,
                 secret_prompt=self._secret_prompt,
             ),
-            OAuthPKCEMethod(
+            _GoogleOAuthBrowser(
                 provider_id=self.id,
                 authorize_url=oauth.authorize_url,
                 token_url=oauth.token_url,
