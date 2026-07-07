@@ -198,3 +198,23 @@ async def test_validate_network_error_raises_refresh_failed() -> None:
         )
         with pytest.raises(RefreshFailed):
             await validate(cred, force=True)
+
+
+@pytest.mark.asyncio
+async def test_validate_warned_method_with_force_allows_probe(
+    respx_mock: MockRouter,
+) -> None:
+    """force=True bypasses the warned-method refusal and probes normally."""
+    cred = OAuthCredential(
+        provider="anthropic",
+        alias="default",
+        method_id="claude_pro_oauth_browser",
+        access_token="ya29.secret",
+        expires_at=None,
+        client_id="test",
+    )
+    respx_mock.get("https://api.anthropic.com/v1/models").mock(
+        return_value=httpx.Response(200)
+    )
+    result = await validate(cred, force=True)
+    assert result is True
