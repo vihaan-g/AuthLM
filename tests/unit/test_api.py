@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -20,12 +21,13 @@ from authlm.api import (
 )
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
-from authlm.credentials import ApiKeyCredential, OAuthCredential
+from authlm.credentials import ApiKeyCredential, Credential, OAuthCredential
 from authlm.errors import (
     AccessDenied,
     CredentialNotFound,
     ReconnectionRequired,
     RefreshFailed,
+    SecretStoreError,
 )
 from authlm.metadata import MetadataStore
 from authlm.providers.registry import get_method
@@ -519,3 +521,101 @@ async def test_refresh_entitlement_denied_raises_access_denied(
     )
     with pytest.raises(AccessDenied):
         await refresh("openai", alias="default", store=store)
+
+
+@pytest.mark.asyncio
+async def test_concurrent_refresh_handles_race(
+    stub_store: MemoryStore, respx_mock: MockRouter
+) -> None:
+    """Two concurrent refresh() calls: the server rejects the stale RT on the
+    second call, but the first call's result is persisted."""
+    original = OAuthCredential(
+        provider="openai",
+        alias="default",
+        method_id="chatgpt_oauth_browser",
+        access_token="OLD_TOKEN",
+        refresh_token="RT1",
+        expires_at=datetime(2020, 1, 1, tzinfo=UTC),
+        scopes=[],
+        client_id="test",
+    )
+    stub_store.set(original)
+
+    call_count = 0
+
+    def token_response(request: httpx.Request) -> httpx.Response:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return httpx.Response(
+                200,
+                json={
+                    "access_token": "NEW_TOKEN_1",
+                    "refresh_token": "NEW_RT",
+                    "expires_in": 3600,
+                },
+            )
+        return httpx.Response(400, json={"error": "invalid_grant"})
+
+    respx_mock.post("https://auth.openai.com/oauth/token").mock(
+        side_effect=token_response
+    )
+
+    async def do_refresh() -> Credential:
+        return await refresh("openai", alias="default", store=stub_store)
+
+    results = await asyncio.gather(do_refresh(), do_refresh(), return_exceptions=True)
+
+    successes = [r for r in results if not isinstance(r, BaseException)]
+    assert len(successes) >= 1, (
+        f"Expected at least one success, got all errors: {results}"
+    )
+
+    stored = stub_store.get("openai", "default")
+    assert stored is not None
+    assert isinstance(stored, OAuthCredential)
+    assert stored.access_token == "NEW_TOKEN_1"
+
+
+@pytest.mark.asyncio
+async def test_refresh_store_set_failure_after_token_success(
+    respx_mock: MockRouter,
+) -> None:
+    """If store.set() fails after a successful token refresh, the exception
+    propagates and the store is left untouched (no partial update)."""
+    original = OAuthCredential(
+        provider="openai",
+        alias="default",
+        method_id="chatgpt_oauth_browser",
+        access_token="OLD_TOKEN",
+        refresh_token="RT1",
+        expires_at=datetime(2020, 1, 1, tzinfo=UTC),
+        scopes=[],
+        client_id="test",
+    )
+
+    respx_mock.post("https://auth.openai.com/oauth/token").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "access_token": "NEW_TOKEN",
+                "refresh_token": "NEW_RT",
+                "expires_in": 3600,
+            },
+        )
+    )
+
+    class FailingSetStore(MemoryStore):
+        def set(self, credential: Credential) -> None:
+            raise SecretStoreError("simulated store failure")
+
+    failing = FailingSetStore()
+    failing._entries[("openai", "default")] = original.model_dump_json()
+
+    with pytest.raises(SecretStoreError, match="simulated store failure"):
+        await refresh("openai", alias="default", store=failing)
+
+    stored = failing.get("openai", "default")
+    assert stored is not None
+    assert isinstance(stored, OAuthCredential)
+    assert stored.access_token == "OLD_TOKEN"
