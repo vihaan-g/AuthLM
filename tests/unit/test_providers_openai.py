@@ -99,3 +99,17 @@ def test_openai_method_ids_match_spec() -> None:
     assert "api_key" in ids
     assert "chatgpt_oauth_browser" in ids
     assert "chatgpt_oauth_device" in ids
+
+
+def test_openai_method_labels_match_spec() -> None:
+    """OpenAI OAuth method labels match spec table."""
+    from authlm.providers.openai import OpenAIProvider
+
+    provider = OpenAIProvider(
+        secret_prompt=lambda _p: "", http_client=httpx.AsyncClient()
+    )
+    methods = provider.connection_methods(include_warned=False)
+    labels = {m.id: m.label for m in methods}
+    assert labels["api_key"] == "Manually enter API key"
+    assert labels["chatgpt_oauth_browser"] == "ChatGPT Pro/Plus (browser)"
+    assert labels["chatgpt_oauth_device"] == "ChatGPT Pro/Plus (headless)"

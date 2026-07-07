@@ -47,3 +47,4 @@ def test_oauth_method_uses_pkce() -> None:
     oauth = next(m for m in methods if m.id == "oauth_browser")
     assert oauth.oauth_grant == OAuthGrant.AUTHORIZATION_CODE_PKCE
     assert oauth.warning is None
+    assert oauth.label == "Google AI Studio (browser)"
