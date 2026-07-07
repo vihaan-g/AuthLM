@@ -468,3 +468,26 @@ async def test_refresh_raises_refresh_failed_on_503(
     )
     with pytest.raises(RefreshFailed):
         await refresh("openai", alias="default", store=store)
+
+
+@pytest.mark.asyncio
+async def test_refresh_network_error_raises_refresh_failed(
+    respx_mock: MockRouter,
+) -> None:
+    """refresh() raises RefreshFailed on httpx network errors (ConnectError)."""
+    respx_mock.post("https://auth.openai.com/oauth/token").mock(
+        side_effect=httpx.ConnectError("connection refused")
+    )
+    store = MemoryStore()
+    store.set(
+        OAuthCredential(
+            provider="openai",
+            alias="default",
+            method_id="oauth_browser",
+            access_token="a",
+            refresh_token="r",
+            expires_at=None,
+        )
+    )
+    with pytest.raises(RefreshFailed):
+        await refresh("openai", alias="default", store=store)

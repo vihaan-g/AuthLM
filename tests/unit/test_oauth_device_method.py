@@ -257,11 +257,12 @@ async def test_device_code_request_is_form_encoded() -> None:
 
 
 @pytest.mark.asyncio
-async def test_device_code_interval_matches_slow_down() -> None:
-    """slow_down response increases the effective wait interval."""
-    poll_intervals: list[float] = []
+async def test_device_code_slow_down_retries() -> None:
+    """slow_down error triggers another poll, eventually succeeding."""
+    poll_count = 0
 
     def _tracking_transport(request: httpx.Request) -> httpx.Response:
+        nonlocal poll_count
         if "device/code" in str(request.url):
             return httpx.Response(
                 200,
@@ -269,12 +270,12 @@ async def test_device_code_interval_matches_slow_down() -> None:
                     "device_code": "dc-1",
                     "user_code": "UC-1",
                     "verification_uri": "https://example.com/activate",
-                    "interval": 1,
+                    "interval": 0,
                     "expires_in": 30,
                 },
             )
-        poll_intervals.append(0.1)
-        if len(poll_intervals) == 1:
+        poll_count += 1
+        if poll_count == 1:
             return httpx.Response(400, json={"error": "slow_down"})
         return httpx.Response(
             200,
@@ -294,7 +295,66 @@ async def test_device_code_interval_matches_slow_down() -> None:
         ),
     )
     await method.connect(store=MemoryStore())
-    assert len(poll_intervals) == 2
+    assert poll_count == 2
+
+
+@pytest.mark.asyncio
+async def test_device_code_slow_down_increases_interval(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """slow_down increases the poll interval by 5s on the next sleep."""
+    sleep_calls: list[float] = []
+
+    async def _tracking_sleep(delay: float) -> None:
+        sleep_calls.append(delay)
+
+    monkeypatch.setattr(
+        "authlm.connection_methods.oauth_device.asyncio.sleep",
+        _tracking_sleep,
+    )
+
+    poll_count = 0
+
+    def _transport(request: httpx.Request) -> httpx.Response:
+        nonlocal poll_count
+        if "device/code" in str(request.url):
+            return httpx.Response(
+                200,
+                json={
+                    "device_code": "dc-1",
+                    "user_code": "UC-1",
+                    "verification_uri": "https://example.com/activate",
+                    "interval": 0,
+                    "expires_in": 30,
+                },
+            )
+        poll_count += 1
+        if poll_count == 1:
+            return httpx.Response(400, json={"error": "authorization_pending"})
+        if poll_count == 2:
+            return httpx.Response(400, json={"error": "slow_down"})
+        return httpx.Response(
+            200,
+            json={"access_token": "at-1", "refresh_token": "rt-1", "expires_in": 3600},
+        )
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="test",
+        device_code_url=HttpUrl("https://example.com/device/code"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        poll_interval_seconds=0.1,
+        poll_timeout_seconds=30.0,
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(_transport)),
+    )
+    await method.connect(store=MemoryStore())
+
+    assert len(sleep_calls) >= 2
+    # First poll after authorization_pending: normal interval (0.1)
+    assert sleep_calls[0] == pytest.approx(0.1)
+    # Second poll after slow_down: interval + 5.0
+    assert sleep_calls[1] == pytest.approx(5.1)
 
 
 @pytest.mark.asyncio
