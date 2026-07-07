@@ -84,7 +84,7 @@ import authlm
 from openai import AsyncOpenAI
 
 # Connect once — interactive prompt for API key, stored in OS keychain
-await authlm.connect("openai", alias="default")
+await authlm.connect("openai", alias="default", method_id="api_key")
 
 # Get a valid credential — auto-refreshes if expired or within refresh margin
 cred = await authlm.get_valid_credential("openai", alias="default", margin=timedelta(minutes=5))
@@ -96,8 +96,8 @@ client = AsyncOpenAI(api_key=cred.secret)
 Multiple accounts:
 
 ```python
-await authlm.connect("openai", alias="personal")
-await authlm.connect("openai", alias="work")
+await authlm.connect("openai", alias="personal", method_id="api_key")
+await authlm.connect("openai", alias="work", method_id="api_key")
 
 work_cred = await authlm.get_valid_credential("openai", alias="work", margin=timedelta(minutes=5))
 ```
