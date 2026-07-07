@@ -128,13 +128,6 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   examples, a credential-stores reference table, and a security section
   linking to SECURITY.md. Corrected the broken `uv sync --extra test
   --all-extras` dev command to `uv sync --all-extras`.
-- `authlm.plugins.DEFAULT_PLUGINS` now includes the 4 built-in provider
-  modules, so `load_plugins()` registers them automatically.
-- `scripts/refresh_models_dev.py` now uses `httpx` instead of `urllib` for
-  HTTP requests (consistent with the library, sends a User-Agent header).
-  Removed unused logo-fetching logic (no library code reads from
-  `_vendor/_logos/`). Updated vendored snapshot with latest live data for
-  the 4 built-in providers.
 - `connect` (CLI) refuses to run with no `--method` on a non-TTY stdin and
   prints a clear error message; this avoids hangs in CI / scripts and matches
   the spec's "explicit over implicit" principle.
