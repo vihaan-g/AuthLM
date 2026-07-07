@@ -135,7 +135,7 @@ requires-dist = [
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.116.0" },
     { name = "build", marker = "extra == 'test'", specifier = ">=1.2" },
     { name = "click", specifier = ">=8.1" },
-    { name = "cryptography", specifier = ">=42" },
+    { name = "cryptography", specifier = ">=43" },
     { name = "google-genai", marker = "extra == 'all'", specifier = ">=1.0" },
     { name = "google-genai", marker = "extra == 'google'", specifier = ">=1.0" },
     { name = "httpx", specifier = ">=0.27" },

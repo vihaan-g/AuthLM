@@ -152,6 +152,16 @@ def test_classify_token_error_invalid_request_nonfatal() -> None:
     assert result.fatal is False
 
 
+def test_classify_token_error_entitlement_denied_fatal() -> None:
+    result = classify_token_error(
+        status_code=400, body='{"error":"entitlement_denied"}'
+    )
+
+    assert result.status_code == 400
+    assert result.error_code == "entitlement_denied"
+    assert result.fatal is True
+
+
 def test_redact_body_short_bearer_token() -> None:
     result = redact_body("error: Bearer abcdefgh for request")
     assert "abcdefgh" not in result

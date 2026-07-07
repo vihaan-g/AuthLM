@@ -192,9 +192,9 @@ def test_missing_salt_returns_none(tmp_path: Path) -> None:
     assert result is None
 
 
-def test_invalid_base_structure_returns_none(tmp_path: Path) -> None:
+def test_invalid_schema_raises_secret_store_error(tmp_path: Path) -> None:
     path = tmp_path / "bad_struct.enc.json"
     path.write_text(json.dumps({"not_salt": "x", "entries": "wrong_type"}))
     store = EncryptedFileStore(path=path, passphrase="test", iterations=100_000)
-    result = store.get("openai", "default")
-    assert result is None
+    with pytest.raises(SecretStoreError, match="schema"):
+        store.get("openai", "default")

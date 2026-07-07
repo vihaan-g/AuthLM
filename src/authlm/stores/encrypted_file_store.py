@@ -151,7 +151,9 @@ class EncryptedFileStore(CredentialStore):
         try:
             return _EncryptedFile.model_validate(data)
         except ValidationError:
-            return _EncryptedFile(iterations=self._iterations)
+            raise SecretStoreError(
+                "Credential store schema is incompatible or corrupted"
+            ) from None
 
     def _write(self, file: _EncryptedFile) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
