@@ -184,6 +184,7 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
                     "device_code": device_code,
                     "client_id": self._client_id,
                 },
+                timeout=30.0,
             )
             if 200 <= response.status_code < 300:
                 try:
