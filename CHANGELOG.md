@@ -5,6 +5,16 @@ All notable changes to AuthLM are documented in this file.
 The format is based on [Keep a Changelog 2.0.0](https://keepachangelog.com/en/2.0.0/),
 and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+### Fixed
+
+### Changed
+
+### Deferred
+
 ## [0.1.0] - 2026-07-07
 
 ### Added
@@ -180,15 +190,5 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Additional store backends (Vault, Bitwarden, 1Password) are deferred to
   v0.3.0. See `.agents/specs/v0.3.0-authlm.md`.
 
-## [Unreleased]
-
-### Added
-
-### Fixed
-
-### Changed
-
-### Deferred
-
-[Unreleased]: https://github.com/vihaan-g/AuthLM/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/vihaan-g/AuthLM/releases/tag/v0.1.0
+[Unreleased]: https://github.com/vihaan-g/authlm/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/vihaan-g/authlm/releases/tag/v0.1.0

@@ -4,7 +4,7 @@
 [![CodeQL](https://github.com/vihaan-g/authlm/actions/workflows/codeql.yml/badge.svg)](https://github.com/vihaan-g/authlm/actions/workflows/codeql.yml)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Status](https://img.shields.io/badge/status-stable-blue)](https://github.com/vihaan-g/authlm/releases)
+[![Status](https://img.shields.io/badge/status-alpha-orange)](https://github.com/vihaan-g/authlm/releases)
 
 **OS-keychain-backed authentication for AI providers. API keys, OAuth, token refresh, and multi-account support — auth only, composes with any inference library.**
 
