@@ -16,7 +16,7 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
   - `stores/` — `base.py` (`CredentialStore` Protocol), `memory_store.py`, `env_store.py`, `keyring_store.py`, `encrypted_file_store.py`, `__init__.py` (`get_default_store` auto-selection, `set_store` programmatic override).
   - `cli/` — Click CLI subpackage, entry point `authlm.cli:cli` (`[project.scripts]` in `pyproject.toml`):
     - `__init__.py` — `cli` Click group; registers the 5 subcommands; sets `logging.getLogger("authlm").setLevel(logging.WARNING)` at startup so OAuth INFO logs don't pollute `eval $(authlm env ...)` stdout. Uses `invoke_without_command=True` so `authlm` (no subcommand) prints help.
-    - `_context.py` — `get_store(*, store_name)` factory (delegates to `authlm.stores.get_default_store` when `None`) and `is_tty()`.
+    - `_context.py` — `get_metadata_path(override)` resolver (chains explicit override → `AUTHLM_METADATA_PATH` → `AUTHLM_USER_PATH` → `get_user_data_path()`).
     - `_formatters.py` — pure string functions `format_list_table` and `format_status_table` for the `list` and `status` commands.
     - `connect.py` — `authlm connect` command: provider lookup, method picker (interactive or `--method`), warned-method filtering (`--include-warned`), `[y/N]` confirmation, Click-aware secret/device-code/browser callbacks, non-TTY refusal per spec §2.3.
     - `list_cmd.py` — `authlm list` command: ASCII table of stored credentials.
@@ -76,6 +76,7 @@ All Python code follows `.agents/rules/general.md` and the `python-conventions` 
 - Do not auto-refresh tokens on every `get_credential()` call. Refresh is explicit (`get_valid_credential()` or `refresh()`).
 - Do not validate warned methods without `force=True`. Validation calls are detectable by providers.
 - Keep changes scoped. Avoid unrelated refactors.
+- **Never commit or push gitignored files.** `.agents/audits/`, `.agents/plans/`, `.worktrees/`, and `opencode.json` are gitignored. Do not `git add -f` them. Use `git check-ignore <path>` if unsure.
 
 ## Testing
 
