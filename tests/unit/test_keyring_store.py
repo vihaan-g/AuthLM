@@ -138,3 +138,48 @@ def test_set_raises_secret_store_error_on_keyring_error(tmp_path: Path) -> None:
         pytest.raises(SecretStoreError, match="keyring locked"),
     ):
         store.set(cred)
+
+
+def test_get_raises_secret_store_error_on_keyring_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """get() wraps keyring errors in SecretStoreError."""
+    store = KeyringStore(index_path=tmp_path / "index.json")
+
+    def failing_get_password(service: str, username: str) -> None:
+        raise keyring.errors.KeyringError("keychain is locked")
+
+    monkeypatch.setattr(keyring, "get_password", failing_get_password)
+
+    with pytest.raises(SecretStoreError, match="keychain is locked"):
+        store.get("openai", "default")
+
+
+def test_delete_raises_secret_store_error_on_keyring_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """delete() wraps non-PasswordDeleteError keyring errors in SecretStoreError."""
+    store = KeyringStore(index_path=tmp_path / "index.json")
+    store._index_write([["openai", "default"]])  # noqa: SLF001
+
+    def failing_delete_password(service: str, username: str) -> None:
+        raise keyring.errors.KeyringError("keychain unavailable")
+
+    monkeypatch.setattr(keyring, "delete_password", failing_delete_password)
+
+    with pytest.raises(SecretStoreError, match="keychain unavailable"):
+        store.delete("openai", "default")
+
+
+def test_list_raises_secret_store_error_on_corrupted_index(
+    tmp_path: Path,
+) -> None:
+    """list() raises SecretStoreError when index file contains invalid JSON."""
+    index_path = tmp_path / "index.json"
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    index_path.write_text("not valid json {{{")
+
+    store = KeyringStore(index_path=index_path)
+
+    with pytest.raises(SecretStoreError):
+        list(store.list())
