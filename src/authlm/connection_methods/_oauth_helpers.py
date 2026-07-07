@@ -8,7 +8,7 @@ import re
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from pydantic import HttpUrl
@@ -40,6 +40,7 @@ _FATAL_ERROR_CODES: frozenset[str] = frozenset(
         "entitlement_denied",
     }
 )
+_ACCESS_DENIED_CODES: frozenset[str] = frozenset({"entitlement_denied"})
 _REDACTED_VALUE: str = "[REDACTED]"
 _REDACT_DICT_KEYS: frozenset[str] = frozenset(
     {"access_token", "refresh_token", "code", "client_secret", "api_key", "secret"}
@@ -62,11 +63,18 @@ class PKCEPair:
 
 @dataclass(frozen=True)
 class TokenError:
-    """Classification of a token endpoint failure."""
+    """Classification of a token endpoint failure.
+
+    ``fatal_reason`` is ``"access_denied"`` when the token works but the user
+    lacks access (e.g. ``entitlement_denied``), ``"reconnection"`` when the
+    refresh token is dead (e.g. ``invalid_grant``), and ``None`` for non-fatal
+    errors.
+    """
 
     status_code: int
     error_code: str
     fatal: bool
+    fatal_reason: Literal["reconnection", "access_denied"] | None = None
 
 
 def generate_pkce_pair() -> PKCEPair:
@@ -167,10 +175,23 @@ def classify_token_error(*, status_code: int, body: str) -> TokenError:
             error_code = raw_error
 
     if status_code >= 500 or status_code == 0:
-        return TokenError(status_code=status_code, error_code=error_code, fatal=False)
+        return TokenError(
+            status_code=status_code, error_code=error_code, fatal=False
+        )
 
     fatal = error_code in _FATAL_ERROR_CODES
-    return TokenError(status_code=status_code, error_code=error_code, fatal=fatal)
+    fatal_reason: Literal["reconnection", "access_denied"] | None = None
+    if fatal:
+        if error_code in _ACCESS_DENIED_CODES:
+            fatal_reason = "access_denied"
+        else:
+            fatal_reason = "reconnection"
+    return TokenError(
+        status_code=status_code,
+        error_code=error_code,
+        fatal=fatal,
+        fatal_reason=fatal_reason,
+    )
 
 
 def build_oauth_credential(

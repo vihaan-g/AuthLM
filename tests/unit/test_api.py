@@ -21,7 +21,12 @@ from authlm.api import (
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.credentials import ApiKeyCredential, OAuthCredential
-from authlm.errors import CredentialNotFound, ReconnectionRequired, RefreshFailed
+from authlm.errors import (
+    AccessDenied,
+    CredentialNotFound,
+    ReconnectionRequired,
+    RefreshFailed,
+)
 from authlm.metadata import MetadataStore
 from authlm.providers.registry import get_method
 from authlm.stores import MemoryStore
@@ -490,4 +495,27 @@ async def test_refresh_network_error_raises_refresh_failed(
         )
     )
     with pytest.raises(RefreshFailed):
+        await refresh("openai", alias="default", store=store)
+
+
+@pytest.mark.asyncio
+async def test_refresh_entitlement_denied_raises_access_denied(
+    respx_mock: MockRouter,
+) -> None:
+    """refresh() raises AccessDenied on entitlement_denied, not ReconnectionRequired."""
+    respx_mock.post("https://auth.openai.com/oauth/token").respond(
+        400, json={"error": "entitlement_denied"}
+    )
+    store = MemoryStore()
+    store.set(
+        OAuthCredential(
+            provider="openai",
+            alias="default",
+            method_id="oauth_browser",
+            access_token="a",
+            refresh_token="r",
+            expires_at=None,
+        )
+    )
+    with pytest.raises(AccessDenied):
         await refresh("openai", alias="default", store=store)

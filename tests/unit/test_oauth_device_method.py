@@ -9,7 +9,12 @@ from respx import MockRouter
 
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.credentials import OAuthCredential
-from authlm.errors import ConnectionTimeout, ReconnectionRequired, TokenEndpointError
+from authlm.errors import (
+    ConnectionTimeout,
+    ReconnectionRequired,
+    RefreshFailed,
+    TokenEndpointError,
+)
 from authlm.providers.base import OAuthGrant
 from authlm.stores.memory_store import MemoryStore
 
@@ -392,3 +397,45 @@ async def test_device_code_response_expires_in_caps_timeout() -> None:
     with pytest.raises(ConnectionTimeout):
         await method.connect(store=MemoryStore())
     assert poll_count <= 5
+
+
+@pytest.mark.asyncio
+async def test_request_device_code_network_error_raises_refresh_failed() -> None:
+    """_request_device_code() wraps httpx.HTTPError in RefreshFailed."""
+
+    def _network_error(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused")
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="test",
+        device_code_url=HttpUrl("https://example.com/device/code"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        http_client=httpx.AsyncClient(
+            transport=httpx.MockTransport(_network_error)
+        ),
+    )
+    with pytest.raises(RefreshFailed, match="network error"):
+        await method._request_device_code()  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+
+
+@pytest.mark.asyncio
+async def test_request_device_code_503_raises_refresh_failed() -> None:
+    """_request_device_code() raises RefreshFailed on 503, not TokenEndpointError."""
+
+    def _server_error(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, json={"error": "server_error"})
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="test",
+        device_code_url=HttpUrl("https://example.com/device/code"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        http_client=httpx.AsyncClient(
+            transport=httpx.MockTransport(_server_error)
+        ),
+    )
+    with pytest.raises(RefreshFailed):
+        await method._request_device_code()  # type: ignore[reportPrivateUsage]  # noqa: SLF001

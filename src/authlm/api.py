@@ -22,6 +22,7 @@ from authlm.credentials import (
     compute_fingerprint,
 )
 from authlm.errors import (
+    AccessDenied,
     AuthLMError,
     CredentialNotFound,
     ReconnectionRequired,
@@ -194,6 +195,11 @@ async def refresh(
         status_code=response.status_code, body=response.text
     )
     if classification.fatal:
+        if classification.fatal_reason == "access_denied":
+            raise AccessDenied(
+                f"Token refresh for {provider}:{alias}: "
+                f"{classification.error_code}"
+            )
         raise ReconnectionRequired(
             f"Refresh token for {provider}:{alias} is dead; "
             f"re-run connect() ({classification.error_code})"
@@ -247,10 +253,38 @@ async def connect(
     open_browser: Callable[[str], None] | None = None,
     metadata_store: MetadataStore | None = None,
 ) -> Credential:
-    """Run the connection method, persist the result, and update metadata.
+    """Run a connection method interactively and persist the resulting credential.
+
+    Looks up the provider, selects a connection method (if not already
+    provided), runs its interactive auth flow, persists the credential to
+    the store, and updates metadata including the secret fingerprint.
 
     Note: each ConnectionMethod's connect() returns a Credential with
     alias="default". We re-key it to the requested alias here.
+
+    Args:
+        provider: Provider ID (e.g. ``"openai"``, ``"anthropic"``).
+        alias: Label for this credential (e.g. ``"default"``, ``"personal"``).
+        method: A pre-built ConnectionMethod instance. Overrides ``method_id``.
+        method_id: Method ID to use (e.g. ``"api_key"``,
+            ``"chatgpt_oauth_browser"``). Required if ``method`` is not provided.
+        store: CredentialStore to persist to. Uses ``get_default_store()`` if
+            ``None``.
+        secret_prompt: Callback for interactive secret entry. The CLI injects
+            a Click-aware prompt; library consumers may omit.
+        on_prompt: Callback for device-code prompts (URI and user code). The
+            CLI injects a stderr echo; library consumers may omit.
+        open_browser: Callback to open the OAuth authorize URL. The CLI
+            injects ``webbrowser.open``; library consumers may omit.
+        metadata_store: MetadataStore for non-secret metadata. If provided,
+            fingerprint and timestamps are persisted.
+
+    Returns:
+        The persisted Credential.
+
+    Raises:
+        AuthLMError: Unknown provider or missing method specification.
+        SecretStoreError: Store persistence failure.
     """
     backend = store or get_default_store()
     if method is None:

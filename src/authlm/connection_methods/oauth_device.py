@@ -17,7 +17,13 @@ from authlm.connection_methods._oauth_helpers import (
     redact_url,
 )
 from authlm.credentials import Credential
-from authlm.errors import ConnectionTimeout, ReconnectionRequired, TokenEndpointError
+from authlm.errors import (
+    AccessDenied,
+    ConnectionTimeout,
+    ReconnectionRequired,
+    RefreshFailed,
+    TokenEndpointError,
+)
 from authlm.providers.base import ConnectionMethod, OAuthGrant
 from authlm.stores.base import CredentialStore
 
@@ -128,12 +134,22 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
 
     async def _request_device_code(self) -> dict[str, Any]:
         assert self._http_client is not None
-        response = await self._http_client.post(
-            str(self._device_code_url),
-            data={"client_id": self._client_id, "scope": " ".join(self._scopes)},
-            timeout=30.0,
-        )
+        try:
+            response = await self._http_client.post(
+                str(self._device_code_url),
+                data={"client_id": self._client_id, "scope": " ".join(self._scopes)},
+                timeout=30.0,
+            )
+        except httpx.HTTPError as exc:
+            raise RefreshFailed(
+                f"Device-code request network error for {self._provider_id}"
+            ) from exc
         if not (200 <= response.status_code < 300):
+            if 500 <= response.status_code < 600:
+                raise RefreshFailed(
+                    f"Device-code request server error for {self._provider_id}: "
+                    f"HTTP {response.status_code}"
+                )
             raise TokenEndpointError(
                 f"device-code request failed: status={response.status_code} "
                 f"body={redact_body(response.text)}"
@@ -181,6 +197,11 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
                 status_code=response.status_code, body=response.text
             )
             if classification.fatal:
+                if classification.fatal_reason == "access_denied":
+                    raise AccessDenied(
+                        f"Device-code token error for {self._provider_id}: "
+                        f"{classification.error_code}"
+                    )
                 raise ReconnectionRequired(
                     f"Device-code flow failed fatally: {classification.error_code}"
                 )
