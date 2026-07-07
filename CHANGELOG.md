@@ -15,35 +15,6 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Deferred
 
-## [0.1.1] - 2026-07-07
-
-### Added
-- "Environment Variables" reference table in README documenting all
-  eight env vars including previously undocumented `AUTHLM_METADATA_PATH`,
-  `AUTHLM_PASSPHRASE`, and `AUTHLM_PKCE_PORT_OVERRIDE`.
-- New unit tests: concurrent refresh race, store.set failure after
-  successful token refresh, KeyringStore get/delete/list error paths,
-  validate(force=True) with OAuthCredential, Google provider PKCE
-  method depth, OpenRouter validation success/failure.
-
-### Fixed
-- `EncryptedFileStore` now sets `0o700` permissions on the parent
-  directory to prevent world-readable exposure on permissive umask
-  systems.
-- Missing `timeout=30.0` on two OAuth POST calls (`_poll_for_token`
-  in device flow, `_exchange_code` in PKCE flow).
-- httpx.AsyncClient leak: `connection_methods()` on OpenAI, Anthropic,
-  and Google providers now accept an optional `http_client` parameter.
-- Broken `connect()` code examples in README — all three examples now
-  include the required `method_id="api_key"`.
-- Phantom `get_store()` / `is_tty()` references in AGENTS.md replaced
-  with the actual `_context.py` description.
-
-### Changed
-- SECURITY.md redaction scope clarified: runtime redaction handles
-  URL query params and JSON response bodies, not HTTP headers.
-- CONTRIBUTING.md clone URL fixed to lowercase `authlm.git`.
-
 ## [0.1.0] - 2026-07-07
 
 ### Added
@@ -219,6 +190,5 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Additional store backends (Vault, Bitwarden, 1Password) are deferred to
   v0.3.0. See `.agents/specs/v0.3.0-authlm.md`.
 
-[Unreleased]: https://github.com/vihaan-g/authlm/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/vihaan-g/authlm/compare/v0.1.0...v0.1.1
+[Unreleased]: https://github.com/vihaan-g/authlm/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/vihaan-g/authlm/releases/tag/v0.1.0
