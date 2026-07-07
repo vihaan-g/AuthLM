@@ -123,6 +123,19 @@ authlm env openai --alias work                    # export as shell env vars: ev
 
 Override the default with `AUTHLM_STORE=encrypted_file authlm connect openai` or programmatically via `authlm.set_store(...)`.
 
+## Environment Variables
+
+| Variable | Purpose |
+|---|---|
+| `AUTHLM_STORE` | Override the default credential store backend (`keyring`, `encrypted_file`, `env`, `memory`). |
+| `AUTHLM_USER_PATH` | Override the directory for authlm user data (keyring index, encrypted file, metadata). |
+| `AUTHLM_METADATA_PATH` | Override the path to `metadata.json` directly. |
+| `AUTHLM_PASSPHRASE` | Passphrase for `EncryptedFileStore`. If set, bypasses the interactive prompt. Prefer the prompt when available — env vars are visible to child processes. |
+| `AUTHLM_PKCE_PORT_OVERRIDE` | Override the loopback port for PKCE OAuth browser flows. |
+| `AUTHLM_OPENAI_CLIENT_ID` | Override the default OpenAI OAuth client ID. |
+| `AUTHLM_ANTHROPIC_CLIENT_ID` | Override the default Anthropic OAuth client ID. |
+| `AUTHLM_GOOGLE_CLIENT_ID` | Override the default Google OAuth client ID. |
+
 ## Roadmap
 
 | Version | Theme | Key deliverables |
