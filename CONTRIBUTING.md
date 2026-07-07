@@ -19,7 +19,7 @@ project's threat model.
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-git clone https://github.com/vihaan-g/AuthLM.git
+git clone https://github.com/vihaan-g/authlm.git
 cd AuthLM
 uv sync --all-extras
 source .venv/bin/activate
