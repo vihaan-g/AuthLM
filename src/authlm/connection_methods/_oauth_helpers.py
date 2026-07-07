@@ -37,6 +37,7 @@ _FATAL_ERROR_CODES: frozenset[str] = frozenset(
         "expired_refresh_token",
         "revoked",
         "access_denied",
+        "entitlement_denied",
     }
 )
 _REDACTED_VALUE: str = "[REDACTED]"
