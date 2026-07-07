@@ -252,9 +252,7 @@ class OAuthPKCEMethod(ConnectionMethod):
         }
         _log.debug("POST %s", redact_url(str(self._token_url)))
         try:
-            response = await self._http_client.post(
-                str(self._token_url), data=payload
-            )
+            response = await self._http_client.post(str(self._token_url), data=payload)
         except httpx.HTTPError as exc:
             raise RefreshFailed(
                 f"Token exchange network error for {self._provider_id}: "

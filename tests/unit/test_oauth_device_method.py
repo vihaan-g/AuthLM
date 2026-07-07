@@ -412,9 +412,7 @@ async def test_request_device_code_network_error_raises_refresh_failed() -> None
         token_url=HttpUrl("https://example.com/token"),
         client_id="test",
         scopes=["openid"],
-        http_client=httpx.AsyncClient(
-            transport=httpx.MockTransport(_network_error)
-        ),
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(_network_error)),
     )
     with pytest.raises(RefreshFailed, match="network error"):
         await method._request_device_code()  # type: ignore[reportPrivateUsage]  # noqa: SLF001
@@ -433,9 +431,7 @@ async def test_request_device_code_503_raises_refresh_failed() -> None:
         token_url=HttpUrl("https://example.com/token"),
         client_id="test",
         scopes=["openid"],
-        http_client=httpx.AsyncClient(
-            transport=httpx.MockTransport(_server_error)
-        ),
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(_server_error)),
     )
     with pytest.raises(RefreshFailed):
         await method._request_device_code()  # type: ignore[reportPrivateUsage]  # noqa: SLF001

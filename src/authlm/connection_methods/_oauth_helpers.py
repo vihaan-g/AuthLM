@@ -175,9 +175,7 @@ def classify_token_error(*, status_code: int, body: str) -> TokenError:
             error_code = raw_error
 
     if status_code >= 500 or status_code == 0:
-        return TokenError(
-            status_code=status_code, error_code=error_code, fatal=False
-        )
+        return TokenError(status_code=status_code, error_code=error_code, fatal=False)
 
     fatal = error_code in _FATAL_ERROR_CODES
     fatal_reason: Literal["reconnection", "access_denied"] | None = None

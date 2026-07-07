@@ -182,9 +182,7 @@ def test_classify_token_error_invalid_grant_is_reconnection() -> None:
 
 def test_classify_token_error_non_fatal_has_no_reason() -> None:
     """Non-fatal errors should have fatal_reason=None."""
-    result = classify_token_error(
-        status_code=400, body='{"error":"invalid_request"}'
-    )
+    result = classify_token_error(status_code=400, body='{"error":"invalid_request"}')
     assert result.fatal is False
     assert result.fatal_reason is None
 
