@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Questions & Help
-    url: https://github.com/vihaan-g/AuthLM/discussions/categories/q-a
-    about: Please use Discussions for usage questions, not issues.
+  - name: Discussions
+    url: https://github.com/vihaan-g/authlm/discussions
+    about: Ask questions and discuss ideas here
   - name: Security Policy
-    url: https://github.com/vihaan-g/AuthLM/blob/main/SECURITY.md
-    about: Report security vulnerabilities privately.
+    url: https://github.com/vihaan-g/authlm/blob/main/SECURITY.md
+    about: Report security vulnerabilities privately

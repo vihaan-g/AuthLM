@@ -29,7 +29,7 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
 - `.agents/rules/general.md` — project-wide coding rules (read before any coding)
 - `SECURITY.md` — threat model, reporting a vulnerability, supported backends.
 - `CONTRIBUTING.md` — contributor guide.
-- `CODE_OF_CONDUCT.md` — Contributor Covenant 2.1.
+- `CODE_OF_CONDUCT.md` — Contributor Covenant 2.0.
 
 ## Setup
 

@@ -1,128 +1,28 @@
 name: Bug Report
-description: Report a bug in AuthLM.
-title: "[Bug]: "
-labels: ["bug"]
+description: Report a bug in AuthLM
+labels: [bug]
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for taking the time to report a bug. Please fill out the
-        information below so we can reproduce and fix it.
-
-  - type: checkboxes
-    attributes:
-      label: Pre-flight checklist
-      description: Please confirm the following before submitting.
-      options:
-        - label: I have searched the existing issues and this is not a duplicate.
-          required: true
-        - label: I am running the latest released version of AuthLM.
-          required: true
-        - label: I have read the SECURITY.md and this is not a security vulnerability.
-          required: true
-
   - type: input
-    id: version
     attributes:
-      label: AuthLM version
-      description: Output of `uv pip show authlm` or `pip show authlm`.
+      label: AuthLM Version
       placeholder: "0.1.0"
-    validations:
-      required: true
-
-  - type: dropdown
-    id: python-version
-    attributes:
-      label: Python version
-      description: Which Python interpreter are you using?
-      options:
-        - "3.11"
-        - "3.12"
-        - "3.13"
-        - "Other"
-    validations:
-      required: true
-
   - type: input
-    id: os
     attributes:
-      label: Operating system
-      placeholder: "macOS 15.1 / Ubuntu 24.04 / Windows 11"
-    validations:
-      required: true
-
+      label: Python Version
+      placeholder: "3.11"
   - type: dropdown
-    id: provider
     attributes:
-      label: Provider
-      description: Which AI provider were you using?
-      options:
-        - "openai"
-        - "anthropic"
-        - "google"
-        - "ollama"
-        - "openrouter"
-        - "Other / N/A"
-    validations:
-      required: false
-
-  - type: dropdown
-    id: connection-method
-    attributes:
-      label: Connection method
-      options:
-        - "api_key"
-        - "oauth_pkce"
-        - "oauth_device"
-        - "Other / N/A"
-    validations:
-      required: false
-
-  - type: dropdown
-    id: store
-    attributes:
-      label: Credential store
-      options:
-        - "keyring (OS keychain)"
-        - "encrypted_file"
-        - "env"
-        - "memory"
-        - "default (unspecified)"
-    validations:
-      required: false
-
+      label: Operating System
+      options: [macOS, Linux, Windows]
   - type: textarea
-    id: what-happened
     attributes:
-      label: What happened?
-      description: A clear description of the bug.
-    validations:
-      required: true
-
+      label: Description
+      description: What happened? What did you expect to happen?
   - type: textarea
-    id: repro
     attributes:
-      label: Steps to reproduce
-      description: Minimal code or commands that trigger the bug.
-      placeholder: |
-        ```python
-        import authlm
-        cred = await authlm.get_credential("openai", alias="default")
-        ```
-      render: python
-    validations:
-      required: true
-
+      label: Steps to Reproduce
+      description: Minimal code or CLI commands to reproduce
   - type: textarea
-    id: expected
     attributes:
-      label: Expected behavior
-    validations:
-      required: true
-
-  - type: textarea
-    id: logs
-    attributes:
-      label: Relevant log output
-      description: Use DEBUG logging: `import logging; logging.basicConfig(level=logging.DEBUG)`.
-      render: shell
+      label: Credential Store
+      description: Run `authlm status --backend` and paste the output

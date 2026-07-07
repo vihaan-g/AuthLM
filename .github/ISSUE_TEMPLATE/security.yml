@@ -1,19 +1,15 @@
-name: Security Vulnerability Report
-description: DO NOT FILE A PUBLIC ISSUE FOR SECURITY VULNERABILITIES.
-title: "[Security]: "
-labels: ["security"]
+name: Security Vulnerability
+description: DO NOT USE. Report vulnerabilities privately.
+labels: []
 body:
   - type: markdown
     attributes:
       value: |
-        ## Please do not report security vulnerabilities in public issues.
+        **Do not report security vulnerabilities here.**
 
-        AuthLM uses GitHub's private vulnerability reporting. To disclose
-        a vulnerability securely:
+        Use GitHub's private vulnerability reporting:
+        1. Go to the [Security tab](https://github.com/vihaan-g/authlm/security)
+        2. Click "Report a vulnerability"
+        3. Follow the instructions
 
-        1. Go to the Security Advisories tab.
-        2. Click **"Report a vulnerability"**.
-        3. Provide as much detail as possible (see SECURITY.md).
-
-        We will acknowledge your report within 72 hours and work with you
-        on coordinated disclosure.
+        See [SECURITY.md](https://github.com/vihaan-g/authlm/blob/main/SECURITY.md) for our disclosure policy.
