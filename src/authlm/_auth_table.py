@@ -88,6 +88,22 @@ AUTH_TABLE: dict[str, AuthTableEntry] = {
 
 
 def get_auth_entry(provider_id: str) -> AuthTableEntry:
+    """Return the full AuthTableEntry for a provider.
+
+    Returns the complete auth configuration including OAuth endpoints,
+    client IDs, validation URLs, and key issuance URLs. For OAuth-specific
+    configuration with env-var client ID overrides resolved, use
+    :func:`get_oauth_config` instead.
+
+    Args:
+        provider_id: Provider ID (e.g. ``"openai"``, ``"anthropic"``).
+
+    Returns:
+        AuthTableEntry for the provider.
+
+    Raises:
+        KeyError: Unknown provider (surfaced as AuthLMError by callers).
+    """
     return AUTH_TABLE[provider_id]
 
 

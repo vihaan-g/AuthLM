@@ -66,7 +66,6 @@ path = "src/authlm/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/authlm"]
-include = ["src/authlm/_vendor/*.json"]
 
 [tool.hatch.build]
 dev-mode-dirs = ["src"]
@@ -75,7 +74,6 @@ dev-mode-dirs = ["src"]
 include = [
     "src",
     "tests",
-    "scripts",
     "README.md",
     "LICENSE",
     "CHANGELOG.md",
@@ -122,7 +120,7 @@ markers = [
 
 [tool.coverage.run]
 source = ["src/authlm"]
-omit = ["tests/*", "src/authlm/_vendor/*"]
+omit = ["tests/*"]
 
 [tool.coverage.report]
 fail_under = 80
