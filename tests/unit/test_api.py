@@ -524,6 +524,29 @@ async def test_refresh_entitlement_denied_raises_access_denied(
 
 
 @pytest.mark.asyncio
+async def test_refresh_access_denied_raises_access_denied(
+    respx_mock: MockRouter,
+) -> None:
+    """refresh() raises AccessDenied on access_denied, not ReconnectionRequired."""
+    respx_mock.post("https://auth.openai.com/oauth/token").respond(
+        400, json={"error": "access_denied"}
+    )
+    store = MemoryStore()
+    store.set(
+        OAuthCredential(
+            provider="openai",
+            alias="default",
+            method_id="oauth_browser",
+            access_token="a",
+            refresh_token="r",
+            expires_at=None,
+        )
+    )
+    with pytest.raises(AccessDenied):
+        await refresh("openai", alias="default", store=store)
+
+
+@pytest.mark.asyncio
 async def test_concurrent_refresh_handles_race(
     stub_store: MemoryStore, respx_mock: MockRouter
 ) -> None:
