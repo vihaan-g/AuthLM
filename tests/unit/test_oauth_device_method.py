@@ -363,6 +363,63 @@ async def test_device_code_slow_down_increases_interval(
 
 
 @pytest.mark.asyncio
+async def test_device_code_slow_down_is_persistent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Multiple slow_down responses cumulatively increase the interval."""
+    sleep_calls: list[float] = []
+
+    async def _tracking_sleep(delay: float) -> None:
+        sleep_calls.append(delay)
+
+    monkeypatch.setattr(
+        "authlm.connection_methods.oauth_device.asyncio.sleep",
+        _tracking_sleep,
+    )
+
+    poll_count = 0
+
+    def _transport(request: httpx.Request) -> httpx.Response:
+        nonlocal poll_count
+        if "device/code" in str(request.url):
+            return httpx.Response(
+                200,
+                json={
+                    "device_code": "dc-1",
+                    "user_code": "UC-1",
+                    "verification_uri": "https://example.com/activate",
+                    "interval": 0,
+                    "expires_in": 30,
+                },
+            )
+        poll_count += 1
+        if poll_count <= 2:
+            return httpx.Response(400, json={"error": "slow_down"})
+        return httpx.Response(
+            200,
+            json={"access_token": "at-1", "refresh_token": "rt-1", "expires_in": 3600},
+        )
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="test",
+        device_code_url=HttpUrl("https://example.com/device/code"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        poll_interval_seconds=0.1,
+        poll_timeout_seconds=30.0,
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(_transport)),
+    )
+    await method.connect(store=MemoryStore())
+
+    assert len(sleep_calls) == 2
+    # First slow_down: interval becomes 0.1 + 5.0 = 5.1
+    assert sleep_calls[0] == pytest.approx(5.1)
+    # Second slow_down: interval becomes 5.1 + 5.0 = 10.1
+    assert sleep_calls[1] == pytest.approx(10.1)
+
+
+@pytest.mark.asyncio
 async def test_device_code_response_expires_in_caps_timeout() -> None:
     """When expires_in from device response is less than poll_timeout, it caps."""
     poll_count = 0

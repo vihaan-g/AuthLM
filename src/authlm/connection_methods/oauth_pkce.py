@@ -141,10 +141,12 @@ class OAuthPKCEMethod(ConnectionMethod):
             raise RuntimeError("http_client is required for connect()")
         pair = generate_pkce_pair()
         state = secrets.token_urlsafe(24)
-        redirect_uri = f"http://127.0.0.1:{self._redirect_port}{self._redirect_path}"
 
         captured: dict[str, str] = {}
         server = self._start_loopback(captured, state)
+        # Build redirect_uri after _start_loopback so it reflects any
+        # port reassignment from port fallback (H1).
+        redirect_uri = f"http://127.0.0.1:{self._redirect_port}{self._redirect_path}"
 
         try:
             authorize_url = build_authorize_url(
@@ -199,6 +201,7 @@ class OAuthPKCEMethod(ConnectionMethod):
                     self.send_response(400)
                     self.end_headers()
                     self.wfile.write(b"state mismatch")
+                    captured["error"] = "oauth_state_mismatch"
                     return
                 captured["code"] = query.get("code", [""])[0]
                 self.send_response(200)
@@ -216,11 +219,16 @@ class OAuthPKCEMethod(ConnectionMethod):
 
         try:
             server = self._loopback_factory(("127.0.0.1", self._redirect_port), Handler)
-        except OSError as exc:
-            raise AuthLMError(
-                f"Port {self._redirect_port} is in use. "
-                f"Free the port or set AUTHLM_PKCE_PORT_OVERRIDE."
-            ) from exc
+        except OSError:
+            try:
+                server = self._loopback_factory(("127.0.0.1", 0), Handler)
+                self._redirect_port = server.server_address[1]
+            except OSError as exc:
+                raise AuthLMError(
+                    f"Port {self._redirect_port} is in use and no "
+                    f"random port is available. Free a port or set "
+                    f"AUTHLM_PKCE_PORT_OVERRIDE."
+                ) from exc
 
         threading.Thread(target=server.serve_forever, daemon=True).start()
         return server
@@ -235,6 +243,13 @@ class OAuthPKCEMethod(ConnectionMethod):
         try:
             await asyncio.wait_for(event.wait(), timeout=timeout)
         except TimeoutError:
+            if captured.get("error") == "oauth_state_mismatch":
+                raise AuthLMError(
+                    "OAuth state mismatch — the callback state parameter "
+                    "did not match the expected value. This may indicate a "
+                    "CSRF attack, a misconfigured redirect URI, or a "
+                    "browser/tool that modified the callback URL."
+                ) from None
             raise ConnectionTimeout(
                 "OAuth PKCE flow timed out waiting for callback"
             ) from None
