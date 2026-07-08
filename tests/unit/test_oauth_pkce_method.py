@@ -203,6 +203,49 @@ async def test_port_collision_raises_authlm_error() -> None:
 
 
 @pytest.mark.asyncio
+async def test_port_fallback_to_zero_on_collision() -> None:
+    """When preferred port is occupied, fall back to port=0."""
+
+    class FakeServer:
+        def __init__(self, addr: tuple[str, int], handler: Any) -> None:
+            self.server_address: tuple[str, int] = (
+                addr[0],
+                9999 if addr[1] == 0 else addr[1],
+            )
+
+        def serve_forever(self) -> None:
+            pass
+
+        def shutdown(self) -> None:
+            pass
+
+        def server_close(self) -> None:
+            pass
+
+    call_count = 0
+
+    def factory(addr: tuple[str, int], handler: Any) -> Any:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1 and addr[1] != 0:
+            raise OSError("Address already in use")
+        return FakeServer(addr, handler)
+
+    method = OAuthPKCEMethod(
+        provider_id="test",
+        authorize_url=HttpUrl("https://example.com/auth"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        redirect_port=1455,
+        loopback_factory=factory,
+    )
+    method._start_loopback({}, "state")  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+    assert method._redirect_port == 9999  # noqa: SLF001
+    assert call_count == 2
+
+
+@pytest.mark.asyncio
 async def test_pkce_timeout_raises_connection_timeout() -> None:
     """PKCE flow raises ConnectionTimeout when callback never arrives."""
     method = OAuthPKCEMethod(
@@ -215,6 +258,22 @@ async def test_pkce_timeout_raises_connection_timeout() -> None:
     )
     captured: dict[str, str] = {}
     with pytest.raises(ConnectionTimeout):
+        await method._wait_for_code(captured, timeout=0.01)  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+
+
+@pytest.mark.asyncio
+async def test_state_mismatch_raises_authlm_error_not_timeout() -> None:
+    """State mismatch should raise AuthLMError with useful message."""
+    method = OAuthPKCEMethod(
+        provider_id="test",
+        authorize_url=HttpUrl("https://example.com/auth"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        redirect_port=0,
+    )
+    captured: dict[str, str] = {"error": "oauth_state_mismatch"}
+    with pytest.raises(AuthLMError, match="state mismatch"):
         await method._wait_for_code(captured, timeout=0.01)  # type: ignore[reportPrivateUsage]  # noqa: SLF001
 
 

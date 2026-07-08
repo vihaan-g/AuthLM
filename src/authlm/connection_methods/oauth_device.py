@@ -209,10 +209,9 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
             if classification.error_code in ("authorization_pending", "slow_down"):
                 if loop.time() >= deadline:
                     raise ConnectionTimeout("Device-code flow timed out")
-                wait = interval
                 if classification.error_code == "slow_down":
-                    wait += 5.0
-                await asyncio.sleep(wait)
+                    interval += 5.0
+                await asyncio.sleep(interval)
                 continue
             if classification.status_code >= 500 or classification.status_code == 0:
                 await asyncio.sleep(interval)
