@@ -20,7 +20,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 git clone https://github.com/vihaan-g/authlm.git
-cd AuthLM
+cd authlm
 uv sync --all-extras
 source .venv/bin/activate
 ```
@@ -76,7 +76,8 @@ v0.1.0 uses in-tree providers. A plugin system is planned for v0.2.0.
 1. Add the provider's OAuth configuration to `src/authlm/_auth_table.py`.
 2. Create `src/authlm/providers/<provider_id>.py` implementing the `Provider`
    Protocol (see `providers/base.py`).
-3. Register the provider in `providers/registry.py:_build_providers()`.
+3. Register the provider in `providers/registry.py:list_providers()` by adding a
+   deferred import and appending an instance to the `_PROVIDERS` list.
 4. Add tests in `tests/unit/test_providers_<provider_id>.py`.
 5. If the provider needs an SDK, add it to `[project.optional-dependencies]` in
    `pyproject.toml`.
