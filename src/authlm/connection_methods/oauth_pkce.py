@@ -65,6 +65,7 @@ class OAuthPKCEMethod(ConnectionMethod):
         client_id: str,
         scopes: Sequence[str],
         redirect_port: int,
+        extra_authorize_params: dict[str, str] | None = None,
         loopback_factory: Callable[
             [tuple[str, int], type[BaseHTTPRequestHandler]], HTTPServer
         ] = _default_loopback_factory,
@@ -77,6 +78,7 @@ class OAuthPKCEMethod(ConnectionMethod):
         self._client_id = client_id
         self._scopes: tuple[str, ...] = tuple(scopes)
         self._redirect_port = redirect_port
+        self._extra_authorize_params = extra_authorize_params or {}
         override = os.environ.get("AUTHLM_PKCE_PORT_OVERRIDE")
         if override is not None:
             try:
@@ -107,6 +109,7 @@ class OAuthPKCEMethod(ConnectionMethod):
             client_id=self._client_id,
             scopes=self._scopes,
             redirect_port=self._redirect_port,
+            extra_authorize_params=self._extra_authorize_params,
             loopback_factory=self._loopback_factory,
             open_browser=callback,
             http_client=self._http_client,
@@ -151,6 +154,7 @@ class OAuthPKCEMethod(ConnectionMethod):
                 scope=" ".join(self._scopes),
                 state=state,
                 code_challenge=pair.challenge,
+                extra_params=self._extra_authorize_params or None,
             )
             _log.info("Opening browser to %s", redact_url(authorize_url))
             self._open_browser(authorize_url)

@@ -98,6 +98,7 @@ def build_authorize_url(
     scope: str,
     state: str,
     code_challenge: str,
+    extra_params: dict[str, str] | None = None,
 ) -> str:
     """Build an OAuth 2.0 authorization URL with PKCE parameters."""
     parsed = urlparse(str(authorize_url))
@@ -112,6 +113,9 @@ def build_authorize_url(
         ("code_challenge_method", "S256"),
     ]
     merged = existing + oauth_params
+    if extra_params:
+        for key, value in extra_params.items():
+            merged.append((key, value))
     return urlunparse(parsed._replace(query=urlencode(merged)))
 
 

@@ -105,3 +105,10 @@ def test_google_loopback_port_set() -> None:
     cfg = get_oauth_config("google")
     assert cfg is not None
     assert cfg.loopback_port == 8085
+
+
+def test_google_extra_authorize_params_access_type_offline() -> None:
+    """Google requires access_type=offline in authorize URL for refresh tokens."""
+    cfg = get_oauth_config("google")
+    assert cfg is not None
+    assert cfg.extra_authorize_params == {"access_type": "offline"}

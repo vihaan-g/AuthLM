@@ -23,6 +23,7 @@ class OAuthConfig(BaseModel):
     client_id: str
     default_scopes: list[str] = Field(default_factory=list)
     loopback_port: int | None = None
+    extra_authorize_params: dict[str, str] = Field(default_factory=dict)
 
 
 class AuthTableEntry(BaseModel):
@@ -75,6 +76,7 @@ AUTH_TABLE: dict[str, AuthTableEntry] = {
                 "https://www.googleapis.com/auth/generative-language.retriever",
             ],
             loopback_port=8085,
+            extra_authorize_params={"access_type": "offline"},
         ),
         validation_url=HttpUrl(
             "https://generativelanguage.googleapis.com/v1beta/models"
