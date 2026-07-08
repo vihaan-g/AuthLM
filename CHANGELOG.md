@@ -101,9 +101,10 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   `APIKeyMethod.with_secret_prompt()`). Backward compatible: existing
   callers that omit these params see no change.
 - `authlm.cli` is a subpackage (mirrors `connection_methods/` and
-  `providers/`); `authlm.cli._context` provides `get_store()` and
-  `is_tty()`; `authlm.cli._formatters` provides `format_list_table()` and
-  `format_status_table()`.
+  `providers/`); `authlm.cli._context` provides `get_metadata_path()`
+  (metadata path resolution with chain: explicit → `AUTHLM_METADATA_PATH`
+  → `AUTHLM_USER_PATH` → `get_user_data_path()`); `authlm.cli._formatters`
+  provides `format_list_table()` and `format_status_table()`.
 - Dependabot bumps: `anthropic` 0.112.0 → 0.113.0 (PR #6), `astral-sh/setup-uv`
   SHA pin updated (PR #5).
 

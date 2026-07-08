@@ -59,7 +59,8 @@ We follow coordinated disclosure. We will work with you on an embargo period and
 
 ## Logging and Redaction
 
-All log output, exception messages, and VCR cassettes are processed by a redaction layer. The following are always redacted:
+All log output, exception messages, and VCR cassettes (v0.2.0 integration
+tests) are processed by a redaction layer. The following are always redacted:
 
 - `Authorization` headers (any scheme)
 - `access_token`, `refresh_token`, `id_token` fields in JSON
