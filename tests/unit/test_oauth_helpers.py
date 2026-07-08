@@ -79,6 +79,41 @@ def test_build_authorize_url_preserves_existing_query() -> None:
     assert params["code_challenge"] == "challenge-abc"
 
 
+def test_build_authorize_url_includes_extra_params() -> None:
+    url = build_authorize_url(
+        authorize_url=HttpUrl("https://accounts.google.com/o/oauth2/v2/auth"),
+        client_id="test-client-id",
+        redirect_uri="http://127.0.0.1:8085/callback",
+        scope="openid",
+        state="state123",
+        code_challenge="challenge456",
+        extra_params={"access_type": "offline"},
+    )
+
+    parsed = httpx.URL(url)
+    params = dict(parsed.params)
+    assert params["access_type"] == "offline"
+    assert params["client_id"] == "test-client-id"
+    assert params["code_challenge_method"] == "S256"
+
+
+def test_build_authorize_url_extra_params_none_is_fine() -> None:
+    url = build_authorize_url(
+        authorize_url=HttpUrl("https://provider.test/oauth/authorize"),
+        client_id="client-123",
+        redirect_uri="http://127.0.0.1:8765/callback",
+        scope="openid",
+        state="state-token",
+        code_challenge="challenge-abc",
+        extra_params=None,
+    )
+
+    parsed = httpx.URL(url)
+    params = dict(parsed.params)
+    assert "access_type" not in params
+    assert params["client_id"] == "client-123"
+
+
 def test_redact_url_redacts_code_preserves_state() -> None:
     redacted = redact_url("https://provider.test/cb?code=secret&state=abc")
 
@@ -178,6 +213,14 @@ def test_classify_token_error_invalid_grant_is_reconnection() -> None:
 
     assert result.fatal is True
     assert result.fatal_reason == "reconnection"
+
+
+def test_classify_token_error_access_denied_is_access_denied() -> None:
+    """access_denied → fatal_reason='access_denied' per spec §5.3."""
+    result = classify_token_error(status_code=400, body='{"error":"access_denied"}')
+
+    assert result.fatal is True
+    assert result.fatal_reason == "access_denied"
 
 
 def test_classify_token_error_non_fatal_has_no_reason() -> None:

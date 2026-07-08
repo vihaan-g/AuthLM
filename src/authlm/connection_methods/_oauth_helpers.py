@@ -40,7 +40,9 @@ _FATAL_ERROR_CODES: frozenset[str] = frozenset(
         "entitlement_denied",
     }
 )
-_ACCESS_DENIED_CODES: frozenset[str] = frozenset({"entitlement_denied"})
+_ACCESS_DENIED_CODES: frozenset[str] = frozenset(
+    {"entitlement_denied", "access_denied"}
+)
 _REDACTED_VALUE: str = "[REDACTED]"
 _REDACT_DICT_KEYS: frozenset[str] = frozenset(
     {"access_token", "refresh_token", "code", "client_secret", "api_key", "secret"}
