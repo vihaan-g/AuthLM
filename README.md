@@ -1,53 +1,66 @@
+<!-- prettier-ignore -->
+<div align="center">
+
 # AuthLM
+
+*One auth layer for any AI provider — OpenAI, Anthropic, Google, and more — with OS-keychain storage and OAuth built in.*
 
 [![CI](https://github.com/vihaan-g/authlm/actions/workflows/ci.yml/badge.svg)](https://github.com/vihaan-g/authlm/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/vihaan-g/authlm/actions/workflows/codeql.yml/badge.svg)](https://github.com/vihaan-g/authlm/actions/workflows/codeql.yml)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://www.python.org/downloads/)
+[![PyPI](https://img.shields.io/pypi/v/authlm)](https://pypi.org/project/authlm/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Status](https://img.shields.io/badge/status-alpha-orange)](https://github.com/vihaan-g/authlm/releases)
 
-**OS-keychain-backed authentication for AI providers. API keys, OAuth, token refresh, and multi-account support — auth only, composes with any inference library.**
+:star: If you like this project, star it on GitHub!
 
-AuthLM is a Python library that manages authentication and credentials for AI provider APIs (OpenAI, Anthropic, Google, OpenRouter, and others). It is **auth-only** — it does not generate text, route requests, or choose models. It handles the hard part: secure storage, OAuth flows, token refresh, and multi-provider credential management. You hand the resulting credential to whatever inference library you already use.
+[Quick start](#quick-start) • [CLI](#cli) • [API](#api) • [Stores](#credential-stores) • [Roadmap](#roadmap)
 
-## Status
+</div>
 
-**v0.1.0 — Foundation release.** OS-keychain credential management for AI providers. Now available on PyPI.
+AuthLM is a Python library that handles authentication and credential management for AI provider APIs — so your app doesn't have to hand-roll OAuth flows, token refresh, or plaintext key storage for every provider you support. It is **auth-only** by design: AuthLM doesn't route requests, pick models, or replace an inference library. It does one job, hands you a working credential, and gets out of the way.
 
-v0.1.0 ships 4 first-party providers, 3 connection methods, 4 credential stores, and a 5-command CLI. The plugin system, models.dev integration, and long-tail providers are deferred to v0.2.0. See [Roadmap](#roadmap) below.
+## Quick start
 
-See the [design spec](.agents/specs/v0.1.0-authlm.md) for the full v0.1.0 architecture.
+```bash
+pip install authlm
+```
+
+```python
+import authlm
+from datetime import timedelta
+from openai import AsyncOpenAI
+
+# Connect once — interactive API key prompt, stored in OS keychain
+await authlm.connect("openai", alias="default", method_id="api_key")
+
+# Get a valid credential — auto-refreshes if expired or expiring soon
+cred = await authlm.get_valid_credential("openai", alias="default", margin=timedelta(minutes=5))
+
+# Use with any inference library
+client = AsyncOpenAI(api_key=cred.secret)
+```
+
+Multiple accounts, one provider:
+
+```python
+await authlm.connect("openai", alias="personal", method_id="api_key")
+await authlm.connect("openai", alias="work", method_id="api_key")
+
+work_cred = await authlm.get_valid_credential("openai", alias="work", margin=timedelta(minutes=5))
+```
+
+Check if your credential still works:
+
+```python
+await authlm.validate(cred, force=True)  # probes the provider's API
+```
 
 ## Why AuthLM?
 
-Most AI libraries treat credentials as an afterthought:
+Every AI provider speaks its own dialect of auth: some want a simple API key, some support OAuth with browser-based PKCE flows, some use headless device-code flows, and some rotate refresh tokens in ways that are easy to get wrong. Most libraries treat credentials as an afterthought — reading from env vars or plaintext files.
 
-- **`llm`** stores API keys in plaintext JSON by default (newer versions offer a keyring option).
-- **LiteLLM** and the **official provider SDKs** read from env vars or expect you to pass keys inline. No keychain, no OAuth, no refresh.
-- **No widely-used library** handles OAuth PKCE, device-code flows, refresh-token rotation, or multi-account keying for AI providers.
-
-AuthLM is the dedicated auth layer. OS keychain by default, OAuth flows, token refresh with rotation, multi-provider, multi-account. It composes with any inference library — use LiteLLM, the OpenAI SDK, or Anthropic SDK for the actual calls; AuthLM just hands you a valid credential.
-
-## Features
-
-- **OS keychain by default** — macOS Keychain, Windows Credential Manager, Linux Secret Service via `keyring`. Never plaintext.
-- **Multiple connection methods** — API key, OAuth browser (PKCE), OAuth device code. Warning-gated methods (e.g., Anthropic Claude Pro OAuth) require explicit user confirmation.
-- **Token refresh with rotation** — centralized implementation persists both new access and refresh tokens atomically, preventing the common "kept the old refresh token" failure mode.
-- **Multi-account** — every credential is keyed by `(provider, alias)`. `personal` and `work` OpenAI accounts coexist.
-- **Fingerprint-based change detection** — `compute_fingerprint()` stores a truncated SHA-256 of the secret in metadata; `authlm status` warns if the secret has changed since last connect (detects keyring tampering or external rotation).
-- **Public OAuth client IDs** — OpenAI Codex, Anthropic Claude Code, Google AI Studio client IDs are bundled in `_auth_table.py` (the same client IDs the official CLI tools use), so OAuth flows work out-of-the-box. Override per-provider via `AUTHLM_{OPENAI,ANTHROPIC,GOOGLE}_CLIENT_ID` env vars.
-- **Validation probes** — `await authlm.validate(cred, force=True)` issues a lightweight API call (`GET /v1/models`, etc.) to confirm a credential works. Warned methods (Anthropic Claude Pro) require `force=True` and the library tells you why. `validate()` raises Python's built-in `PermissionError` (not `AuthLMError`) when called on a warned method without `force=True` — catch with `except (AuthLMError, PermissionError):`.
-- **5-command CLI** — `connect`, `list`, `status` (with `--backend` and `--validate`), `disconnect`, `env`. `eval "$(authlm env openai)"` for shell; `--export-format github` for workflow `env:` blocks; non-TTY `connect` refuses to hang in CI.
-- **Zero telemetry** — no analytics, no phone-home, no crash reports. By design.
-
-## What it is not
-
-- **Not an inference library.** Use LiteLLM, the OpenAI SDK, the Anthropic SDK, or `llm` for the actual model calls.
-- **Not a model router.** Use LiteLLM.
-- **Not a SaaS integration platform.** Use Nango or Composio for SaaS OAuth.
-- **Not a secret broker for running agents.** Use Infisical Agent Vault for agent-runtime secret injection.
-
-## Comparison
+AuthLM abstracts all of that into one consistent API. Adding a new provider to your app is a matter of picking a provider ID, not building a new auth integration from scratch.
 
 | | AuthLM | `llm keys` | LiteLLM | Provider SDKs |
 |---|---|---|---|---|
@@ -61,6 +74,25 @@ AuthLM is the dedicated auth layer. OS keychain by default, OAuth flows, token r
 | Inference | No | Yes | Yes | Yes |
 | Telemetry | None | — | — | — |
 
+## Features
+
+- **OS keychain by default** — macOS Keychain, Windows Credential Manager, Linux Secret Service via `keyring`. Never plaintext.
+- **Multiple connection methods** — API key, OAuth browser (PKCE), OAuth device code. Warning-gated methods require explicit confirmation.
+- **Token refresh with rotation** — persists new access and refresh tokens atomically, preventing the common "kept the old refresh token" failure mode.
+- **Multi-account** — every credential is keyed by `(provider, alias)`. `personal` and `work` OpenAI accounts coexist.
+- **Fingerprint-based change detection** — `compute_fingerprint()` stores a truncated SHA-256 of the secret; `authlm status` warns if the secret has changed since last connect.
+- **Validation probes** — `validate()` issues a lightweight API call to confirm a credential works. Warned methods require `force=True`.
+- **Public OAuth client IDs** — bundled client IDs for OpenAI Codex, Anthropic Claude Code, and Google AI Studio. Override via env vars.
+- **5-command CLI** — `connect`, `list`, `status`, `disconnect`, `env` with shell/docker/GitHub Actions export formats.
+- **Zero telemetry** — no analytics, no phone-home, no crash reports.
+
+## What it is not
+
+- **Not an inference library.** Use LiteLLM, the OpenAI SDK, the Anthropic SDK, or `llm` for model calls.
+- **Not a model router.** Use LiteLLM.
+- **Not a SaaS integration platform.** Use Nango or Composio for SaaS OAuth.
+- **Not a secret broker for running agents.** Use Infisical Agent Vault for agent-runtime secret injection.
+
 ## Installation
 
 ```bash
@@ -69,7 +101,7 @@ pip install "authlm[openai]"             # installs openai SDK extra
 pip install "authlm[all]"                # all provider SDK extras
 ```
 
-Or install from source for development:
+From source:
 
 ```bash
 git clone https://github.com/vihaan-g/authlm.git
@@ -77,61 +109,100 @@ cd authlm
 uv sync --all-extras
 ```
 
-## Quick start
+## API
 
-```python
-import authlm
-from datetime import timedelta
-from openai import AsyncOpenAI
+AuthLM exposes six public async functions and a handful of types. Everything is `async` for API consistency.
 
-# Connect once — interactive prompt for API key, stored in OS keychain
-await authlm.connect("openai", alias="default", method_id="api_key")
+| Function | Description |
+|---|---|
+| `connect(provider, alias, method_id)` | Run an interactive auth flow and persist the credential. |
+| `get_credential(provider, alias)` | Fast store read — returns the credential as-is, even if expired. No network. |
+| `get_valid_credential(provider, alias, margin)` | Returns a usable credential — auto-refreshes if expired or within margin. |
+| `refresh(provider, alias)` | Force-refreshes an OAuth credential via the token endpoint. |
+| `should_refresh(credential, margin)` | Pure datetime check — returns `True` if expired or within margin. |
+| `validate(credential, *, force)` | Probes the credential against the provider's validation URL. |
 
-# Get a valid credential — auto-refreshes if expired or within refresh margin
-cred = await authlm.get_valid_credential("openai", alias="default", margin=timedelta(minutes=5))
+### Credential types
 
-# Use with any inference library
-client = AsyncOpenAI(api_key=cred.secret)
-```
+| Type | Fields |
+|---|---|
+| `ApiKeyCredential` | `provider`, `alias`, `method_id`, `secret` |
+| `OAuthCredential` | `provider`, `alias`, `method_id`, `access_token`, `refresh_token`, `expires_at`, `scopes` |
 
-Multiple accounts:
+Use `CredentialUnion` for discriminated unions, and `parse_credential()` to deserialize from JSON.
 
-```python
-await authlm.connect("openai", alias="personal", method_id="api_key")
-await authlm.connect("openai", alias="work", method_id="api_key")
+### Supported providers
 
-work_cred = await authlm.get_valid_credential("openai", alias="work", margin=timedelta(minutes=5))
-```
+| Provider ID | API Key | OAuth PKCE | OAuth Device Code |
+|---|---|---|---|
+| `openai` | Yes | Yes | Yes |
+| `anthropic` | Yes | Yes | Yes |
+| `google` | Yes | Yes | — |
+| `openrouter` | Yes | — | — |
+
+### Error hierarchy
+
+All exceptions inherit from `AuthLMError`. Key types:
+
+| Exception | When |
+|---|---|
+| `CredentialNotFound` | No credential stored for `(provider, alias)` |
+| `RefreshFailed` | Transient network error from token endpoint |
+| `ReconnectionRequired` | Refresh token is dead — re-run `connect()` |
+| `AccessDenied` | 403 from provider (token lacks entitlement) |
+| `TokenEndpointError` | Other token endpoint error |
+| `SecretStoreError` | Credential store persistence failure |
 
 ## CLI
 
 ```bash
-authlm connect openai --alias personal           # interactive: pick method, enter key / OAuth
-authlm list                                       # Provider | Alias | Method | Backend | Last Validated
-authlm status openai --all                        # metadata for all aliases; --validate to probe; --backend to show store
-authlm disconnect openai --alias personal         # delete credential + metadata
-authlm env openai --alias work                    # export as shell env vars: eval "$(authlm env openai --alias work)"
+# Connect a provider
+authlm connect openai --alias work
+
+# List all stored credentials
+authlm list
+
+# Inspect credentials, optionally probe them
+authlm status openai --all --validate
+
+# Delete a credential
+authlm disconnect openai --alias work
+
+# Export to shell, Docker, or GitHub Actions
+eval "$(authlm env openai --alias work)"
+authlm env openai --export-format github
 ```
+
+| Command | Purpose |
+|---|---|
+| `connect <provider>` | Interactive auth flow. `--alias`, `--method`, `--include-warned`, `--store` |
+| `list` | ASCII table of stored credentials. `--store`, `--metadata-path` |
+| `status [provider]` | Per-credential metadata. `--all`, `--validate`, `--force`, `--backend` |
+| `disconnect <provider>` | Delete credential + metadata. `--yes` to skip confirmation |
+| `env <provider>` | Export as env vars. `--export-format shell\|docker\|github` |
+
+> [!TIP]
+> Non-TTY environments must pass `--method` — `connect` won't open an interactive picker in CI.
 
 ## Credential stores
 
-| Backend | Use case |
-|---|---|
-| `KeyringStore` (default) | OS keychain — macOS Keychain, Windows Credential Manager, Linux Secret Service. |
-| `EncryptedFileStore` | Headless/CI when no keychain is available. Fernet (AES-128-CBC + HMAC-SHA256) with PBKDF2-derived key. POSIX `chmod 0o600` / Windows NTFS ACLs enforced. |
-| `EnvStore` | Read-only from env vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, ...). Only supports `alias="default"`. CI, Docker, ephemeral. Never writes. |
-| `MemoryStore` | In-process. Tests only. Cleared on exit. |
+| Backend | Description | Writable |
+|---|---|---|
+| `KeyringStore` (default) | OS keychain — macOS Keychain, Windows Credential Manager, Linux Secret Service. | Yes |
+| `EncryptedFileStore` | Fernet-encrypted (AES-128-CBC + HMAC-SHA256) file on disk. PBKDF2-derived key, 600k iterations. | Yes |
+| `EnvStore` | Read-only from env vars (`OPENAI_API_KEY`, etc.). Only `alias="default"`. | No |
+| `MemoryStore` | In-process dict. Tests only. Cleared on exit. | Yes |
 
-Override the default with `AUTHLM_STORE=encrypted_file authlm connect openai` or programmatically via `authlm.set_store(...)`.
+Override: `AUTHLM_STORE=encrypted_file authlm connect openai` or `authlm.set_store(store)`.
 
-## Environment Variables
+## Environment variables
 
 | Variable | Purpose |
 |---|---|
-| `AUTHLM_STORE` | Override the default credential store backend (`keyring`, `encrypted_file`, `env`, `memory`). |
-| `AUTHLM_USER_PATH` | Override the directory for authlm user data (keyring index, encrypted file, metadata). |
-| `AUTHLM_METADATA_PATH` | Override the path to `metadata.json` directly. |
-| `AUTHLM_PASSPHRASE` | Passphrase for `EncryptedFileStore`. If set, bypasses the interactive prompt. Prefer the prompt when available — env vars are visible to child processes. |
+| `AUTHLM_STORE` | Override the default store backend (`keyring`, `encrypted_file`, `env`, `memory`). |
+| `AUTHLM_USER_PATH` | Override the authlm user data directory. |
+| `AUTHLM_METADATA_PATH` | Override the path to `metadata.json`. |
+| `AUTHLM_PASSPHRASE` | Passphrase for `EncryptedFileStore`. Prefer the interactive prompt when available. |
 | `AUTHLM_PKCE_PORT_OVERRIDE` | Override the loopback port for PKCE OAuth browser flows. |
 | `AUTHLM_OPENAI_CLIENT_ID` | Override the default OpenAI OAuth client ID. |
 | `AUTHLM_ANTHROPIC_CLIENT_ID` | Override the default Anthropic OAuth client ID. |
@@ -141,45 +212,26 @@ Override the default with `AUTHLM_STORE=encrypted_file authlm connect openai` or
 
 | Version | Theme | Key deliverables |
 |---|---|---|
-| **v0.1.0** | Foundation | 4 first-party providers, 3 connection methods, 4 stores, 5-command CLI, fingerprint-based change detection. First-party only — no plugin system. |
-| **v0.2.0** | Extensibility & Ecosystem | Plugin system (pluggy), models.dev integration, long-tail providers (Mistral, Groq, DeepSeek, Cohere, ...), Ollama (no-auth), `authlm import llm` / `authlm export`, interactive CLI menu, doc site, Homebrew tap. |
-| **v0.3.0** | Robustness & More Stores | File-locking (multi-process refresh safety), Vault/Bitwarden/1Password store backends, audit log, maintained SDK adapters, `client_credentials` OAuth grant. |
-| **v1.0.0** | Stable Release | API-locked SemVer, stability guarantee, comprehensive integration tests, documentation complete, deprecated v0.x APIs removed. |
-
-See `.agents/specs/v0.2.0-authlm.md`, `v0.3.0-authlm.md`, and `v1.0.0-authlm.md` for detailed outlines.
+| **v0.1.0** | Foundation | 4 providers, 3 connection methods, 4 stores, 5-command CLI. Available now. |
+| **v0.2.0** | Extensibility | Plugin system (pluggy), models.dev integration, long-tail providers, `authlm import/export llm`, Homebrew tap. |
+| **v0.3.0** | Robustness | File-locking, Vault/Bitwarden/1Password backends, audit log, client_credentials grant. |
+| **v1.0.0** | Stable release | API-locked SemVer, stability guarantee, comprehensive integration tests. |
 
 ## Development
 
-Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
-
 ```bash
-uv sync --all-extras                # install all deps including test extras
-uv run pytest                       # 299 unit tests, sub-second
+uv sync --all-extras                # install all deps
+uv run pytest                       # unit tests, sub-second
 uv run ruff check .                 # lint
 uv run ruff format .                # format
 uv run mypy src/authlm              # typecheck (strict)
 uv run authlm --help                # CLI smoke test
 ```
 
-CI runs the full matrix on every push: 3 OS (Ubuntu, macOS, Windows) × 4 Python (3.11, 3.12, 3.13, 3.14), plus `pip-audit`, `secrets-grep`, ruff, and mypy strict.
-
-See [AGENTS.md](AGENTS.md) for the full contribution guide, coding conventions, and commit rules. See [CONTRIBUTING.md](CONTRIBUTING.md) for the human-facing contributor guide.
+CI runs the full matrix: 3 OS × 4 Python versions, plus `pip-audit`, `secrets-grep`, ruff, and mypy strict.
 
 ## Security
 
-AuthLM is a credential library — security is the product. See [SECURITY.md](SECURITY.md) for:
+AuthLM is a credential library — security is the product. See [SECURITY.md](SECURITY.md) for the threat model, per-backend security notes, redaction policy, and disclosure process.
 
-- The full threat model (what AuthLM does and does not protect against)
-- Per-backend security notes
-- Redaction policy (what gets scrubbed in logs, exceptions, and VCR cassettes)
-- Coordinated disclosure policy (72h acknowledgement, 14-day patch SLA for critical issues)
-
-**Report vulnerabilities privately** via GitHub's "Report a vulnerability" button on the Security tab — not via public issues.
-
-## Contributing
-
-Trunk-based: `main` + short-lived feature branches, squash-merge. Conventional Commits with signed commits (`git commit -S`, no `--signoff`). See [AGENTS.md](AGENTS.md) and [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community standards.
-
-## License
-
-Apache-2.0. See [LICENSE](LICENSE).
+Report vulnerabilities privately via GitHub's "Report a vulnerability" button on the Security tab — not via public issues.
