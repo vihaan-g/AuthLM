@@ -32,6 +32,7 @@ class _ChatGPTBrowserPKCE(OAuthPKCEMethod):
             client_id=self._client_id,
             scopes=self._scopes,
             redirect_port=self._redirect_port,
+            extra_authorize_params=self._extra_authorize_params,
             loopback_factory=self._loopback_factory,
             open_browser=callback,
             http_client=self._http_client,
@@ -110,6 +111,7 @@ class OpenAIProvider(Provider):
                 client_id=oauth.client_id,
                 scopes=oauth.default_scopes,
                 redirect_port=oauth.loopback_port or 1455,
+                extra_authorize_params=oauth.extra_authorize_params,
                 http_client=client,
             ),
         ]
