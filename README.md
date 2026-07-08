@@ -36,7 +36,7 @@ AuthLM is the dedicated auth layer. OS keychain by default, OAuth flows, token r
 - **Multi-account** — every credential is keyed by `(provider, alias)`. `personal` and `work` OpenAI accounts coexist.
 - **Fingerprint-based change detection** — `compute_fingerprint()` stores a truncated SHA-256 of the secret in metadata; `authlm status` warns if the secret has changed since last connect (detects keyring tampering or external rotation).
 - **Public OAuth client IDs** — OpenAI Codex, Anthropic Claude Code, Google AI Studio client IDs are bundled in `_auth_table.py` (the same client IDs the official CLI tools use), so OAuth flows work out-of-the-box. Override per-provider via `AUTHLM_{OPENAI,ANTHROPIC,GOOGLE}_CLIENT_ID` env vars.
-- **Validation probes** — `await authlm.validate(cred, force=True)` issues a lightweight API call (`GET /v1/models`, etc.) to confirm a credential works. Warned methods (Anthropic Claude Pro) require `force=True` and the library tells you why.
+- **Validation probes** — `await authlm.validate(cred, force=True)` issues a lightweight API call (`GET /v1/models`, etc.) to confirm a credential works. Warned methods (Anthropic Claude Pro) require `force=True` and the library tells you why. `validate()` raises Python's built-in `PermissionError` (not `AuthLMError`) when called on a warned method without `force=True` — catch with `except (AuthLMError, PermissionError):`.
 - **5-command CLI** — `connect`, `list`, `status` (with `--backend` and `--validate`), `disconnect`, `env`. `eval "$(authlm env openai)"` for shell; `--export-format github` for workflow `env:` blocks; non-TTY `connect` refuses to hang in CI.
 - **Zero telemetry** — no analytics, no phone-home, no crash reports. By design.
 
@@ -81,6 +81,7 @@ uv sync --all-extras
 
 ```python
 import authlm
+from datetime import timedelta
 from openai import AsyncOpenAI
 
 # Connect once — interactive prompt for API key, stored in OS keychain
@@ -118,7 +119,7 @@ authlm env openai --alias work                    # export as shell env vars: ev
 |---|---|
 | `KeyringStore` (default) | OS keychain — macOS Keychain, Windows Credential Manager, Linux Secret Service. |
 | `EncryptedFileStore` | Headless/CI when no keychain is available. Fernet (AES-128-CBC + HMAC-SHA256) with PBKDF2-derived key. POSIX `chmod 0o600` / Windows NTFS ACLs enforced. |
-| `EnvStore` | Read-only from env vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, ...). CI, Docker, ephemeral. Never writes. |
+| `EnvStore` | Read-only from env vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, ...). Only supports `alias="default"`. CI, Docker, ephemeral. Never writes. |
 | `MemoryStore` | In-process. Tests only. Cleared on exit. |
 
 Override the default with `AUTHLM_STORE=encrypted_file authlm connect openai` or programmatically via `authlm.set_store(...)`.
@@ -153,7 +154,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync --all-extras                # install all deps including test extras
-uv run pytest                       # 263 unit tests, sub-second
+uv run pytest                       # 299 unit tests, sub-second
 uv run ruff check .                 # lint
 uv run ruff format .                # format
 uv run mypy src/authlm              # typecheck (strict)
