@@ -86,3 +86,13 @@ def test_connection_methods_accepts_http_client() -> None:
             assert m._http_client is client  # type: ignore[comparison-overlap]
 
     assert provider._http_client is client  # noqa: SLF001
+
+
+def test_anthropic_device_method_uses_form_encoded_content_type() -> None:
+    """Anthropic device-code method uses the default form-encoded content type."""
+    provider = AnthropicProvider(
+        secret_prompt=lambda _p: "", http_client=httpx.AsyncClient()
+    )
+    methods = provider.connection_methods(include_warned=True)
+    device = next(m for m in methods if m.id == "claude_pro_oauth_device")
+    assert device._device_code_content_type == "application/x-www-form-urlencoded"  # type: ignore[union-attr]  # noqa: SLF001

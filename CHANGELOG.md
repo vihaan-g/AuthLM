@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   `originator`, and `id_token_add_organizations` parameters. Without these,
   OpenAI's authorize endpoint returned "Invalid authorize request" before the
   sign-in screen appeared.
+- OpenAI OAuth device-code flow now sends a JSON body to the device-code
+  endpoint instead of form-encoded. OpenAI's `/api/accounts/deviceauth/usercode`
+  endpoint returns 400 for form-encoded bodies with "Input should be a valid
+  dictionary or object to extract fields from".
 
 ### Changed
 - README now documents that OpenAI OAuth methods produce Codex-scoped tokens targeting

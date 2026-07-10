@@ -78,6 +78,7 @@ class _WarnedDevice(OAuthDeviceCodeMethod):
             poll_interval_seconds=self._poll_interval_seconds,
             poll_timeout_seconds=self._poll_timeout_seconds,
             http_client=self._http_client,
+            device_code_content_type=self._device_code_content_type,
         )
 
 
@@ -148,6 +149,7 @@ class AnthropicProvider(Provider):
                     client_id=oauth.client_id,
                     scopes=oauth.default_scopes,
                     http_client=client,
+                    device_code_content_type=oauth.device_code_content_type,
                 )
             )
         return methods
