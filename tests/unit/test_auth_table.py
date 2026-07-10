@@ -147,3 +147,27 @@ def test_anthropic_device_code_content_type_defaults_to_form_encoded() -> None:
     cfg = get_oauth_config("anthropic")
     assert cfg is not None
     assert cfg.device_code_content_type == "application/x-www-form-urlencoded"
+
+
+def test_is_default_client_id_true_for_default() -> None:
+    from authlm._auth_table import is_default_client_id
+
+    assert (
+        is_default_client_id(
+            "google",
+            "681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com",
+        )
+        is True
+    )
+
+
+def test_is_default_client_id_false_for_custom() -> None:
+    from authlm._auth_table import is_default_client_id
+
+    assert is_default_client_id("google", "my-custom-client-id") is False
+
+
+def test_is_default_client_id_false_for_unknown_provider() -> None:
+    from authlm._auth_table import is_default_client_id
+
+    assert is_default_client_id("unknown", "any-id") is False
