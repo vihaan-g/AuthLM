@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   requires a user-created Cloud project with the Generative Language API enabled
   and the `generative-language.retriever` scope registered. Points to
   `AUTHLM_GOOGLE_CLIENT_ID` and Google's OAuth quickstart docs.
+- `OAuthConfig` now exposes `device_code_content_type` (default
+  `application/x-www-form-urlencoded`, set to `application/json` for OpenAI)
+  to support providers that expect JSON device-code requests.
+- `is_default_client_id(provider_id, client_id)` helper in `_auth_table`
+  returns whether a client ID matches the hardcoded default for a provider.
 
 ### Fixed
 - `validate()` now sends Google API keys as `?key=` query parameters instead of
@@ -26,11 +31,11 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   endpoint instead of form-encoded. OpenAI's `/api/accounts/deviceauth/usercode`
   endpoint returns 400 for form-encoded bodies with "Input should be a valid
   dictionary or object to extract fields from".
-- Two device-code polling tests (`test_connect_handles_slow_down`,
-  `test_device_code_slow_down_retries`) now mock `asyncio.sleep` instead of
-  sleeping for real, reducing the full test suite from ~22s to under 5s.
-  AGENTS.md and README.md timing claims corrected from "sub-second" to
-  "under 10 seconds".
+
+### Security
+- Added `"key"` to the URL query-parameter redaction set (`_REDACTED_PARAMS`)
+  so Google API keys passed as `?key=` are redacted in log output, consistent
+  with the existing `api_key` and `secret` redaction.
 
 ### Changed
 - README now documents that OpenAI OAuth methods produce Codex-scoped tokens targeting
