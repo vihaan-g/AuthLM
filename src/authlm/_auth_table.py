@@ -24,6 +24,7 @@ class OAuthConfig(BaseModel):
     default_scopes: list[str] = Field(default_factory=list)
     loopback_port: int | None = None
     extra_authorize_params: dict[str, str] = Field(default_factory=dict)
+    device_code_content_type: str = "application/x-www-form-urlencoded"
 
 
 class AuthTableEntry(BaseModel):
@@ -50,6 +51,7 @@ AUTH_TABLE: dict[str, AuthTableEntry] = {
                 "originator": "codex_cli_rs",
                 "id_token_add_organizations": "true",
             },
+            device_code_content_type="application/json",
         ),
         validation_url=HttpUrl("https://api.openai.com/v1/models"),
     ),
