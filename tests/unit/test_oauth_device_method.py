@@ -128,10 +128,12 @@ def test_device_method_with_on_prompt_returns_new_instance() -> None:
         on_prompt=my_prompt,
         poll_interval_seconds=0,
         poll_timeout_seconds=5.0,
+        device_code_content_type="application/json",
     )
     new_method = method.with_on_prompt(my_prompt)
     assert new_method is not method
     assert new_method._on_prompt is my_prompt  # noqa: SLF001
+    assert new_method._device_code_content_type == "application/json"  # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -193,9 +195,9 @@ async def test_connect_handles_slow_down(
     )
     cred = await method.connect(store=MemoryStore())
     assert isinstance(cred, OAuthCredential)
+    assert len(sleep_calls) > 0
 
 
-@pytest.mark.asyncio
 async def test_connect_times_out_when_always_authorization_pending() -> None:
     store = MemoryStore()
 
@@ -325,6 +327,7 @@ async def test_device_code_slow_down_retries(
     )
     await method.connect(store=MemoryStore())
     assert poll_count == 2
+    assert len(sleep_calls) > 0
 
 
 @pytest.mark.asyncio
