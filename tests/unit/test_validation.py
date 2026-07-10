@@ -218,3 +218,28 @@ async def test_validate_warned_method_with_force_allows_probe(
     )
     result = await validate(cred, force=True)
     assert result is True
+
+
+@pytest.mark.asyncio
+async def test_validate_api_key_google_uses_query_param(
+    respx_mock: MockRouter,
+) -> None:
+    """Google API keys are sent as ?key= query param, not Bearer auth."""
+    captured: dict[str, str] = {}
+
+    def side_effect(request: Any) -> Any:
+        captured["url"] = str(request.url)
+        captured["auth"] = request.headers.get("Authorization", "")
+        from httpx import Response
+
+        return Response(200, json={"models": []})
+
+    respx_mock.get(
+        url__regex=r"https://generativelanguage\.googleapis\.com/v1beta/models.*"
+    ).mock(side_effect=side_effect)
+    cred = ApiKeyCredential(
+        provider="google", alias="default", method_id="api_key", secret="AIza-test"
+    )
+    assert await validate(cred, force=False) is True
+    assert "key=AIza-test" in captured["url"]
+    assert captured["auth"] == ""
