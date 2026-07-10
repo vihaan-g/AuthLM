@@ -49,6 +49,7 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
         poll_interval_seconds: float = 5.0,
         poll_timeout_seconds: float = 900.0,
         http_client: httpx.AsyncClient | None = None,
+        device_code_content_type: str = "application/x-www-form-urlencoded",
     ) -> None:
         self._provider_id = provider_id
         self._device_code_url = device_code_url
@@ -59,6 +60,7 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
         self._poll_interval_seconds = poll_interval_seconds
         self._poll_timeout_seconds = poll_timeout_seconds
         self._http_client = http_client
+        self._device_code_content_type = device_code_content_type
 
     def with_on_prompt(
         self, callback: Callable[[str, str], None]
@@ -78,6 +80,7 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
             poll_interval_seconds=self._poll_interval_seconds,
             poll_timeout_seconds=self._poll_timeout_seconds,
             http_client=self._http_client,
+            device_code_content_type=self._device_code_content_type,
         )
 
     @property
@@ -134,12 +137,23 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
 
     async def _request_device_code(self) -> dict[str, Any]:
         assert self._http_client is not None
+        body: dict[str, str] = {
+            "client_id": self._client_id,
+            "scope": " ".join(self._scopes),
+        }
         try:
-            response = await self._http_client.post(
-                str(self._device_code_url),
-                data={"client_id": self._client_id, "scope": " ".join(self._scopes)},
-                timeout=30.0,
-            )
+            if self._device_code_content_type == "application/json":
+                response = await self._http_client.post(
+                    str(self._device_code_url),
+                    json=body,
+                    timeout=30.0,
+                )
+            else:
+                response = await self._http_client.post(
+                    str(self._device_code_url),
+                    data=body,
+                    timeout=30.0,
+                )
         except httpx.HTTPError as exc:
             raise RefreshFailed(
                 f"Device-code request network error for {self._provider_id}"
