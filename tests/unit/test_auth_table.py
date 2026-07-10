@@ -124,3 +124,12 @@ def test_openai_validation_api_key_query_param_is_none() -> None:
     """OpenAI API keys use Bearer auth for validation (no query param)."""
     entry = get_auth_entry("openai")
     assert entry.validation_api_key_query_param is None
+
+
+def test_openai_extra_authorize_params_include_codex_params() -> None:
+    """OpenAI authorize URL includes Codex-specific params per reference impls."""
+    cfg = get_oauth_config("openai")
+    assert cfg is not None
+    assert cfg.extra_authorize_params["codex_cli_simplified_flow"] == "true"
+    assert cfg.extra_authorize_params["originator"] == "codex_cli_rs"
+    assert cfg.extra_authorize_params["id_token_add_organizations"] == "true"
