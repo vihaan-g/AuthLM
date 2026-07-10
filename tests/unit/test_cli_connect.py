@@ -297,3 +297,76 @@ def test_get_metadata_path_respects_override(tmp_path: Path) -> None:
     custom = tmp_path / "custom" / "meta.json"
     path = get_metadata_path(custom)
     assert path == custom
+
+
+def test_connect_google_oauth_warns_default_client_id(
+    runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Google OAuth with default client ID shows a setup warning."""
+    store = MemoryStore()
+    _patch_context_store(monkeypatch, store)
+
+    async def _fake_connect(*args: Any, **kwargs: Any) -> OAuthCredential:
+        return OAuthCredential(
+            provider="google",
+            alias="default",
+            method_id="oauth_browser",
+            access_token="A",
+            refresh_token=None,
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+    monkeypatch.setattr(_connect_mod._api, "connect", _fake_connect)
+
+    result = runner.invoke(
+        cli,
+        [
+            "connect",
+            "google",
+            "--method",
+            "oauth_browser",
+            "--store",
+            "memory",
+            "--metadata-path",
+            str(tmp_path / "m.json"),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "AUTHLM_GOOGLE_CLIENT_ID" in result.output
+
+
+def test_connect_google_oauth_no_warning_with_custom_client_id(
+    runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Google OAuth with a custom client ID does not show the setup warning."""
+    store = MemoryStore()
+    _patch_context_store(monkeypatch, store)
+    monkeypatch.setenv("AUTHLM_GOOGLE_CLIENT_ID", "my-custom-client-id")
+
+    async def _fake_connect(*args: Any, **kwargs: Any) -> OAuthCredential:
+        return OAuthCredential(
+            provider="google",
+            alias="default",
+            method_id="oauth_browser",
+            access_token="A",
+            refresh_token=None,
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+    monkeypatch.setattr(_connect_mod._api, "connect", _fake_connect)
+
+    result = runner.invoke(
+        cli,
+        [
+            "connect",
+            "google",
+            "--method",
+            "oauth_browser",
+            "--store",
+            "memory",
+            "--metadata-path",
+            str(tmp_path / "m.json"),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "AUTHLM_GOOGLE_CLIENT_ID" not in result.output

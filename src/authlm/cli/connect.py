@@ -10,6 +10,7 @@ from typing import cast
 import click
 
 from authlm import api as _api
+from authlm._auth_table import get_oauth_config, is_default_client_id
 from authlm.cli._context import get_metadata_path
 from authlm.connection_methods.api_key import APIKeyMethod
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
@@ -122,6 +123,18 @@ def connect(
         click.echo(f"\nWARNING: {chosen.warning}\n", err=True)
         if not click.confirm("Continue?", default=False):
             raise click.Abort()
+
+    if provider_id == "google" and chosen.id == "oauth_browser":
+        oauth = get_oauth_config("google")
+        if oauth is not None and is_default_client_id("google", oauth.client_id):
+            click.echo(
+                "WARNING: Google OAuth requires your own Google Cloud project "
+                "with the Generative Language API enabled and the "
+                "'generative-language.retriever' scope registered on your OAuth "
+                "consent screen. Set AUTHLM_GOOGLE_CLIENT_ID to your own OAuth "
+                "client ID. See: https://ai.google.dev/gemini-api/docs/oauth\n",
+                err=True,
+            )
 
     if store_name is None:
         store = get_default_store()

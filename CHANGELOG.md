@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 ## [Unreleased]
 
 ### Added
+- `authlm connect google --method oauth_browser` now prints a pre-flight warning
+  when the default Google OAuth client ID is in use, explaining that Google
+  requires a user-created Cloud project with the Generative Language API enabled
+  and the `generative-language.retriever` scope registered. Points to
+  `AUTHLM_GOOGLE_CLIENT_ID` and Google's OAuth quickstart docs.
 
 ### Fixed
 - `validate()` now sends Google API keys as `?key=` query parameters instead of
