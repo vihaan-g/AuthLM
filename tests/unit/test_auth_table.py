@@ -133,3 +133,17 @@ def test_openai_extra_authorize_params_include_codex_params() -> None:
     assert cfg.extra_authorize_params["codex_cli_simplified_flow"] == "true"
     assert cfg.extra_authorize_params["originator"] == "codex_cli_rs"
     assert cfg.extra_authorize_params["id_token_add_organizations"] == "true"
+
+
+def test_openai_device_code_content_type_is_json() -> None:
+    """OpenAI device-code endpoint expects JSON, not form-encoded."""
+    cfg = get_oauth_config("openai")
+    assert cfg is not None
+    assert cfg.device_code_content_type == "application/json"
+
+
+def test_anthropic_device_code_content_type_defaults_to_form_encoded() -> None:
+    """Anthropic device-code endpoint uses form-encoded (the default)."""
+    cfg = get_oauth_config("anthropic")
+    assert cfg is not None
+    assert cfg.device_code_content_type == "application/x-www-form-urlencoded"
