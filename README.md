@@ -227,7 +227,7 @@ Override: `AUTHLM_STORE=encrypted_file authlm connect openai` or `authlm.set_sto
 
 ```bash
 uv sync --all-extras                # install all deps
-uv run pytest                       # unit tests, sub-second
+uv run pytest                       # unit tests, under 10 seconds
 uv run ruff check .                 # lint
 uv run ruff format .                # format
 uv run mypy src/authlm              # typecheck (strict)

@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   endpoint instead of form-encoded. OpenAI's `/api/accounts/deviceauth/usercode`
   endpoint returns 400 for form-encoded bodies with "Input should be a valid
   dictionary or object to extract fields from".
+- Two device-code polling tests (`test_connect_handles_slow_down`,
+  `test_device_code_slow_down_retries`) now mock `asyncio.sleep` instead of
+  sleeping for real, reducing the full test suite from ~22s to under 5s.
+  AGENTS.md and README.md timing claims corrected from "sub-second" to
+  "under 10 seconds".
 
 ### Changed
 - README now documents that OpenAI OAuth methods produce Codex-scoped tokens targeting

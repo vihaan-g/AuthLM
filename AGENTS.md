@@ -44,7 +44,7 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
 - **Format:** `uv run ruff format .` — run after changes
 - **Typecheck:** `uv run mypy src/authlm` — must pass with `--strict`
 - **Test (focused):** `uv run pytest tests/unit/<area>` — run for the area you changed
-- **Test (full):** `uv run pytest` — currently 299 unit tests, sub-second; run freely
+- **Test (full):** `uv run pytest` — currently 299 unit tests, under 10 seconds; run freely
 - **Build:** `uv run python -m build`
 - **CLI smoke test:** `uv run authlm --help` — should list all 5 subcommands (`connect`, `list`, `status`, `disconnect`, `env`).
 
