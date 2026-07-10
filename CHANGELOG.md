@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   sign-in screen appeared.
 
 ### Changed
+- README now documents that OpenAI OAuth methods produce Codex-scoped tokens targeting
+  the Codex backend, not the standard OpenAI API.
 
 ### Deferred
 
