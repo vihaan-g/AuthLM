@@ -492,3 +492,33 @@ async def test_request_device_code_503_raises_refresh_failed() -> None:
     )
     with pytest.raises(RefreshFailed):
         await method._request_device_code()  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+
+
+@pytest.mark.asyncio
+async def test_device_code_request_is_json_when_configured() -> None:
+    """When device_code_content_type='application/json', request body is JSON."""
+    captured_content_type: list[str] = []
+
+    def _capture_request(request: httpx.Request) -> httpx.Response:
+        captured_content_type.append(request.headers.get("content-type", ""))
+        return httpx.Response(
+            200,
+            json={
+                "device_code": "dc-1",
+                "user_code": "UC-1",
+                "verification_uri": "https://example.com/activate",
+            },
+        )
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="test",
+        device_code_url=HttpUrl("https://example.com/device/code"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        device_code_content_type="application/json",
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(_capture_request)),
+    )
+    await method._request_device_code()  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+    assert len(captured_content_type) == 1
+    assert "application/json" in captured_content_type[0]
