@@ -135,8 +135,20 @@ def test_device_method_with_on_prompt_returns_new_instance() -> None:
 
 
 @pytest.mark.asyncio
-async def test_connect_handles_slow_down() -> None:
+async def test_connect_handles_slow_down(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import httpx
+
+    sleep_calls: list[float] = []
+
+    async def _no_sleep(delay: float) -> None:
+        sleep_calls.append(delay)
+
+    monkeypatch.setattr(
+        "authlm.connection_methods.oauth_device.asyncio.sleep",
+        _no_sleep,
+    )
 
     _calls = 0
 
@@ -262,8 +274,20 @@ async def test_device_code_request_is_form_encoded() -> None:
 
 
 @pytest.mark.asyncio
-async def test_device_code_slow_down_retries() -> None:
+async def test_device_code_slow_down_retries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """slow_down error triggers another poll, eventually succeeding."""
+    sleep_calls: list[float] = []
+
+    async def _no_sleep(delay: float) -> None:
+        sleep_calls.append(delay)
+
+    monkeypatch.setattr(
+        "authlm.connection_methods.oauth_device.asyncio.sleep",
+        _no_sleep,
+    )
+
     poll_count = 0
 
     def _tracking_transport(request: httpx.Request) -> httpx.Response:
