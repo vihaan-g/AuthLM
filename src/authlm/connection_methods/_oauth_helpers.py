@@ -28,6 +28,7 @@ _REDACTED_PARAMS: frozenset[str] = frozenset(
         "client_secret",
         "api_key",
         "secret",
+        "key",
     }
 )
 _FATAL_ERROR_CODES: frozenset[str] = frozenset(
