@@ -30,6 +30,7 @@ class AuthTableEntry(BaseModel):
     provider_id: str
     oauth: OAuthConfig | None = None
     validation_url: HttpUrl | None = None
+    validation_api_key_query_param: str | None = None
 
 
 AUTH_TABLE: dict[str, AuthTableEntry] = {
@@ -81,6 +82,7 @@ AUTH_TABLE: dict[str, AuthTableEntry] = {
         validation_url=HttpUrl(
             "https://generativelanguage.googleapis.com/v1beta/models"
         ),
+        validation_api_key_query_param="key",
     ),
     "openrouter": AuthTableEntry(
         provider_id="openrouter",

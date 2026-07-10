@@ -112,3 +112,15 @@ def test_google_extra_authorize_params_access_type_offline() -> None:
     cfg = get_oauth_config("google")
     assert cfg is not None
     assert cfg.extra_authorize_params == {"access_type": "offline"}
+
+
+def test_google_validation_api_key_query_param_is_key() -> None:
+    """Google API keys are validated via ?key= query param, not Bearer."""
+    entry = get_auth_entry("google")
+    assert entry.validation_api_key_query_param == "key"
+
+
+def test_openai_validation_api_key_query_param_is_none() -> None:
+    """OpenAI API keys use Bearer auth for validation (no query param)."""
+    entry = get_auth_entry("openai")
+    assert entry.validation_api_key_query_param is None
