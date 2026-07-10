@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 ### Added
 
 ### Fixed
+- `validate()` now sends Google API keys as `?key=` query parameters instead of
+  `Authorization: Bearer` headers. Google's Generative Language API rejects Bearer
+  auth for API keys with 401; the key works correctly when sent as a query parameter.
 
 ### Changed
 

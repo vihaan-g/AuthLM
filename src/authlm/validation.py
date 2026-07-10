@@ -32,10 +32,13 @@ async def validate(
         )
 
     headers: dict[str, str] = {}
+    params: dict[str, str] = {}
     if isinstance(cred, ApiKeyCredential):
         if cred.provider == "anthropic":
             headers["x-api-key"] = cred.secret
             headers["anthropic-version"] = "2023-06-01"
+        elif entry.validation_api_key_query_param is not None:
+            params[entry.validation_api_key_query_param] = cred.secret
         else:
             headers["Authorization"] = f"Bearer {cred.secret}"
     elif isinstance(cred, OAuthCredential):
@@ -43,7 +46,9 @@ async def validate(
 
     async with httpx.AsyncClient(timeout=15.0) as client:
         try:
-            response = await client.get(str(entry.validation_url), headers=headers)
+            response = await client.get(
+                str(entry.validation_url), headers=headers, params=params
+            )
         except httpx.HTTPError as exc:
             raise RefreshFailed(f"validation probe failed: {exc}") from exc
 
