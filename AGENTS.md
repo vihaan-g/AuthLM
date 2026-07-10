@@ -44,9 +44,18 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
 - **Format:** `uv run ruff format .` — run after changes
 - **Typecheck:** `uv run mypy src/authlm` — must pass with `--strict`
 - **Test (focused):** `uv run pytest tests/unit/<area>` — run for the area you changed
-- **Test (full):** `uv run pytest` — currently 314 unit tests, under 10 seconds; run freely
+- **Test (full):** `uv run pytest` — currently 299 unit tests, under 10 seconds; run freely
 - **Build:** `uv run python -m build`
 - **CLI smoke test:** `uv run authlm --help` — should list all 5 subcommands (`connect`, `list`, `status`, `disconnect`, `env`).
+
+### When to verify
+
+While iterating, run targeted checks on just the file(s) you're touching rather than the full gate:
+
+- Typecheck a single file: `uv run mypy src/authlm/path/to/file.py`
+- Run a single test: `uv run pytest tests/unit/path/to/test_file.py::test_name`
+
+Reserve the full `ruff check . && ruff format . && mypy src/authlm && pytest` run for right before committing (see PR / Commit below) — running it between every edit is slower than the feedback loop needs to be.
 
 ## Conventions
 
@@ -75,7 +84,7 @@ All Python code follows `.agents/rules/general.md` and the `python-conventions` 
 - Do not add subscription/session-extraction methods without a `warning` field. The library informs; the integrator decides policy.
 - Do not auto-refresh tokens on every `get_credential()` call. Refresh is explicit (`get_valid_credential()` or `refresh()`).
 - Do not validate warned methods without `force=True`. Validation calls are detectable by providers.
-- Keep changes scoped. Avoid unrelated refactors.
+- Keep changes scoped. For a bug fix, make the narrowest change that resolves the reported, reproduced behavior. Extend a fix to sibling providers/methods only after *confirming* (by reproducing) that they share the same defect — an "others might also be affected" hunch is not enough to widen the change. Do not refactor a shared abstraction (e.g. `_oauth_helpers.py`, `registry.py`) to fix one caller unless the narrow fix is unavailable or the refactor is itself the confirmed fix.
 - **Never commit or push gitignored files.** `.agents/audits/`, `.agents/plans/`, `.worktrees/`, and `opencode.json` are gitignored. Do not `git add -f` them. Use `git check-ignore <path>` if unsure.
 
 ## Testing
@@ -87,10 +96,24 @@ All Python code follows `.agents/rules/general.md` and the `python-conventions` 
 - Tests must not touch the real OS keychain. `conftest.py` sets `PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring` and redirects `AUTHLM_USER_PATH` to `tmpdir`.
 - Add tests for any behavior you change.
 
+## Changelog
+
+`CHANGELOG.md` follows [Keep a Changelog 2.0.0](https://keepachangelog.com/en/1.1.0/) (per spec §11.3) and Semantic Versioning. Maintain it as part of the change itself, not as an afterthought:
+
+- **Every user-facing change gets an entry** under `## [Unreleased]` at the top of the file, added in the same commit/PR as the change — not batched later. User-facing means: anything a consumer of the public API, CLI, or exception hierarchy would notice — new/changed/removed functions, CLI flags, error types, credential fields, default behavior. Pure internal refactors, test-only changes, and CI/tooling tweaks do not need an entry.
+- **Use the standard categories** under `[Unreleased]`, only including the ones that apply: `### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`, `### Security`. Don't invent other headers.
+- **One bullet per change**, imperative present tense (matches commit style), referencing the affected symbol in backticks, e.g.:
+  ```markdown
+  ### Fixed
+  - `refresh()` now preserves the existing refresh token when the token endpoint omits one on rotation
+  ```
+- **Security-relevant changes** (anything touching `stores/`, `connection_methods/`, `_auth_table.py`, or redaction) always get a `### Security` entry, even if also listed under `Fixed`/`Changed`, and should prompt a check of whether `SECURITY.md` also needs updating.
+- **Don't hand-write version headers or dates.** `## [Unreleased]` stays until a release; the release process (spec §11.3) turns it into `## [X.Y.Z] - YYYY-MM-DD` and opens a fresh empty `## [Unreleased]`. Agents should not pre-emptively create version-numbered sections.
+- **Before treating a task as done**, check `git diff CHANGELOG.md` (or equivalent) to confirm an entry was actually added when the change was user-facing — this is easy to forget and easy to verify.
+
 ## PR / Commit
 
 - Run `ruff check . && ruff format . && mypy src/authlm && pytest` before committing.
-- Add a line under `## [Unreleased]` in `CHANGELOG.md` for every user-facing change.
 - Follow the `commit-conventions` skill. Key rules:
   - **Conventional Commits format:** `<type>[scope]: <description>` — allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
   - **Imperative, present tense:** `add`, `fix`, `remove` — not `added`, `fixed`, `removes`.
