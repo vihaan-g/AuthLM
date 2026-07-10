@@ -134,3 +134,8 @@ def get_oauth_config(provider_id: str) -> OAuthConfig | None:
     if resolved == cfg.client_id:
         return cfg
     return cfg.model_copy(update={"client_id": resolved})
+
+
+def is_default_client_id(provider_id: str, client_id: str) -> bool:
+    """Return True if client_id matches the hardcoded default for the provider."""
+    return client_id == _DEFAULT_CLIENT_ID.get(provider_id)
