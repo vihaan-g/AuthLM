@@ -139,3 +139,13 @@ def test_openai_pkce_method_includes_codex_authorize_params() -> None:
     assert params["codex_cli_simplified_flow"] == "true"
     assert params["originator"] == "codex_cli_rs"
     assert params["id_token_add_organizations"] == "true"
+
+
+def test_openai_device_method_uses_json_content_type() -> None:
+    """OpenAI device-code method is configured for JSON, not form-encoded."""
+    provider = OpenAIProvider(
+        secret_prompt=lambda _p: "", http_client=httpx.AsyncClient()
+    )
+    methods = provider.connection_methods(include_warned=False)
+    device = next(m for m in methods if m.id == "chatgpt_oauth_device")
+    assert device._device_code_content_type == "application/json"  # type: ignore[union-attr]  # noqa: SLF001
