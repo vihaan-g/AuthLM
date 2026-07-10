@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - `validate()` now sends Google API keys as `?key=` query parameters instead of
   `Authorization: Bearer` headers. Google's Generative Language API rejects Bearer
   auth for API keys with 401; the key works correctly when sent as a query parameter.
+- OpenAI OAuth PKCE authorize URL now includes `codex_cli_simplified_flow`,
+  `originator`, and `id_token_add_organizations` parameters. Without these,
+  OpenAI's authorize endpoint returned "Invalid authorize request" before the
+  sign-in screen appeared.
 
 ### Changed
 

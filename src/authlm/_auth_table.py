@@ -45,6 +45,11 @@ AUTH_TABLE: dict[str, AuthTableEntry] = {
             client_id=_DEFAULT_CLIENT_ID["openai"],
             default_scopes=["openid", "profile", "email", "offline_access"],
             loopback_port=1455,
+            extra_authorize_params={
+                "codex_cli_simplified_flow": "true",
+                "originator": "codex_cli_rs",
+                "id_token_add_organizations": "true",
+            },
         ),
         validation_url=HttpUrl("https://api.openai.com/v1/models"),
     ),

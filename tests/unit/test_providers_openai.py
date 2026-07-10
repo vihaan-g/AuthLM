@@ -126,3 +126,16 @@ def test_connection_methods_accepts_http_client() -> None:
             assert m._http_client is client  # type: ignore[comparison-overlap]
 
     assert provider._http_client is client
+
+
+def test_openai_pkce_method_includes_codex_authorize_params() -> None:
+    """The PKCE method carries the Codex-specific extra_authorize_params."""
+    provider = OpenAIProvider(
+        secret_prompt=lambda _p: "", http_client=httpx.AsyncClient()
+    )
+    methods = provider.connection_methods(include_warned=False)
+    pkce = next(m for m in methods if m.id == "chatgpt_oauth_browser")
+    params = pkce._extra_authorize_params  # noqa: SLF001
+    assert params["codex_cli_simplified_flow"] == "true"
+    assert params["originator"] == "codex_cli_rs"
+    assert params["id_token_add_organizations"] == "true"
