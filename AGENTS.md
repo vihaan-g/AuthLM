@@ -10,7 +10,7 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
   - `credentials.py` — Pydantic Credential types for v0.1.0: `ApiKeyCredential`, `OAuthCredential`, plus `CredentialUnion` discriminated union, `parse_credential()`, and `compute_fingerprint()`. Secret fields use `Field(repr=False)`. Additional types (`AwsCredential`, `AzureAdCredential`) are deferred to v0.2.0.
   - `metadata.py` — `MetadataEntry` Pydantic model (includes `fingerprint` for change detection) and `MetadataStore` for non-secret credential metadata.
   - `validation.py` — `validate()` async probe of a credential against the provider's `validation_url`; refuses warned methods (Anthropic Claude Pro) unless `force=True`. `validate()` raises `PermissionError` (built-in) for warned-method refusal; callers that want to catch this alongside other authlm errors use `except (AuthLMError, PermissionError)`.
-  - `_auth_table.py` — Pydantic `OAuthConfig` and `AuthTableEntry` models, plus a static `AUTH_TABLE` dict covering the 4 built-in providers. Public OAuth client IDs (OpenAI Codex, Anthropic Claude Code, Google AI Studio) are hardcoded and overridable via env vars: `AUTHLM_OPENAI_CLIENT_ID`, `AUTHLM_ANTHROPIC_CLIENT_ID`, `AUTHLM_GOOGLE_CLIENT_ID`.
+  - `_auth_table.py` — Pydantic `OAuthConfig` and `AuthTableEntry` models, plus a static `AUTH_TABLE` dict covering the 4 built-in providers. `OAuthConfig` carries `extra_authorize_params`, `device_code_content_type`, and per-provider OAuth client IDs (overridable via env vars). `AuthTableEntry` carries `validation_url` and `validation_api_key_query_param` for credential probes. Also exports `get_auth_entry`, `get_oauth_config`, and `is_default_client_id`.
   - `providers/` — 4 built-in providers for v0.1.0: `openai` (api_key, oauth_browser, oauth_device), `anthropic` (api_key + 2 warned Claude Pro methods), `google` (api_key, oauth_browser), `openrouter` (api_key). First-party only — no plugin system in v0.1.0. Plus `base.py` (Protocols) and `registry.py` (`get_provider`, `list_providers`, `get_method`).
   - `connection_methods/` — `api_key.py` (APIKeyMethod), `oauth_pkce.py` (OAuthPKCEMethod with loopback HTTP server), `oauth_device.py` (OAuthDeviceCodeMethod with polling), `_oauth_helpers.py` (PKCE generation, URL redaction, token-endpoint error classification, body redaction), `__init__.py` re-exports.
   - `stores/` — `base.py` (`CredentialStore` Protocol), `memory_store.py`, `env_store.py`, `keyring_store.py`, `encrypted_file_store.py`, `__init__.py` (`get_default_store` auto-selection, `set_store` programmatic override).
@@ -18,7 +18,7 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
     - `__init__.py` — `cli` Click group; registers the 5 subcommands; sets `logging.getLogger("authlm").setLevel(logging.WARNING)` at startup so OAuth INFO logs don't pollute `eval $(authlm env ...)` stdout. Uses `invoke_without_command=True` so `authlm` (no subcommand) prints help.
     - `_context.py` — `get_metadata_path(override)` resolver (chains explicit override → `AUTHLM_METADATA_PATH` → `AUTHLM_USER_PATH` → `get_user_data_path()`).
     - `_formatters.py` — pure string functions `format_list_table` and `format_status_table` for the `list` and `status` commands.
-    - `connect.py` — `authlm connect` command: provider lookup, method picker (interactive or `--method`), warned-method filtering (`--include-warned`), `[y/N]` confirmation, Click-aware secret/device-code/browser callbacks, non-TTY refusal per spec §2.3.
+    - `connect.py` — `authlm connect` command: provider lookup, method picker (interactive or `--method`), warned-method filtering (`--include-warned`), `[y/N]` confirmation, Google OAuth pre-flight warning when default client ID is in use, Click-aware secret/device-code/browser callbacks, non-TTY refusal per spec §2.3.
     - `list_cmd.py` — `authlm list` command: ASCII table of stored credentials.
     - `status.py` — `authlm status` command: per-credential metadata block, `--backend` / `--validate` / `--force` / `--all` flags.
     - `disconnect.py` — `authlm disconnect` command: `[y/N]` confirmation, `--yes` to skip.
@@ -44,7 +44,7 @@ AuthLM is a Python library for managing authentication and credentials for AI pr
 - **Format:** `uv run ruff format .` — run after changes
 - **Typecheck:** `uv run mypy src/authlm` — must pass with `--strict`
 - **Test (focused):** `uv run pytest tests/unit/<area>` — run for the area you changed
-- **Test (full):** `uv run pytest` — currently 299 unit tests, under 10 seconds; run freely
+- **Test (full):** `uv run pytest` — currently 314 unit tests, under 10 seconds; run freely
 - **Build:** `uv run python -m build`
 - **CLI smoke test:** `uv run authlm --help` — should list all 5 subcommands (`connect`, `list`, `status`, `disconnect`, `env`).
 
