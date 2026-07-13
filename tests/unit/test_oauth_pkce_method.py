@@ -61,6 +61,41 @@ def _method(
 
 
 @pytest.mark.asyncio
+async def test_connect_uses_fixed_redirect_uri(respx_mock: MockRouter) -> None:
+    port = 14559
+    expected_redirect_uri = f"http://localhost:{port}/auth/callback"
+    token_route = respx_mock.post("https://auth.openai.com/oauth/token").respond(
+        200, json=_token_response()
+    )
+
+    def open_browser(authorize_url: str) -> None:
+        query = parse_qs(urlparse(authorize_url).query)
+        assert query["redirect_uri"] == [expected_redirect_uri]
+        state = query["state"][0]
+        urlopen(
+            f"http://127.0.0.1:{port}/auth/callback?code=AUTHCODE&state={state}"
+        ).read()
+
+    async with httpx.AsyncClient() as client:
+        method = OAuthPKCEMethod(
+            provider_id="openai",
+            authorize_url=HttpUrl("https://auth.openai.com/oauth/authorize"),
+            token_url=HttpUrl("https://auth.openai.com/oauth/token"),
+            client_id="test-client",
+            scopes=("openid", "profile"),
+            redirect_port=port,
+            fixed_redirect_uri=expected_redirect_uri,
+            http_client=client,
+            open_browser=open_browser,
+        )
+        await method.connect(store=MemoryStore())
+
+    request_body = token_route.calls.last.request.content.decode()
+    expected_escaped_uri = f"http%3A%2F%2Flocalhost%3A{port}%2Fauth%2Fcallback"
+    assert f"redirect_uri={expected_escaped_uri}" in request_body
+
+
+@pytest.mark.asyncio
 async def test_oauth_pkce_method_metadata() -> None:
     async with httpx.AsyncClient() as client:
         method = _method(http_client=client, port=14550)
