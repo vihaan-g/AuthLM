@@ -100,6 +100,7 @@ def test_openai_loopback_port_set() -> None:
     assert cfg is not None
     assert cfg.loopback_port == 1455
 
+
 def test_openai_fixed_redirect_uri_set() -> None:
     cfg = get_oauth_config("openai")
     assert cfg is not None
