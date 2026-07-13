@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   returns whether a client ID matches the hardcoded default for a provider.
 
 ### Fixed
+- `chatgpt_oauth_device` now implements the official two-stage Codex device-code flow, which is not RFC 8628 compliant. It correctly polls for an authorization-code/PKCE tuple using `device_auth_id` rather than polling the token endpoint directly.
 - `chatgpt_oauth_browser` now pins the OAuth redirect URI to `http://localhost:1455/auth/callback` to match the single registered URI for the Codex public client ID. Previously, it sent `http://127.0.0.1:1455/callback` which was rejected by OpenAI.
 - `validate()` now sends Google API keys as `?key=` query parameters instead of
   `Authorization: Bearer` headers. Google's Generative Language API rejects Bearer

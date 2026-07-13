@@ -154,6 +154,7 @@ def test_openai_device_method_uses_json_content_type() -> None:
     device = next(m for m in methods if m.id == "chatgpt_oauth_device")
     assert device._device_code_content_type == "application/json"  # type: ignore[union-attr]  # noqa: SLF001
 
+
 def test_openai_pkce_method_uses_codex_fixed_redirect_uri() -> None:
     """OpenAI PKCE method is initialized with the pinned Codex redirect URI."""
     provider = OpenAIProvider(
@@ -162,6 +163,7 @@ def test_openai_pkce_method_uses_codex_fixed_redirect_uri() -> None:
     methods = provider.connection_methods(include_warned=False)
     pkce = next(method for method in methods if method.id == "chatgpt_oauth_browser")
     assert pkce._fixed_redirect_uri == "http://localhost:1455/auth/callback"  # type: ignore[union-attr]  # noqa: SLF001
+
 
 @pytest.mark.asyncio
 async def test_openai_device_flow_uses_codex_endpoints(
@@ -206,9 +208,7 @@ async def test_openai_device_flow_uses_codex_endpoints(
         prompts.append((uri, user_code))
 
     async with httpx.AsyncClient() as client:
-        provider = OpenAIProvider(
-            secret_prompt=lambda _prompt: "", http_client=client
-        )
+        provider = OpenAIProvider(secret_prompt=lambda _prompt: "", http_client=client)
         device = next(
             method
             for method in provider.connection_methods(include_warned=False)
