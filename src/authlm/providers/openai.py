@@ -1,15 +1,47 @@
 from __future__ import annotations
 
+import asyncio
+import json
 from collections.abc import Callable, Sequence
+from typing import Any, cast
 
 import httpx
+from pydantic import BaseModel, HttpUrl, ValidationError
 from typing_extensions import override
 
 from authlm._auth_table import get_oauth_config
+from authlm.connection_methods._oauth_helpers import (
+    PKCEPair,
+    build_oauth_credential,
+    classify_token_error,
+    redact_body,
+    redact_url,
+)
 from authlm.connection_methods.api_key import APIKeyMethod
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
+from authlm.credentials import Credential, OAuthCredential
+from authlm.errors import (
+    AccessDenied,
+    ConnectionTimeout,
+    ReconnectionRequired,
+    RefreshFailed,
+    TokenEndpointError,
+)
 from authlm.providers.base import ConnectionMethod, Provider
+from authlm.stores.base import CredentialStore
+
+
+class _ChatGPTDeviceUserCode(BaseModel):
+    device_auth_id: str
+    user_code: str
+    interval: int = 0
+
+
+class _ChatGPTDeviceAuthorizationCode(BaseModel):
+    authorization_code: str
+    code_challenge: str
+    code_verifier: str
 
 
 class _ChatGPTBrowserPKCE(OAuthPKCEMethod):

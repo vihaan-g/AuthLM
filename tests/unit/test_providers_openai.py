@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import json
 from urllib.parse import urlparse
 
 import httpx
 import pytest
+from respx import MockRouter
 
+from authlm.credentials import OAuthCredential
 from authlm.providers.base import OAuthGrant, Provider
 from authlm.providers.openai import OpenAIProvider
+from authlm.stores.memory_store import MemoryStore
 
 
 def _provider() -> OpenAIProvider:
@@ -158,3 +162,74 @@ def test_openai_pkce_method_uses_codex_fixed_redirect_uri() -> None:
     methods = provider.connection_methods(include_warned=False)
     pkce = next(method for method in methods if method.id == "chatgpt_oauth_browser")
     assert pkce._fixed_redirect_uri == "http://localhost:1455/auth/callback"  # type: ignore[union-attr]  # noqa: SLF001
+
+@pytest.mark.asyncio
+async def test_openai_device_flow_uses_codex_endpoints(
+    respx_mock: MockRouter,
+) -> None:
+    usercode_route = respx_mock.post(
+        "https://auth.openai.com/api/accounts/deviceauth/usercode"
+    ).respond(
+        200,
+        json={
+            "device_auth_id": "device-auth-id",
+            "user_code": "CODE-12345",
+            "interval": "0",
+        },
+    )
+    poll_route = respx_mock.post(
+        "https://auth.openai.com/api/accounts/deviceauth/token"
+    ).mock(
+        side_effect=[
+            httpx.Response(404),
+            httpx.Response(
+                200,
+                json={
+                    "authorization_code": "authorization-code",
+                    "code_challenge": "codex-challenge",
+                    "code_verifier": "codex-verifier",
+                },
+            ),
+        ]
+    )
+    token_route = respx_mock.post("https://auth.openai.com/oauth/token").respond(
+        200,
+        json={
+            "access_token": "ACCESS",
+            "refresh_token": "REFRESH",
+            "expires_in": 3600,
+        },
+    )
+    prompts: list[tuple[str, str]] = []
+
+    def on_prompt(uri: str, user_code: str) -> None:
+        prompts.append((uri, user_code))
+
+    async with httpx.AsyncClient() as client:
+        provider = OpenAIProvider(
+            secret_prompt=lambda _prompt: "", http_client=client
+        )
+        device = next(
+            method
+            for method in provider.connection_methods(include_warned=False)
+            if method.id == "chatgpt_oauth_device"
+        )
+        credential = await device.with_on_prompt(on_prompt).connect(store=MemoryStore())
+
+    assert isinstance(credential, OAuthCredential)
+    assert prompts == [("https://auth.openai.com/codex/device", "CODE-12345")]
+    assert json.loads(usercode_route.calls.last.request.content) == {
+        "client_id": "app_EMoamEEZ73f0CkXaXp7hrann"
+    }
+    assert json.loads(poll_route.calls.last.request.content) == {
+        "device_auth_id": "device-auth-id",
+        "user_code": "CODE-12345",
+    }
+    request_body = token_route.calls.last.request.content.decode()
+    assert "grant_type=authorization_code" in request_body
+    assert "code=authorization-code" in request_body
+    assert "code_verifier=codex-verifier" in request_body
+    assert (
+        "redirect_uri=https%3A%2F%2Fauth.openai.com%2Fdeviceauth%2Fcallback"
+        in request_body
+    )
