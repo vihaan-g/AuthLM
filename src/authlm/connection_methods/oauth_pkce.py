@@ -65,6 +65,7 @@ class OAuthPKCEMethod(ConnectionMethod):
         client_id: str,
         scopes: Sequence[str],
         redirect_port: int,
+        fixed_redirect_uri: str | None = None,
         extra_authorize_params: dict[str, str] | None = None,
         loopback_factory: Callable[
             [tuple[str, int], type[BaseHTTPRequestHandler]], HTTPServer
@@ -78,19 +79,28 @@ class OAuthPKCEMethod(ConnectionMethod):
         self._client_id = client_id
         self._scopes: tuple[str, ...] = tuple(scopes)
         self._redirect_port = redirect_port
+        self._fixed_redirect_uri = fixed_redirect_uri
         self._extra_authorize_params = extra_authorize_params or {}
-        override = os.environ.get("AUTHLM_PKCE_PORT_OVERRIDE")
-        if override is not None:
-            try:
-                self._redirect_port = int(override)
-            except ValueError:
-                _log.warning(
-                    "AUTHLM_PKCE_PORT_OVERRIDE=%r is not a valid port number; "
-                    "using default %d",
-                    override,
-                    redirect_port,
-                )
         self._redirect_path = "/callback"
+
+        if fixed_redirect_uri is not None:
+            parsed_redirect_uri = urlparse(fixed_redirect_uri)
+            if parsed_redirect_uri.port is None or not parsed_redirect_uri.path:
+                raise ValueError("fixed_redirect_uri must include a port and path")
+            self._redirect_port = parsed_redirect_uri.port
+            self._redirect_path = parsed_redirect_uri.path
+        else:
+            override = os.environ.get("AUTHLM_PKCE_PORT_OVERRIDE")
+            if override is not None:
+                try:
+                    self._redirect_port = int(override)
+                except ValueError:
+                    _log.warning(
+                        "AUTHLM_PKCE_PORT_OVERRIDE=%r is not a valid port number; "
+                        "using default %d",
+                        override,
+                        redirect_port,
+                    )
         self._loopback_factory = loopback_factory
         self._open_browser = open_browser
         self._http_client = http_client
@@ -109,6 +119,7 @@ class OAuthPKCEMethod(ConnectionMethod):
             client_id=self._client_id,
             scopes=self._scopes,
             redirect_port=self._redirect_port,
+            fixed_redirect_uri=self._fixed_redirect_uri,
             extra_authorize_params=self._extra_authorize_params,
             loopback_factory=self._loopback_factory,
             open_browser=callback,
@@ -146,7 +157,9 @@ class OAuthPKCEMethod(ConnectionMethod):
         server = self._start_loopback(captured, state)
         # Build redirect_uri after _start_loopback so it reflects any
         # port reassignment from port fallback (H1).
-        redirect_uri = f"http://127.0.0.1:{self._redirect_port}{self._redirect_path}"
+        redirect_uri = self._fixed_redirect_uri or (
+            f"http://127.0.0.1:{self._redirect_port}{self._redirect_path}"
+        )
 
         try:
             authorize_url = build_authorize_url(
@@ -219,7 +232,12 @@ class OAuthPKCEMethod(ConnectionMethod):
 
         try:
             server = self._loopback_factory(("127.0.0.1", self._redirect_port), Handler)
-        except OSError:
+        except OSError as exc:
+            if self._fixed_redirect_uri is not None:
+                raise AuthLMError(
+                    f"Port {self._redirect_port} is required by fixed redirect URI "
+                    f"{self._fixed_redirect_uri}. Free the port and try again."
+                ) from exc
             try:
                 server = self._loopback_factory(("127.0.0.1", 0), Handler)
                 self._redirect_port = server.server_address[1]
