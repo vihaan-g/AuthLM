@@ -23,6 +23,7 @@ class OAuthConfig(BaseModel):
     client_id: str
     default_scopes: list[str] = Field(default_factory=list)
     loopback_port: int | None = None
+    fixed_redirect_uri: HttpUrl | None = None
     extra_authorize_params: dict[str, str] = Field(default_factory=dict)
     device_code_content_type: str = "application/x-www-form-urlencoded"
 
@@ -46,6 +47,7 @@ AUTH_TABLE: dict[str, AuthTableEntry] = {
             client_id=_DEFAULT_CLIENT_ID["openai"],
             default_scopes=["openid", "profile", "email", "offline_access"],
             loopback_port=1455,
+            fixed_redirect_uri=HttpUrl("http://localhost:1455/auth/callback"),
             extra_authorize_params={
                 "codex_cli_simplified_flow": "true",
                 "originator": "codex_cli_rs",
