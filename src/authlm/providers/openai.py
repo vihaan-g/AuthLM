@@ -32,6 +32,7 @@ class _ChatGPTBrowserPKCE(OAuthPKCEMethod):
             client_id=self._client_id,
             scopes=self._scopes,
             redirect_port=self._redirect_port,
+            fixed_redirect_uri=self._fixed_redirect_uri,
             extra_authorize_params=self._extra_authorize_params,
             loopback_factory=self._loopback_factory,
             open_browser=callback,
@@ -100,6 +101,7 @@ class OpenAIProvider(Provider):
         client = http_client or self._http_client or httpx.AsyncClient()
         oauth = get_oauth_config("openai")
         assert oauth is not None
+        assert oauth.fixed_redirect_uri is not None
         methods: list[ConnectionMethod] = [
             APIKeyMethod(
                 provider_id=self.id,
@@ -112,6 +114,7 @@ class OpenAIProvider(Provider):
                 client_id=oauth.client_id,
                 scopes=oauth.default_scopes,
                 redirect_port=oauth.loopback_port or 1455,
+                fixed_redirect_uri=str(oauth.fixed_redirect_uri),
                 extra_authorize_params=oauth.extra_authorize_params,
                 http_client=client,
             ),
