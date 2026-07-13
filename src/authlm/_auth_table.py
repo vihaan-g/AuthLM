@@ -20,6 +20,9 @@ class OAuthConfig(BaseModel):
     authorize_url: HttpUrl
     token_url: HttpUrl
     device_code_url: HttpUrl | None = None
+    device_code_poll_url: HttpUrl | None = None
+    device_code_verification_uri: HttpUrl | None = None
+    device_code_redirect_uri: HttpUrl | None = None
     client_id: str
     default_scopes: list[str] = Field(default_factory=list)
     loopback_port: int | None = None
@@ -43,6 +46,15 @@ AUTH_TABLE: dict[str, AuthTableEntry] = {
             token_url=HttpUrl("https://auth.openai.com/oauth/token"),
             device_code_url=HttpUrl(
                 "https://auth.openai.com/api/accounts/deviceauth/usercode"
+            ),
+            device_code_poll_url=HttpUrl(
+                "https://auth.openai.com/api/accounts/deviceauth/token"
+            ),
+            device_code_verification_uri=HttpUrl(
+                "https://auth.openai.com/codex/device"
+            ),
+            device_code_redirect_uri=HttpUrl(
+                "https://auth.openai.com/deviceauth/callback"
             ),
             client_id=_DEFAULT_CLIENT_ID["openai"],
             default_scopes=["openid", "profile", "email", "offline_access"],
