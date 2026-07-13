@@ -149,3 +149,12 @@ def test_openai_device_method_uses_json_content_type() -> None:
     methods = provider.connection_methods(include_warned=False)
     device = next(m for m in methods if m.id == "chatgpt_oauth_device")
     assert device._device_code_content_type == "application/json"  # type: ignore[union-attr]  # noqa: SLF001
+
+def test_openai_pkce_method_uses_codex_fixed_redirect_uri() -> None:
+    """OpenAI PKCE method is initialized with the pinned Codex redirect URI."""
+    provider = OpenAIProvider(
+        secret_prompt=lambda _prompt: "", http_client=httpx.AsyncClient()
+    )
+    methods = provider.connection_methods(include_warned=False)
+    pkce = next(method for method in methods if method.id == "chatgpt_oauth_browser")
+    assert pkce._fixed_redirect_uri == "http://localhost:1455/auth/callback"  # type: ignore[union-attr]  # noqa: SLF001
