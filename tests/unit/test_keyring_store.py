@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 from unittest.mock import patch
 
@@ -20,7 +21,7 @@ class InMemoryKeyring(KeyringBackend):
     priority = 1
 
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__()  # type: ignore[no-untyped-call]
         self._store: dict[tuple[str, str], str] = {}
 
     @override
@@ -39,7 +40,7 @@ class InMemoryKeyring(KeyringBackend):
 
 
 @pytest.fixture
-def in_memory_keyring() -> InMemoryKeyring:
+def in_memory_keyring() -> Iterator[InMemoryKeyring]:
     original = keyring.get_keyring()
     backend = InMemoryKeyring()
     keyring.set_keyring(backend)

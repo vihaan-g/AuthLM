@@ -20,7 +20,7 @@ class _RealKeyring(KeyringBackend):
     priority = 1
 
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__()  # type: ignore[no-untyped-call]
 
     @override
     def get_password(self, service: str, username: str) -> str | None:
@@ -103,7 +103,7 @@ def test_auto_select_keyring(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_auto_select_env_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("AUTHLM_STORE", raising=False)
     original = keyring.get_keyring()
-    keyring.set_keyring(_null.Keyring())
+    keyring.set_keyring(_null.Keyring())  # type: ignore[no-untyped-call]
     try:
         store = get_default_store()
         assert isinstance(store, EnvStore)
