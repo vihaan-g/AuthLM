@@ -337,6 +337,7 @@ async def test_refresh_keeps_old_refresh_token_when_server_omits_it() -> None:
 
         result = await refresh("openai", alias="default", store=store)
 
+    assert isinstance(result, OAuthCredential)
     assert result.access_token == "at-new"
     assert result.refresh_token == old_refresh
 
@@ -380,6 +381,7 @@ async def test_refresh_sets_expires_at_none_when_expires_in_absent() -> None:
         )
         result = await refresh("openai", alias="default", store=store)
 
+    assert isinstance(result, OAuthCredential)
     assert result.access_token == "at-new"
     assert result.expires_at is None  # not the old stale value
 
