@@ -54,16 +54,16 @@ async def test_validate_oauth_uses_bearer_token(respx_mock: MockRouter) -> None:
 
         return Response(200, json={"data": []})
 
-    respx_mock.get("https://api.openai.com/v1/models").mock(side_effect=side_effect)
+    respx_mock.get("https://api.anthropic.com/v1/models").mock(side_effect=side_effect)
     cred = OAuthCredential(
-        provider="openai",
+        provider="anthropic",
         alias="default",
-        method_id="chatgpt_oauth_browser",
+        method_id="claude_pro_oauth_browser",
         access_token="ACCESS",
         refresh_token=None,
         expires_at=None,
     )
-    assert await validate(cred, force=False) is True
+    assert await validate(cred, force=True) is True
     assert captured["auth"] == "Bearer ACCESS"
 
 
@@ -243,3 +243,16 @@ async def test_validate_api_key_google_uses_query_param(
     assert await validate(cred, force=False) is True
     assert "key=AIza-test" in captured["url"]
     assert captured["auth"] == ""
+
+@pytest.mark.asyncio
+async def test_validate_chatgpt_oauth_skips() -> None:
+    cred = OAuthCredential(
+        provider="openai",
+        alias="default",
+        method_id="chatgpt_oauth_browser",
+        access_token="test-token",
+        expires_at=None,
+    )
+    from authlm.errors import AuthLMError
+    with pytest.raises(AuthLMError, match="Validation probe not supported"):
+        await validate(cred, force=True)

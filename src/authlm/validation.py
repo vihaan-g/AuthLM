@@ -21,6 +21,12 @@ async def validate(
     TokenEndpointError on other 4xx. Raises RefreshFailed on network errors.
     """
     entry = AUTH_TABLE.get(cred.provider)
+    if cred.provider == "openai" and cred.method_id in ("chatgpt_oauth_browser", "chatgpt_oauth_device"):
+        from authlm.errors import AuthLMError
+        raise AuthLMError(
+            "Validation probe not supported for ChatGPT OAuth tokens; use direct inference to verify."
+        )
+
     if entry is None or entry.validation_url is None:
         return False
 
