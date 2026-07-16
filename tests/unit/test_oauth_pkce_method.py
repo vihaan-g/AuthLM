@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from http.server import HTTPServer
+from collections.abc import Callable
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
@@ -22,8 +23,6 @@ from authlm.errors import (
 from authlm.providers.base import OAuthGrant
 from authlm.stores.memory_store import MemoryStore
 
-
-from collections.abc import Callable
 
 def _token_response() -> dict[str, Any]:
     return {
@@ -221,7 +220,6 @@ async def test_handler_returns_denied_html() -> None:
 @pytest.mark.asyncio
 async def test_port_collision_raises_authlm_error() -> None:
     """When the loopback factory raises OSError, raise AuthLMError."""
-    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
     def _failing_factory(
         addr: tuple[str, int], handler: type[BaseHTTPRequestHandler]
@@ -263,7 +261,6 @@ async def test_port_fallback_to_zero_on_collision() -> None:
             pass
 
     call_count = 0
-    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
     def factory(
         addr: tuple[str, int], handler: type[BaseHTTPRequestHandler]
