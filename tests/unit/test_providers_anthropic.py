@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 import httpx
 
+from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.providers.anthropic import ANTHROPIC_CLAUDE_PRO_WARNING, AnthropicProvider
 from authlm.providers.base import OAuthGrant, Provider
 
@@ -95,6 +96,6 @@ def test_anthropic_device_method_uses_form_encoded_content_type() -> None:
     )
     methods = provider.connection_methods(include_warned=True)
     device = next(m for m in methods if m.id == "claude_pro_oauth_device")
-    from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
+
     assert isinstance(device, OAuthDeviceCodeMethod)
     assert device._device_code_content_type == "application/x-www-form-urlencoded"  # noqa: SLF001
