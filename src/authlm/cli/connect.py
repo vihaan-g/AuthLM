@@ -46,6 +46,7 @@ def _open_browser() -> Callable[[str], None]:
 
     def _open(url: str) -> None:
         click.echo(f"Opening browser: {url[:80]}...", err=True)
+        click.echo("Waiting for authorization callback... (Ctrl-C to cancel, timeout: 5m)", err=True)
         webbrowser.open(url)
 
     return _open

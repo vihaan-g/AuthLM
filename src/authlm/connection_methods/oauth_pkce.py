@@ -8,7 +8,7 @@ import secrets
 import threading
 import webbrowser
 from collections.abc import Callable, Sequence
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -43,7 +43,7 @@ _log = logging.getLogger(__name__)
 def _default_loopback_factory(
     addr: tuple[str, int], handler: type[BaseHTTPRequestHandler]
 ) -> HTTPServer:
-    class _ReuseAddrServer(HTTPServer):
+    class _ReuseAddrServer(ThreadingHTTPServer):
         allow_reuse_address = True
 
     return _ReuseAddrServer(addr, handler)
