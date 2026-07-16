@@ -144,7 +144,9 @@ Use `CredentialUnion` for discriminated unions, and `parse_credential()` to dese
 > OpenAI OAuth methods (`chatgpt_oauth_browser`, `chatgpt_oauth_device`) produce
 > Codex-scoped access tokens that authenticate against `chatgpt.com/backend-api/codex`,
 > not the standard `api.openai.com` API. A Codex-compatible client is required to use
-> these tokens. For standard OpenAI API access, use the `api_key` method.
+> these tokens. For standard OpenAI API access, use the `api_key` method. Validation
+> probes (`validate()` / `authlm status --validate`) are not supported for these
+> methods.
 
 ### Error hierarchy
 
