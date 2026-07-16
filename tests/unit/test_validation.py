@@ -244,6 +244,7 @@ async def test_validate_api_key_google_uses_query_param(
     assert "key=AIza-test" in captured["url"]
     assert captured["auth"] == ""
 
+
 @pytest.mark.asyncio
 async def test_validate_chatgpt_oauth_skips() -> None:
     cred = OAuthCredential(
@@ -254,5 +255,6 @@ async def test_validate_chatgpt_oauth_skips() -> None:
         expires_at=None,
     )
     from authlm.errors import AuthLMError
+
     with pytest.raises(AuthLMError, match="Validation probe not supported"):
         await validate(cred, force=True)
