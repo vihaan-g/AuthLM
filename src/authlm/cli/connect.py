@@ -103,13 +103,16 @@ def connect(
     chosen: ConnectionMethod | None = None
     if method_id is not None:
         if method_id not in available_ids:
-            if include_warned:
+            all_methods = list(provider.connection_methods(include_warned=True))
+            all_ids = {m.id for m in all_methods}
+            if method_id in all_ids:
                 raise click.ClickException(
-                    f"Unknown method {method_id!r} for provider {provider_id!r}"
+                    f"Method {method_id!r} is not available without --include-warned. "
+                    "Pass --include-warned to use warned methods."
                 )
             raise click.ClickException(
-                f"Method {method_id!r} is not available without --include-warned. "
-                "Pass --include-warned to use warned methods."
+                f"Unknown method {method_id!r} for provider {provider_id!r}. "
+                f"Available methods: {', '.join(all_ids)}"
             )
         chosen = next(m for m in methods if m.id == method_id)
     else:
