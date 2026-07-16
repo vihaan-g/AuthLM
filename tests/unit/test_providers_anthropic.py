@@ -83,7 +83,7 @@ def test_connection_methods_accepts_http_client() -> None:
     methods = list(provider.connection_methods(include_warned=True))
     for m in methods:
         if hasattr(m, "_http_client"):
-            assert m._http_client is client  # type: ignore[comparison-overlap]
+            assert m._http_client is client
 
     assert provider._http_client is client  # noqa: SLF001
 
@@ -95,4 +95,6 @@ def test_anthropic_device_method_uses_form_encoded_content_type() -> None:
     )
     methods = provider.connection_methods(include_warned=True)
     device = next(m for m in methods if m.id == "claude_pro_oauth_device")
-    assert device._device_code_content_type == "application/x-www-form-urlencoded"  # type: ignore[union-attr]  # noqa: SLF001
+    from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
+    assert isinstance(device, OAuthDeviceCodeMethod)
+    assert device._device_code_content_type == "application/x-www-form-urlencoded"  # noqa: SLF001

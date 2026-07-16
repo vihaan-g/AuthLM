@@ -60,7 +60,7 @@ def test_connection_methods_accepts_http_client() -> None:
     methods = list(provider.connection_methods(include_warned=False))
     for m in methods:
         if hasattr(m, "_http_client"):
-            assert m._http_client is client  # type: ignore[comparison-overlap]
+            assert m._http_client is client
 
     assert provider._http_client is client  # noqa: SLF001
 
@@ -80,5 +80,5 @@ def test_google_provider_oauth_browser_method() -> None:
     assert pkce.warning is None
     assert pkce.oauth_grant is not None
     assert isinstance(pkce, OAuthPKCEMethod)
-    assert len(pkce._scopes) > 0  # type: ignore[union-attr]  # noqa: SLF001
-    assert "openid" in pkce._scopes  # type: ignore[union-attr]  # noqa: SLF001
+    assert len(pkce._scopes) > 0  # noqa: SLF001
+    assert "openid" in pkce._scopes  # noqa: SLF001
