@@ -12,5 +12,5 @@ def test_all_providers_satisfy_protocol() -> None:
 
 def test_oauth_grant_values() -> None:
     """OAuthGrant enum has expected values."""
-    assert OAuthGrant.AUTHORIZATION_CODE_PKCE == "authorization_code_pkce"
-    assert OAuthGrant.DEVICE_CODE == "device_code"
+    assert OAuthGrant.AUTHORIZATION_CODE_PKCE.value == "authorization_code_pkce"
+    assert OAuthGrant.DEVICE_CODE.value == "device_code"

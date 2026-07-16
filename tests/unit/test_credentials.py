@@ -67,7 +67,7 @@ def test_oauth_scopes_default_empty() -> None:
     assert cred.client_id is None
 
 
-_ADAPTER = TypeAdapter(CredentialUnion)
+_ADAPTER: TypeAdapter[CredentialUnion] = TypeAdapter(CredentialUnion)
 
 
 def test_union_parses_api_key() -> None:
