@@ -316,7 +316,7 @@ def test_connect_google_oauth_warns_default_client_id(
             expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
 
-    monkeypatch.setattr(_connect_mod._api, "connect", _fake_connect)
+    monkeypatch.setattr(_connect_mod._api, "connect", _fake_connect)  # type: ignore[attr-defined]
 
     result = runner.invoke(
         cli,
@@ -353,7 +353,7 @@ def test_connect_google_oauth_no_warning_with_custom_client_id(
             expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
 
-    monkeypatch.setattr(_connect_mod._api, "connect", _fake_connect)
+    monkeypatch.setattr(_connect_mod._api, "connect", _fake_connect)  # type: ignore[attr-defined]
 
     result = runner.invoke(
         cli,
