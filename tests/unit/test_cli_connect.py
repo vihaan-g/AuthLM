@@ -370,3 +370,15 @@ def test_connect_google_oauth_no_warning_with_custom_client_id(
     )
     assert result.exit_code == 0, result.output
     assert "AUTHLM_GOOGLE_CLIENT_ID" not in result.output
+
+def test_connect_unknown_method_lists_available(
+    runner: CliRunner, tmp_path: Path
+) -> None:
+    result = runner.invoke(
+        cli,
+        ["connect", "openai", "--method", "does_not_exist"],
+    )
+    assert result.exit_code != 0
+    assert "Unknown method 'does_not_exist' for provider 'openai'" in result.output
+    assert "Available methods:" in result.output
+
