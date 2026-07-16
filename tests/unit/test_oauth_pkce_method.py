@@ -23,6 +23,8 @@ from authlm.providers.base import OAuthGrant
 from authlm.stores.memory_store import MemoryStore
 
 
+from collections.abc import Callable
+
 def _token_response() -> dict[str, Any]:
     return {
         "access_token": "ACCESS",
@@ -32,7 +34,7 @@ def _token_response() -> dict[str, Any]:
     }
 
 
-def _make_callback_trigger(port: int, code: str):
+def _make_callback_trigger(port: int, code: str) -> Callable[[str], None]:
     def open_browser(authorize_url: str) -> None:
         query = parse_qs(urlparse(authorize_url).query)
         state = query.get("state", [""])[0]
@@ -176,7 +178,7 @@ async def test_handler_rejects_wrong_state() -> None:
     )
 
     captured: dict[str, str] = {}
-    server = method._start_loopback(captured, "expected-state")  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+    server = method._start_loopback(captured, "expected-state")  # noqa: SLF001
     port = server.server_address[1]
     try:
         with pytest.raises(HTTPError) as exc_info:
@@ -201,7 +203,7 @@ async def test_handler_returns_denied_html() -> None:
     )
 
     captured: dict[str, str] = {}
-    server = method._start_loopback(captured, "expected-state")  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+    server = method._start_loopback(captured, "expected-state")  # noqa: SLF001
     port = server.server_address[1]
     try:
         response = urlopen(
@@ -219,8 +221,11 @@ async def test_handler_returns_denied_html() -> None:
 @pytest.mark.asyncio
 async def test_port_collision_raises_authlm_error() -> None:
     """When the loopback factory raises OSError, raise AuthLMError."""
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-    def _failing_factory(addr: tuple[str, int], handler: Any) -> HTTPServer:
+    def _failing_factory(
+        addr: tuple[str, int], handler: type[BaseHTTPRequestHandler]
+    ) -> ThreadingHTTPServer:
         raise OSError("Address already in use")
 
     method = OAuthPKCEMethod(
@@ -234,7 +239,7 @@ async def test_port_collision_raises_authlm_error() -> None:
     )
 
     with pytest.raises(AuthLMError, match="in use"):
-        method._start_loopback({}, "state")  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+        method._start_loopback({}, "state")  # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -258,13 +263,16 @@ async def test_port_fallback_to_zero_on_collision() -> None:
             pass
 
     call_count = 0
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-    def factory(addr: tuple[str, int], handler: Any) -> Any:
+    def factory(
+        addr: tuple[str, int], handler: type[BaseHTTPRequestHandler]
+    ) -> ThreadingHTTPServer:
         nonlocal call_count
         call_count += 1
         if call_count == 1 and addr[1] != 0:
             raise OSError("Address already in use")
-        return FakeServer(addr, handler)
+        return FakeServer(addr, handler)  # type: ignore[return-value]
 
     method = OAuthPKCEMethod(
         provider_id="test",
@@ -275,7 +283,7 @@ async def test_port_fallback_to_zero_on_collision() -> None:
         redirect_port=1455,
         loopback_factory=factory,
     )
-    method._start_loopback({}, "state")  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+    method._start_loopback({}, "state")  # noqa: SLF001
     assert method._redirect_port == 9999  # noqa: SLF001
     assert call_count == 2
 
@@ -293,7 +301,7 @@ async def test_pkce_timeout_raises_connection_timeout() -> None:
     )
     captured: dict[str, str] = {}
     with pytest.raises(ConnectionTimeout):
-        await method._wait_for_code(captured, timeout=0.01)  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+        await method._wait_for_code(captured, timeout=0.01)  # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -309,7 +317,7 @@ async def test_state_mismatch_raises_authlm_error_not_timeout() -> None:
     )
     captured: dict[str, str] = {"error": "oauth_state_mismatch"}
     with pytest.raises(AuthLMError, match="state mismatch"):
-        await method._wait_for_code(captured, timeout=0.01)  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+        await method._wait_for_code(captured, timeout=0.01)  # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -332,7 +340,7 @@ async def test_non_json_token_response_raises_token_error() -> None:
     )
     pair = PKCEPair(verifier="test-verifier", challenge="test-challenge")
     with pytest.raises(TokenEndpointError, match="non-JSON"):
-        await method._exchange_code(  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+        await method._exchange_code(  # noqa: SLF001
             code="test-code", pair=pair, redirect_uri="http://127.0.0.1:0/callback"
         )
 
@@ -357,7 +365,7 @@ async def test_exchange_code_network_error_raises_refresh_failed() -> None:
     )
     pair = PKCEPair(verifier="test-verifier", challenge="test-challenge")
     with pytest.raises(RefreshFailed, match="network error"):
-        await method._exchange_code(  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+        await method._exchange_code(  # noqa: SLF001
             code="test-code", pair=pair, redirect_uri="http://127.0.0.1:0/callback"
         )
 
@@ -382,6 +390,6 @@ async def test_exchange_code_503_raises_refresh_failed() -> None:
     )
     pair = PKCEPair(verifier="test-verifier", challenge="test-challenge")
     with pytest.raises(RefreshFailed):
-        await method._exchange_code(  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+        await method._exchange_code(  # noqa: SLF001
             code="test-code", pair=pair, redirect_uri="http://127.0.0.1:0/callback"
         )

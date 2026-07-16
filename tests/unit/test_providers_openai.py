@@ -88,7 +88,15 @@ def test_openai_provider_uses_env_var_client_id(
     ]
     assert len(oauth_methods) > 0
     for m in oauth_methods:
-        assert m._client_id == "custom-client-id"  # type: ignore[union-attr]  # noqa: SLF001
+        if m.id == "chatgpt_oauth_browser":
+            from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
+
+            assert isinstance(m, OAuthPKCEMethod)
+        else:
+            from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
+
+            assert isinstance(m, OAuthDeviceCodeMethod)
+        assert m._client_id == "custom-client-id"  # noqa: SLF001
 
 
 def test_openai_method_ids_match_spec() -> None:
@@ -127,7 +135,7 @@ def test_connection_methods_accepts_http_client() -> None:
     methods = list(provider.connection_methods(include_warned=True))
     for m in methods:
         if hasattr(m, "_http_client"):
-            assert m._http_client is client  # type: ignore[comparison-overlap]
+            assert m._http_client is client
 
     assert provider._http_client is client
 
@@ -139,6 +147,8 @@ def test_openai_pkce_method_includes_codex_authorize_params() -> None:
     )
     methods = provider.connection_methods(include_warned=False)
     pkce = next(m for m in methods if m.id == "chatgpt_oauth_browser")
+    from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
+    assert isinstance(pkce, OAuthPKCEMethod)
     params = pkce._extra_authorize_params  # noqa: SLF001
     assert params["codex_cli_simplified_flow"] == "true"
     assert params["originator"] == "codex_cli_rs"
@@ -152,7 +162,9 @@ def test_openai_device_method_uses_json_content_type() -> None:
     )
     methods = provider.connection_methods(include_warned=False)
     device = next(m for m in methods if m.id == "chatgpt_oauth_device")
-    assert device._device_code_content_type == "application/json"  # type: ignore[union-attr]  # noqa: SLF001
+    from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
+    assert isinstance(device, OAuthDeviceCodeMethod)
+    assert device._device_code_content_type == "application/json"  # noqa: SLF001
 
 
 def test_openai_pkce_method_uses_codex_fixed_redirect_uri() -> None:
@@ -162,7 +174,9 @@ def test_openai_pkce_method_uses_codex_fixed_redirect_uri() -> None:
     )
     methods = provider.connection_methods(include_warned=False)
     pkce = next(method for method in methods if method.id == "chatgpt_oauth_browser")
-    assert pkce._fixed_redirect_uri == "http://localhost:1455/auth/callback"  # type: ignore[union-attr]  # noqa: SLF001
+    from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
+    assert isinstance(pkce, OAuthPKCEMethod)
+    assert pkce._fixed_redirect_uri == "http://localhost:1455/auth/callback"  # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -214,6 +228,8 @@ async def test_openai_device_flow_uses_codex_endpoints(
             for method in provider.connection_methods(include_warned=False)
             if method.id == "chatgpt_oauth_device"
         )
+        from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
+        assert isinstance(device, OAuthDeviceCodeMethod)
         credential = await device.with_on_prompt(on_prompt).connect(store=MemoryStore())
 
     assert isinstance(credential, OAuthCredential)

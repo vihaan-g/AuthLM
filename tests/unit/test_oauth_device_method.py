@@ -270,7 +270,7 @@ async def test_device_code_request_is_form_encoded() -> None:
         scopes=["openid"],
         http_client=httpx.AsyncClient(transport=httpx.MockTransport(_capture_request)),
     )
-    await method._request_device_code()  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+    await method._request_device_code()  # noqa: SLF001
     assert len(captured_content_type) == 1
     assert "application/x-www-form-urlencoded" in captured_content_type[0]
 
@@ -499,7 +499,7 @@ async def test_request_device_code_network_error_raises_refresh_failed() -> None
         http_client=httpx.AsyncClient(transport=httpx.MockTransport(_network_error)),
     )
     with pytest.raises(RefreshFailed, match="network error"):
-        await method._request_device_code()  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+        await method._request_device_code()  # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -518,7 +518,7 @@ async def test_request_device_code_503_raises_refresh_failed() -> None:
         http_client=httpx.AsyncClient(transport=httpx.MockTransport(_server_error)),
     )
     with pytest.raises(RefreshFailed):
-        await method._request_device_code()  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+        await method._request_device_code()  # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -546,6 +546,6 @@ async def test_device_code_request_is_json_when_configured() -> None:
         device_code_content_type="application/json",
         http_client=httpx.AsyncClient(transport=httpx.MockTransport(_capture_request)),
     )
-    await method._request_device_code()  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+    await method._request_device_code()  # noqa: SLF001
     assert len(captured_content_type) == 1
     assert "application/json" in captured_content_type[0]
