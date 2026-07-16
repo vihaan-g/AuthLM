@@ -116,7 +116,8 @@ def status(
                     )
         else:
             click.echo(
-                "Note: No fingerprint metadata found for this credential; tamper detection unavailable.",
+                "Note: No fingerprint metadata found for this credential; "
+                "tamper detection unavailable.",
                 err=True,
             )
         if do_validate:

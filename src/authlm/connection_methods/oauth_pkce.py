@@ -8,7 +8,7 @@ import secrets
 import threading
 import webbrowser
 from collections.abc import Callable, Sequence
-from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -42,7 +42,7 @@ _log = logging.getLogger(__name__)
 
 def _default_loopback_factory(
     addr: tuple[str, int], handler: type[BaseHTTPRequestHandler]
-) -> HTTPServer:
+) -> ThreadingHTTPServer:
     class _ReuseAddrServer(ThreadingHTTPServer):
         allow_reuse_address = True
 
@@ -68,7 +68,7 @@ class OAuthPKCEMethod(ConnectionMethod):
         fixed_redirect_uri: str | None = None,
         extra_authorize_params: dict[str, str] | None = None,
         loopback_factory: Callable[
-            [tuple[str, int], type[BaseHTTPRequestHandler]], HTTPServer
+            [tuple[str, int], type[BaseHTTPRequestHandler]], ThreadingHTTPServer
         ] = _default_loopback_factory,
         open_browser: Callable[[str], None] = _default_open_browser,
         http_client: httpx.AsyncClient | None = None,
@@ -184,7 +184,7 @@ class OAuthPKCEMethod(ConnectionMethod):
 
     def _start_loopback(
         self, captured: dict[str, str], expected_state: str
-    ) -> HTTPServer:
+    ) -> ThreadingHTTPServer:
         loop = asyncio.get_event_loop()
         provider_id = self._provider_id
 
