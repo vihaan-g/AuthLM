@@ -114,6 +114,11 @@ def status(
                         "(key may have been rotated externally).",
                         err=True,
                     )
+        else:
+            click.echo(
+                "Note: No fingerprint metadata found for this credential; tamper detection unavailable.",
+                err=True,
+            )
         if do_validate:
             if force:
                 method = _get_method(provider, cred.method_id)
