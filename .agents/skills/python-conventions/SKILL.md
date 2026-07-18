@@ -1,6 +1,6 @@
 ---
 name: python-conventions
-description: Mandatory conventions for every Python task. Always load before reading, reasoning about, reviewing, planning, generating, debugging, testing, refactoring, or editing any Python code or Python project. Covers style, typing, architecture, exceptions, filesystem, tooling, packaging, and project conventions.
+description: MANDATORY for all Python tasks. Load before reading, analyzing, planning, reviewing, debugging, generating, refactoring, testing, or editing any Python code or Python project. Applies to .py files, pyproject.toml, tests, typing, linting, packaging, architecture, and configuration.
 ---
 
 # Python Conventions
