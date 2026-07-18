@@ -1,6 +1,6 @@
 ---
 name: python-conventions
-description: Use when editing Python files, pyproject.toml, Python typing, pathlib, exceptions, async code, Pydantic models, Ruff, mypy, or pyright settings.
+description: Mandatory conventions for every Python task. Always load before reading, reasoning about, reviewing, planning, generating, debugging, testing, refactoring, or editing any Python code or Python project. Covers style, typing, architecture, exceptions, filesystem, tooling, packaging, and project conventions.
 ---
 
 # Python Conventions
