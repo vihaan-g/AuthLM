@@ -243,3 +243,12 @@ async def test_openai_device_flow_uses_codex_endpoints(
         "redirect_uri=https%3A%2F%2Fauth.openai.com%2Fdeviceauth%2Fcallback"
         in request_body
     )
+
+
+def test_connection_methods_lazy_http_client() -> None:
+    """connection_methods() passes None for http_client when none is configured."""
+    provider = OpenAIProvider(secret_prompt=lambda _p: "")
+    methods = list(provider.connection_methods(include_warned=True))
+    for m in methods:
+        if hasattr(m, "_http_client"):
+            assert m._http_client is None  # noqa: SLF001

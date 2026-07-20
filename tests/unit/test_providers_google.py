@@ -82,3 +82,12 @@ def test_google_provider_oauth_browser_method() -> None:
     assert isinstance(pkce, OAuthPKCEMethod)
     assert len(pkce._scopes) > 0  # noqa: SLF001
     assert "openid" in pkce._scopes  # noqa: SLF001
+
+
+def test_connection_methods_lazy_http_client() -> None:
+    """connection_methods() passes None for http_client when none is configured."""
+    provider = GoogleProvider(secret_prompt=lambda _p: "")
+    methods = list(provider.connection_methods(include_warned=True))
+    for m in methods:
+        if hasattr(m, "_http_client"):
+            assert m._http_client is None  # noqa: SLF001
