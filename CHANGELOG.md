@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   endpoint returns 400 for form-encoded bodies with "Input should be a valid
   dictionary or object to extract fields from".
 - `OAuthPKCEMethod` loopback server now sets `allow_reuse_address` only on POSIX systems (`sys.platform != "win32"`) and unblocks event-loop waiters immediately on user denial or state mismatch.
+- `KeyringStore` methods `get()`, `set()`, and `delete()` now catch generic `Exception` backend errors (e.g. Linux D-Bus / SecretStorage failures) and wrap them in `SecretStoreError`, and `_index_write()` now writes atomically via a temporary file.
 
 ### Security
 - Added `"key"` to the URL query-parameter redaction set (`_REDACTED_PARAMS`)
