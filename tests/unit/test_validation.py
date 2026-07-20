@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -10,6 +11,7 @@ from respx import MockRouter
 from authlm.connection_methods._oauth_helpers import redact_body
 from authlm.credentials import ApiKeyCredential, OAuthCredential
 from authlm.errors import AccessDenied, RefreshFailed, TokenEndpointError
+from authlm.metadata import MetadataStore
 from authlm.validation import validate
 
 
@@ -258,3 +260,19 @@ async def test_validate_chatgpt_oauth_skips() -> None:
 
     with pytest.raises(AuthLMError, match="Validation probe not supported"):
         await validate(cred, force=True)
+
+
+@pytest.mark.asyncio
+async def test_validate_updates_metadata_last_validated_at(
+    respx_mock: MockRouter, tmp_path: Path
+) -> None:
+    meta_path = tmp_path / "metadata.json"
+    meta_store = MetadataStore(path=meta_path)
+    cred = ApiKeyCredential(
+        provider="openai", alias="default", method_id="api_key", secret="sk-test"
+    )
+    respx_mock.get("https://api.openai.com/v1/models").respond(200, json={"data": []})
+    assert await validate(cred, force=False, metadata_store=meta_store) is True
+    entry = meta_store.get("openai", "default")
+    assert entry is not None
+    assert entry.last_validated_at is not None

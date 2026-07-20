@@ -324,3 +324,9 @@ def test_build_oauth_credential_raises_on_missing_access_token() -> None:
         build_oauth_credential(
             data=data, provider="openai", alias="default", method_id="test"
         )
+
+
+def test_redact_body_redacts_id_token() -> None:
+    result = redact_body('{"id_token": "secret-jwt-payload", "other": "ok"}')
+    assert "secret-jwt-payload" not in result
+    assert "[REDACTED]" in result

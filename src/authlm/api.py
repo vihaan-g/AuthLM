@@ -159,9 +159,11 @@ async def refresh(
         CredentialNotFound: No credential stored for (provider, alias).
         ReconnectionRequired: Refresh token is dead (invalid_grant);
             re-run ``connect()``.
+        AccessDenied: Token works but user lacks entitlement (entitlement_denied).
         RefreshFailed: Transient network error or 5xx from token endpoint.
         TokenEndpointError: Other token endpoint error.
         AuthLMError: Provider has no OAuth config.
+
     """
     backend = store or get_default_store()
     cred = backend.get(provider, alias)

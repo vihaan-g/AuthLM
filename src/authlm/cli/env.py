@@ -16,7 +16,7 @@ class EnvFormat(StrEnum):
 
 
 def _format_shell(lines: list[tuple[str, str]]) -> str:
-    return "\n".join(f"{k}={shlex.quote(v)}" for k, v in lines) + "\n"
+    return "\n".join(f"export {k}={shlex.quote(v)}" for k, v in lines) + "\n"
 
 
 def _format_github(lines: list[tuple[str, str]]) -> str:

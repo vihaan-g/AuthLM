@@ -166,3 +166,18 @@ def test_docker_format_has_no_shell_quoting(
     assert result.exit_code == 0, result.output
     assert "'" not in result.output
     assert "OPENAI_API_KEY=sk test value" in result.output
+
+
+def test_env_shell_format_includes_export_keyword(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store = MemoryStore()
+    store.set(
+        ApiKeyCredential(
+            provider="openai", alias="default", method_id="api_key", secret="sk-test"
+        )
+    )
+    _patch_store(monkeypatch, store)
+    result = runner.invoke(cli, ["env", "openai", "--store", "memory"])
+    assert result.exit_code == 0
+    assert result.output.startswith("export OPENAI_API_KEY=")
