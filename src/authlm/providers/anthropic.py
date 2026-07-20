@@ -113,7 +113,7 @@ class AnthropicProvider(Provider):
     def connection_methods(
         self, *, include_warned: bool, http_client: httpx.AsyncClient | None = None
     ) -> Sequence[ConnectionMethod]:
-        client = http_client or self._http_client or httpx.AsyncClient()
+        client = http_client or self._http_client
         oauth = get_oauth_config("anthropic")
         assert oauth is not None
 

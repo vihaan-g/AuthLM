@@ -105,9 +105,13 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
 
     @override
     async def connect(self, *, store: CredentialStore) -> Credential:
-        if self._http_client is None:
-            raise RuntimeError("http_client is required for connect()")
-        device = await self._request_device_code()
+        if self._http_client is not None:
+            return await self._connect_with_client(self._http_client)
+        async with httpx.AsyncClient() as client:
+            return await self._connect_with_client(client)
+
+    async def _connect_with_client(self, client: httpx.AsyncClient) -> Credential:
+        device = await self._request_device_code(client=client)
         self._on_prompt(str(device["verification_uri"]), str(device["user_code"]))
 
         effective_interval: float = self._poll_interval_seconds
@@ -126,6 +130,7 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
             str(device["device_code"]),
             interval=effective_interval,
             timeout=effective_timeout,
+            client=client,
         )
         return build_oauth_credential(
             data=token,
@@ -135,21 +140,25 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
             client_id=self._client_id,
         )
 
-    async def _request_device_code(self) -> dict[str, Any]:
-        assert self._http_client is not None
+    async def _request_device_code(
+        self, *, client: httpx.AsyncClient | None = None
+    ) -> dict[str, Any]:
+        http_client = client or self._http_client
+        if http_client is None:
+            raise RuntimeError("http_client is required")
         body: dict[str, str] = {
             "client_id": self._client_id,
             "scope": " ".join(self._scopes),
         }
         try:
             if self._device_code_content_type == "application/json":
-                response = await self._http_client.post(
+                response = await http_client.post(
                     str(self._device_code_url),
                     json=body,
                     timeout=30.0,
                 )
             else:
-                response = await self._http_client.post(
+                response = await http_client.post(
                     str(self._device_code_url),
                     data=body,
                     timeout=30.0,
@@ -184,14 +193,21 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
         return cast(dict[str, Any], data)
 
     async def _poll_for_token(
-        self, device_code: str, *, interval: float, timeout: float
+        self,
+        device_code: str,
+        *,
+        interval: float,
+        timeout: float,
+        client: httpx.AsyncClient | None = None,
     ) -> dict[str, Any]:
-        assert self._http_client is not None
+        http_client = client or self._http_client
+        if http_client is None:
+            raise RuntimeError("http_client is required")
         loop = asyncio.get_running_loop()
         deadline = loop.time() + timeout
         while True:
             _log.debug("POST %s", redact_url(str(self._token_url)))
-            response = await self._http_client.post(
+            response = await http_client.post(
                 str(self._token_url),
                 data={
                     "grant_type": "urn:ietf:params:oauth:grant-type:device_code",

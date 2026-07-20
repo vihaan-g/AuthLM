@@ -149,8 +149,6 @@ class OAuthPKCEMethod(ConnectionMethod):
 
     @override
     async def connect(self, *, store: CredentialStore) -> Credential:
-        if self._http_client is None:
-            raise RuntimeError("http_client is required for connect()")
         pair = generate_pkce_pair()
         state = secrets.token_urlsafe(24)
 
@@ -179,9 +177,20 @@ class OAuthPKCEMethod(ConnectionMethod):
             server.shutdown()
             server.server_close()
 
-        return await self._exchange_code(
-            code=code, pair=pair, redirect_uri=redirect_uri
-        )
+        if self._http_client is not None:
+            return await self._exchange_code(
+                code=code,
+                pair=pair,
+                redirect_uri=redirect_uri,
+                client=self._http_client,
+            )
+        async with httpx.AsyncClient() as client:
+            return await self._exchange_code(
+                code=code,
+                pair=pair,
+                redirect_uri=redirect_uri,
+                client=client,
+            )
 
     def _start_loopback(
         self, captured: dict[str, str], expected_state: str
@@ -299,9 +308,16 @@ class OAuthPKCEMethod(ConnectionMethod):
         return captured["code"]
 
     async def _exchange_code(
-        self, *, code: str, pair: PKCEPair, redirect_uri: str
+        self,
+        *,
+        code: str,
+        pair: PKCEPair,
+        redirect_uri: str,
+        client: httpx.AsyncClient | None = None,
     ) -> OAuthCredential:
-        assert self._http_client is not None
+        http_client = client or self._http_client
+        if http_client is None:
+            raise RuntimeError("http_client is required for _exchange_code")
         payload: dict[str, str] = {
             "grant_type": "authorization_code",
             "code": code,
@@ -311,7 +327,7 @@ class OAuthPKCEMethod(ConnectionMethod):
         }
         _log.debug("POST %s", redact_url(str(self._token_url)))
         try:
-            response = await self._http_client.post(
+            response = await http_client.post(
                 str(self._token_url), data=payload, timeout=30.0
             )
         except httpx.HTTPError as exc:

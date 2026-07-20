@@ -136,18 +136,32 @@ class _ChatGPTDevice(OAuthDeviceCodeMethod):
     @override
     async def connect(self, *, store: CredentialStore) -> Credential:
         del store
-        user_code = await self._request_user_code()
+        if self._http_client is not None:
+            return await self._connect_with_client(self._http_client)
+        async with httpx.AsyncClient() as client:
+            return await self._connect_with_client(client)
+
+    async def _connect_with_client(self, client: httpx.AsyncClient) -> Credential:
+        user_code = await self._request_user_code(client=client)
         self._on_prompt(
             str(self._device_code_verification_uri),
             user_code.user_code,
         )
-        authorization_code = await self._poll_for_authorization_code(user_code)
-        return await self._exchange_authorization_code(authorization_code)
+        authorization_code = await self._poll_for_authorization_code(
+            user_code, client=client
+        )
+        return await self._exchange_authorization_code(
+            authorization_code, client=client
+        )
 
-    async def _request_user_code(self) -> _ChatGPTDeviceUserCode:
-        assert self._http_client is not None
+    async def _request_user_code(
+        self, *, client: httpx.AsyncClient | None = None
+    ) -> _ChatGPTDeviceUserCode:
+        http_client = client or self._http_client
+        if http_client is None:
+            raise RuntimeError("http_client is required")
         try:
-            response = await self._http_client.post(
+            response = await http_client.post(
                 str(self._device_code_url),
                 json={"client_id": self._client_id},
                 timeout=30.0,
@@ -175,13 +189,18 @@ class _ChatGPTDevice(OAuthDeviceCodeMethod):
             ) from exc
 
     async def _poll_for_authorization_code(
-        self, user_code: _ChatGPTDeviceUserCode
+        self,
+        user_code: _ChatGPTDeviceUserCode,
+        *,
+        client: httpx.AsyncClient | None = None,
     ) -> _ChatGPTDeviceAuthorizationCode:
-        assert self._http_client is not None
+        http_client = client or self._http_client
+        if http_client is None:
+            raise RuntimeError("http_client is required")
         loop = asyncio.get_running_loop()
         deadline = loop.time() + self._poll_timeout_seconds
         while True:
-            response = await self._http_client.post(
+            response = await http_client.post(
                 str(self._device_code_poll_url),
                 json={
                     "device_auth_id": user_code.device_auth_id,
@@ -210,9 +229,14 @@ class _ChatGPTDevice(OAuthDeviceCodeMethod):
             )
 
     async def _exchange_authorization_code(
-        self, authorization_code: _ChatGPTDeviceAuthorizationCode
+        self,
+        authorization_code: _ChatGPTDeviceAuthorizationCode,
+        *,
+        client: httpx.AsyncClient | None = None,
     ) -> OAuthCredential:
-        assert self._http_client is not None
+        http_client = client or self._http_client
+        if http_client is None:
+            raise RuntimeError("http_client is required")
         payload: dict[str, str] = {
             "grant_type": "authorization_code",
             "code": authorization_code.authorization_code,
@@ -221,7 +245,7 @@ class _ChatGPTDevice(OAuthDeviceCodeMethod):
             "code_verifier": authorization_code.code_verifier,
         }
         try:
-            response = await self._http_client.post(
+            response = await http_client.post(
                 str(self._token_url), data=payload, timeout=30.0
             )
         except httpx.HTTPError as exc:
@@ -299,7 +323,7 @@ class OpenAIProvider(Provider):
     def connection_methods(
         self, *, include_warned: bool, http_client: httpx.AsyncClient | None = None
     ) -> Sequence[ConnectionMethod]:
-        client = http_client or self._http_client or httpx.AsyncClient()
+        client = http_client or self._http_client
         oauth = get_oauth_config("openai")
         assert oauth is not None
         assert oauth.fixed_redirect_uri is not None

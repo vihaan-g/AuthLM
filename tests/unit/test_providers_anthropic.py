@@ -99,3 +99,12 @@ def test_anthropic_device_method_uses_form_encoded_content_type() -> None:
 
     assert isinstance(device, OAuthDeviceCodeMethod)
     assert device._device_code_content_type == "application/x-www-form-urlencoded"  # noqa: SLF001
+
+
+def test_connection_methods_lazy_http_client() -> None:
+    """connection_methods() passes None for http_client when none is configured."""
+    provider = AnthropicProvider(secret_prompt=lambda _p: "")
+    methods = list(provider.connection_methods(include_warned=True))
+    for m in methods:
+        if hasattr(m, "_http_client"):
+            assert m._http_client is None  # noqa: SLF001
