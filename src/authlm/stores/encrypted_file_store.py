@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import contextlib
-import getpass
 import json
 import os
 import sys
@@ -45,33 +44,41 @@ def _restrict_permissions(path: Path) -> None:
 
 
 def _restrict_permissions_windows(path: Path) -> None:
-    """Restrict file permissions to current user via NTFS ACLs.
-
-    Removes inherited ACEs (equivalent to ``icacls /inheritance:r``) and replaces
-    the DACL with a single Read+Write ACE for the current user (equivalent to
-    ``icacls /grant:r "<user>:(R,W)"``). The ``pywin32`` package is a
-    platform-marked core dependency on Windows, so the import is safe.
-    """
+    """Set Windows DACL to grant full access only to current user SID."""
     import ntsecuritycon  # type: ignore[import-untyped]  # pyright: ignore[reportMissingModuleSource]
+    import win32api  # type: ignore[import-untyped]  # pyright: ignore[reportMissingModuleSource]
     import win32security  # type: ignore[import-untyped]  # pyright: ignore[reportMissingModuleSource]
 
-    user_sid, _, _ = win32security.LookupAccountName(None, getpass.getuser())
-    dacl = win32security.ACL()
-    dacl.AddAccessAllowedAce(
-        win32security.ACL_REVISION,
-        ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_WRITE,
-        user_sid,
-    )
-    win32security.SetNamedSecurityInfo(
-        str(path),
-        win32security.SE_FILE_OBJECT,
-        win32security.DACL_SECURITY_INFORMATION
-        | win32security.PROTECTED_DACL_SECURITY_INFORMATION,
-        None,
-        None,
-        dacl,
-        None,
-    )
+    try:
+        token = win32security.OpenProcessToken(
+            win32api.GetCurrentProcess(), ntsecuritycon.TOKEN_QUERY
+        )
+        user_sid, _ = win32security.GetTokenInformation(token, win32security.TokenUser)
+
+        dacl = win32security.ACL()
+        dacl.AddAccessAllowedAce(
+            win32security.ACL_REVISION,
+            ntsecuritycon.FILE_ALL_ACCESS,
+            user_sid,
+        )
+
+        sd = win32security.SECURITY_DESCRIPTOR()
+        sd.SetDacl(1, dacl, 0)
+
+        win32security.SetNamedSecurityInfo(
+            str(path),
+            win32security.SE_FILE_OBJECT,
+            win32security.DACL_SECURITY_INFORMATION
+            | win32security.PROTECTED_DACL_SECURITY_INFORMATION,
+            None,
+            None,
+            dacl,
+            None,
+        )
+    except Exception as exc:
+        raise SecretStoreError(
+            f"Failed to set Windows permissions on {path}: {exc}"
+        ) from exc
 
 
 class EncryptedFileStore(CredentialStore):
