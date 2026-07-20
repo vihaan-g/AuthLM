@@ -219,3 +219,21 @@ def test_invalid_schema_raises_secret_store_error(tmp_path: Path) -> None:
     store = EncryptedFileStore(path=path, passphrase="test", iterations=100_000)
     with pytest.raises(SecretStoreError, match="schema"):
         store.get("openai", "default")
+
+
+def test_windows_permission_restriction_handles_token_user(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """_restrict_permissions_windows retrieves user SID via process token
+    without LookupAccountName.
+    """
+    if sys.platform != "win32":
+        pytest.skip("Windows only test")
+
+    store_path = tmp_path / "test.enc.json"
+    store_path.write_text("{}")
+    from authlm.stores.encrypted_file_store import _restrict_permissions_windows
+
+    # Calling restriction should complete without raising pywintypes.error (1332)
+    _restrict_permissions_windows(store_path)
+    assert store_path.exists()
