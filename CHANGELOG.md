@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   endpoint instead of form-encoded. OpenAI's `/api/accounts/deviceauth/usercode`
   endpoint returns 400 for form-encoded bodies with "Input should be a valid
   dictionary or object to extract fields from".
+- `OAuthPKCEMethod` loopback server now sets `allow_reuse_address` only on POSIX systems (`sys.platform != "win32"`) and unblocks event-loop waiters immediately on user denial or state mismatch.
 
 ### Security
 - Added `"key"` to the URL query-parameter redaction set (`_REDACTED_PARAMS`)
@@ -44,8 +45,10 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   with the existing `api_key` and `secret` redaction.
 
 ### Changed
+- `OAuthPKCEMethod` and `OAuthDeviceCodeMethod` now log initial prompt/browser URLs at `DEBUG` level instead of `INFO`.
 - README now documents that OpenAI OAuth methods produce Codex-scoped tokens targeting
   the Codex backend, not the standard OpenAI API.
+
 
 ### Deferred
 

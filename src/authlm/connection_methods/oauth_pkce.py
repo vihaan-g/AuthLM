@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import secrets
+import sys
 import threading
 import webbrowser
 from collections.abc import Callable, Sequence
@@ -44,7 +45,7 @@ def _default_loopback_factory(
     addr: tuple[str, int], handler: type[BaseHTTPRequestHandler]
 ) -> ThreadingHTTPServer:
     class _ReuseAddrServer(ThreadingHTTPServer):
-        allow_reuse_address = True
+        allow_reuse_address = sys.platform != "win32"
 
     return _ReuseAddrServer(addr, handler)
 
@@ -171,7 +172,7 @@ class OAuthPKCEMethod(ConnectionMethod):
                 code_challenge=pair.challenge,
                 extra_params=self._extra_authorize_params or None,
             )
-            _log.info("Opening browser to %s", redact_url(authorize_url))
+            _log.debug("Opening browser to %s", redact_url(authorize_url))
             self._open_browser(authorize_url)
             code = await self._wait_for_code(captured, timeout=300.0)
         finally:
@@ -186,13 +187,13 @@ class OAuthPKCEMethod(ConnectionMethod):
         self, captured: dict[str, str], expected_state: str
     ) -> ThreadingHTTPServer:
         loop = asyncio.get_event_loop()
-        provider_id = self._provider_id
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:  # noqa: N802
                 query = parse_qs(urlparse(self.path).query)
                 received_error = query.get("error", [""])[0]
                 if received_error:
+                    captured["error"] = received_error
                     self.send_response(200)
                     self.send_header("Content-Type", "text/html")
                     self.end_headers()
@@ -200,10 +201,10 @@ class OAuthPKCEMethod(ConnectionMethod):
                         b"<html><body>Authorization denied."
                         b" You may close this tab.</body></html>"
                     )
-                    raise TokenEndpointError(
-                        f"Authorization denied by user for {provider_id}: "
-                        f"{received_error}"
-                    )
+                    event = captured.get("_event")
+                    if isinstance(event, asyncio.Event):
+                        loop.call_soon_threadsafe(event.set)
+                    return
                 if "code" in captured:
                     self.send_response(410)
                     self.end_headers()
@@ -215,6 +216,9 @@ class OAuthPKCEMethod(ConnectionMethod):
                     self.end_headers()
                     self.wfile.write(b"state mismatch")
                     captured["error"] = "oauth_state_mismatch"
+                    event = captured.get("_event")
+                    if isinstance(event, asyncio.Event):
+                        loop.call_soon_threadsafe(event.set)
                     return
                 captured["code"] = query.get("code", [""])[0]
                 self.send_response(200)
@@ -254,6 +258,18 @@ class OAuthPKCEMethod(ConnectionMethod):
     async def _wait_for_code(self, captured: dict[str, str], *, timeout: float) -> str:
         if "code" in captured:
             return captured["code"]
+        if captured.get("error") == "oauth_state_mismatch":
+            raise AuthLMError(
+                "OAuth state mismatch — the callback state parameter "
+                "did not match the expected value. This may indicate a "
+                "CSRF attack, a misconfigured redirect URI, or a "
+                "browser/tool that modified the callback URL."
+            )
+        if "error" in captured:
+            raise TokenEndpointError(
+                f"Authorization denied by user for {self._provider_id}: "
+                f"{captured['error']}"
+            )
 
         event = asyncio.Event()
         captured["_event"] = event  # type: ignore[assignment]
@@ -261,18 +277,24 @@ class OAuthPKCEMethod(ConnectionMethod):
         try:
             await asyncio.wait_for(event.wait(), timeout=timeout)
         except TimeoutError:
-            if captured.get("error") == "oauth_state_mismatch":
-                raise AuthLMError(
-                    "OAuth state mismatch — the callback state parameter "
-                    "did not match the expected value. This may indicate a "
-                    "CSRF attack, a misconfigured redirect URI, or a "
-                    "browser/tool that modified the callback URL."
-                ) from None
             raise ConnectionTimeout(
                 "OAuth PKCE flow timed out waiting for callback"
             ) from None
         finally:
             captured.pop("_event", None)
+
+        if captured.get("error") == "oauth_state_mismatch":
+            raise AuthLMError(
+                "OAuth state mismatch — the callback state parameter "
+                "did not match the expected value. This may indicate a "
+                "CSRF attack, a misconfigured redirect URI, or a "
+                "browser/tool that modified the callback URL."
+            )
+        if "error" in captured:
+            raise TokenEndpointError(
+                f"Authorization denied by user for {self._provider_id}: "
+                f"{captured['error']}"
+            )
 
         return captured["code"]
 
