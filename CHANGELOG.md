@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   returns whether a client ID matches the hardcoded default for a provider.
 
 ### Fixed
+- `EnvStore.get()` now returns `None` when `alias != "default"` instead of raising `CredentialNotFound`, aligning it with the `CredentialStore` protocol contract.
 - `OAuthPKCEMethod` now correctly uses `ThreadingHTTPServer` to prevent the loopback server from hanging indefinitely when a browser leaves an HTTP Keep-Alive connection open after the authorization callback.
 - `connect` CLI error messages correctly distinguish between unknown methods and warned methods, listing available method IDs when an unknown one is provided.
 - `validate()` now skips probing for OpenAI's `chatgpt_oauth_browser` and `chatgpt_oauth_device` methods by raising `AuthLMError`, avoiding inevitable 403 errors since those tokens do not have entitlement for the standard validation endpoint.

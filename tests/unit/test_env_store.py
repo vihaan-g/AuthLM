@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from authlm.credentials import ApiKeyCredential
-from authlm.errors import CredentialNotFound, SecretStoreError
+from authlm.errors import SecretStoreError
 from authlm.stores.base import CredentialStore
 from authlm.stores.env_store import EnvStore
 
@@ -37,10 +37,11 @@ def test_get_unknown_provider_returns_none(monkeypatch: pytest.MonkeyPatch) -> N
     assert _store().get("unknown", "default") is None
 
 
-def test_get_non_default_alias_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_non_default_alias_returns_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
-    with pytest.raises(CredentialNotFound):
-        _store().get("openai", "work")
+    assert _store().get("openai", "work") is None
 
 
 def test_set_raises_secret_store_error() -> None:

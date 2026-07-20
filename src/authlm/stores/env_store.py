@@ -6,7 +6,7 @@ from collections.abc import Iterator, Mapping
 from typing_extensions import override
 
 from authlm.credentials import ApiKeyCredential, Credential
-from authlm.errors import CredentialNotFound, SecretStoreError
+from authlm.errors import SecretStoreError
 from authlm.stores.base import CredentialStore
 
 _ENV_VAR_MAP: dict[str, str] = {
@@ -26,9 +26,7 @@ class EnvStore(CredentialStore):
     @override
     def get(self, provider: str, alias: str) -> Credential | None:
         if alias != "default":
-            raise CredentialNotFound(
-                f"EnvStore only supports alias='default', got {alias!r}"
-            )
+            return None
         env_var = self._mapping.get(provider)
         if env_var is None:
             return None
