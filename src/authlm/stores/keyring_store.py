@@ -27,7 +27,7 @@ class KeyringStore(CredentialStore):
     def get(self, provider: str, alias: str) -> Credential | None:
         try:
             raw = keyring.get_password(self._service(provider), alias)
-        except errors.KeyringError as exc:
+        except (errors.KeyringError, Exception) as exc:
             raise SecretStoreError(str(exc)) from exc
         if raw is None:
             return None
@@ -41,7 +41,7 @@ class KeyringStore(CredentialStore):
                 credential.alias,
                 credential.model_dump_json(),
             )
-        except errors.KeyringError as exc:
+        except (errors.KeyringError, Exception) as exc:
             raise SecretStoreError(str(exc)) from exc
         try:
             self._index_add(credential.provider, credential.alias)
@@ -54,7 +54,7 @@ class KeyringStore(CredentialStore):
             keyring.delete_password(self._service(provider), alias)
         except errors.PasswordDeleteError:
             return False
-        except errors.KeyringError as exc:
+        except (errors.KeyringError, Exception) as exc:
             raise SecretStoreError(str(exc)) from exc
         try:
             self._index_remove(provider, alias)
@@ -86,12 +86,14 @@ class KeyringStore(CredentialStore):
 
     def _index_write(self, entries: _Index) -> None:
         self._index_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = self._index_path.with_suffix(".tmp")
         try:
-            self._index_path.write_text(json.dumps(entries))
+            tmp_path.write_text(json.dumps(entries), encoding="utf-8")
+            with contextlib.suppress(OSError):
+                os.chmod(tmp_path, 0o600)
+            tmp_path.replace(self._index_path)
         except OSError as exc:
             raise SecretStoreError(str(exc)) from exc
-        with contextlib.suppress(OSError):
-            os.chmod(self._index_path, 0o600)
 
     def _index_add(self, provider: str, alias: str) -> None:
         entries = self._index_read()

@@ -184,3 +184,60 @@ def test_list_raises_secret_store_error_on_corrupted_index(
 
     with pytest.raises(SecretStoreError):
         list(store.list())
+
+
+def test_get_raises_secret_store_error_on_generic_backend_exception(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """get() wraps non-KeyringError backend exceptions in SecretStoreError."""
+    store = KeyringStore(index_path=tmp_path / "index.json")
+
+    def failing_get_password(service: str, username: str) -> None:
+        raise RuntimeError("SecretService D-Bus connection closed")
+
+    monkeypatch.setattr(keyring, "get_password", failing_get_password)
+
+    with pytest.raises(SecretStoreError, match="D-Bus connection closed"):
+        store.get("openai", "default")
+
+
+def test_set_raises_secret_store_error_on_generic_backend_exception(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """set() wraps non-KeyringError backend exceptions in SecretStoreError."""
+    store = KeyringStore(index_path=tmp_path / "index.json")
+    cred = _api_key()
+
+    def failing_set_password(service: str, username: str, password: str) -> None:
+        raise RuntimeError("SecretService D-Bus connection closed")
+
+    monkeypatch.setattr(keyring, "set_password", failing_set_password)
+
+    with pytest.raises(SecretStoreError, match="D-Bus connection closed"):
+        store.set(cred)
+
+
+def test_delete_raises_secret_store_error_on_generic_backend_exception(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """delete() wraps non-KeyringError backend exceptions in SecretStoreError."""
+    store = KeyringStore(index_path=tmp_path / "index.json")
+    store._index_write([["openai", "default"]])  # noqa: SLF001
+
+    def failing_delete_password(service: str, username: str) -> None:
+        raise RuntimeError("SecretService D-Bus connection closed")
+
+    monkeypatch.setattr(keyring, "delete_password", failing_delete_password)
+
+    with pytest.raises(SecretStoreError, match="D-Bus connection closed"):
+        store.delete("openai", "default")
+
+
+def test_index_write_is_atomic(tmp_path: Path) -> None:
+    """_index_write writes via .tmp and creates final index file."""
+    index_path = tmp_path / "index.json"
+    store = KeyringStore(index_path=index_path)
+    store._index_write([["openai", "default"]])  # noqa: SLF001
+
+    assert index_path.exists()
+    assert not (tmp_path / "index.tmp").exists()
