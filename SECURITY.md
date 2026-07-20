@@ -35,7 +35,7 @@ We follow coordinated disclosure. We will work with you on an embargo period and
 ### AuthLM protects against
 
 - **Secrets written to disk in plaintext.** The default backend is the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service). Plaintext file storage is opt-in and warns.
-- **Secrets appearing in log output or exception messages.** All logs route through a redaction layer in `authlm.connection_methods._oauth_helpers` (`redact_body`, `redact_url`, `_redact_dict`) that scrubs OAuth tokens, API keys, client secrets, and other sensitive JSON body fields. URL query parameters named `code` and `token` are redacted from logged URLs. HTTP response header redaction (e.g., `Authorization: Bearer`) is handled at the VCR cassette layer used in integration tests (v0.2.0); runtime headers are not intercepted by the current redaction layer.
+- **Secrets appearing in log output or exception messages.** All logs route through a redaction layer in `authlm.connection_methods._oauth_helpers` (`redact_body`, `redact_url`, `_redact_dict`) that scrubs OAuth tokens, API keys, client secrets, and other sensitive JSON body fields. URL query parameters named `key`, `api_key`, `secret`, `access_token`, `refresh_token`, `id_token`, `client_secret`, `code`, and `token` are redacted from logged URLs. HTTP response header redaction (e.g., `Authorization: Bearer`) is handled at the VCR cassette layer used in integration tests (v0.2.0); runtime headers are not intercepted by the current redaction layer.
 - **Secrets appearing in VCR cassettes.** Recorded HTTP fixtures are scrubbed via `filter_headers`, `filter_post_data_parameters`, and `before_record_response` hooks.
 - **Token expiry going unnoticed.** The public `get_valid_credential()` API makes expiry explicit; consumers choose when to refresh rather than relying on silent auto-refresh on every read.
 - **Refresh-token rotation bugs.** The centralized implementation persists both new access and refresh tokens atomically on every refresh, preventing the common "kept the old refresh token" failure mode.
@@ -65,7 +65,7 @@ tests) are processed by a redaction layer. The following are always redacted:
 - `Authorization` headers (any scheme)
 - `access_token`, `refresh_token`, `id_token` fields in JSON
 - `api_key`, `secret`, `client_secret` fields in JSON
-- Query parameters named `code`, `token`
+- Query parameters named `key`, `api_key`, `secret`, `access_token`, `refresh_token`, `id_token`, `client_secret`, `code`, `token`
 
 `state` (the OAuth CSRF token) is intentionally NOT redacted: it is not a credential, redacting it would make OAuth flow debugging harder, and libraries like `authlib` similarly leave it unredacted. Logging `state=...` from authorize URLs and from loopback callbacks is safe and useful for diagnosing flow errors.
 
