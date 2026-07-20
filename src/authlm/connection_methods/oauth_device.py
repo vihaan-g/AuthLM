@@ -31,7 +31,7 @@ _log = logging.getLogger(__name__)
 
 
 def _default_on_prompt(uri: str, user_code: str) -> None:
-    _log.info("Open %s and enter code: %s", uri, user_code)
+    _log.debug("Open %s and enter code: %s", uri, user_code)
 
 
 class OAuthDeviceCodeMethod(ConnectionMethod):

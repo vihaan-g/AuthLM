@@ -218,6 +218,34 @@ async def test_handler_returns_denied_html() -> None:
 
 
 @pytest.mark.asyncio
+async def test_handler_denial_unblocks_wait_for_code_immediately() -> None:
+    """Callback with error parameter unblocks wait for code immediately."""
+    async with httpx.AsyncClient() as client:
+
+        def open_browser_with_denial(authorize_url: str) -> None:
+            query = parse_qs(urlparse(authorize_url).query)
+            state = query.get("state", [""])[0]
+            parsed_redirect = urlparse(query.get("redirect_uri", [""])[0])
+            port = parsed_redirect.port or 14557
+            urlopen(
+                f"http://127.0.0.1:{port}/callback?error=access_denied&state={state}"
+            ).read()
+
+        method = OAuthPKCEMethod(
+            provider_id="openai",
+            authorize_url=HttpUrl("https://auth.openai.com/oauth/authorize"),
+            token_url=HttpUrl("https://auth.openai.com/oauth/token"),
+            client_id="test-client",
+            scopes=("openid", "profile"),
+            redirect_port=14557,
+            http_client=client,
+            open_browser=open_browser_with_denial,
+        )
+        with pytest.raises(TokenEndpointError, match="Authorization denied"):
+            await method.connect(store=MemoryStore())
+
+
+@pytest.mark.asyncio
 async def test_port_collision_raises_authlm_error() -> None:
     """When the loopback factory raises OSError, raise AuthLMError."""
 
