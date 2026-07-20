@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 ## [Unreleased]
 
 ### Added
+- `authlm env` POSIX shell output format (`_format_shell`) now includes the `export ` keyword (e.g. `export OPENAI_API_KEY='...'`).
+- `validate()` now accepts an optional `metadata_store` parameter and persists `last_validated_at` upon a successful probe.
 - `authlm connect google --method oauth_browser` now prints a pre-flight warning
   when the default Google OAuth client ID is in use, explaining that Google
   requires a user-created Cloud project with the Generative Language API enabled
@@ -20,9 +22,12 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   returns whether a client ID matches the hardcoded default for a provider.
 
 ### Fixed
+- `OAuthPKCEMethod` loopback server error propagation now unblocks main thread event-loop waiters immediately on user denial or state mismatch, and sets `allow_reuse_address` only on POSIX systems (`sys.platform != "win32"`).
+- `EncryptedFileStore` now caches PBKDF2 Fernet key derivation to improve performance on repeated store operations.
+- `KeyringStore` methods `get()`, `set()`, and `delete()` now catch generic `Exception` backend errors (e.g. Linux D-Bus / SecretStorage failures) and wrap them in `SecretStoreError`, and `_index_write()` now writes atomically via a temporary file.
+- Windows DACL user SID resolution in `_restrict_permissions` now resolves process token user SID for domain/cloud-joined accounts.
 - Provider `connection_methods()` (`OpenAIProvider`, `AnthropicProvider`, `GoogleProvider`) now lazy-manage `httpx.AsyncClient` instances instead of eagerly instantiating them, eliminating socket handle leaks.
 - `EnvStore.get()` now returns `None` when `alias != "default"` instead of raising `CredentialNotFound`, aligning it with the `CredentialStore` protocol contract.
-- `OAuthPKCEMethod` now correctly uses `ThreadingHTTPServer` to prevent the loopback server from hanging indefinitely when a browser leaves an HTTP Keep-Alive connection open after the authorization callback.
 - `connect` CLI error messages correctly distinguish between unknown methods and warned methods, listing available method IDs when an unknown one is provided.
 - `validate()` now skips probing for OpenAI's `chatgpt_oauth_browser` and `chatgpt_oauth_device` methods by raising `AuthLMError`, avoiding inevitable 403 errors since those tokens do not have entitlement for the standard validation endpoint.
 - `status` CLI now explicitly notes when fingerprint tamper detection is skipped due to a missing metadata entry, instead of failing silently.
@@ -39,21 +44,15 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   endpoint instead of form-encoded. OpenAI's `/api/accounts/deviceauth/usercode`
   endpoint returns 400 for form-encoded bodies with "Input should be a valid
   dictionary or object to extract fields from".
-- `OAuthPKCEMethod` loopback server now sets `allow_reuse_address` only on POSIX systems (`sys.platform != "win32"`) and unblocks event-loop waiters immediately on user denial or state mismatch.
-- `KeyringStore` methods `get()`, `set()`, and `delete()` now catch generic `Exception` backend errors (e.g. Linux D-Bus / SecretStorage failures) and wrap them in `SecretStoreError`, and `_index_write()` now writes atomically via a temporary file.
 
 ### Security
-- Added `"key"` to the URL query-parameter redaction set (`_REDACTED_PARAMS`)
-  so Google API keys passed as `?key=` are redacted in log output, consistent
-  with the existing `api_key` and `secret` redaction.
+- Added `"id_token"` to JSON body redaction keys (`_REDACT_DICT_KEYS`) in `_oauth_helpers.py`.
+- Added `"key"`, `"api_key"`, `"secret"`, `"access_token"`, `"refresh_token"`, `"id_token"`, `"client_secret"` to the URL query-parameter redaction set (`_REDACTED_PARAMS`) in `_oauth_helpers.py` so sensitive parameters passed in query strings are redacted in log output and exception messages.
 
 ### Changed
 - `OAuthPKCEMethod` and `OAuthDeviceCodeMethod` now log initial prompt/browser URLs at `DEBUG` level instead of `INFO`.
 - README now documents that OpenAI OAuth methods produce Codex-scoped tokens targeting
   the Codex backend, not the standard OpenAI API.
-
-
-### Deferred
 
 ## [0.1.0] - 2026-07-07
 
@@ -214,22 +213,6 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - `authlm.plugins` — Plugin loader (deferred to v0.2.0)
 - `authlm.hookspecs` — pluggy hookspecs (deferred to v0.2.0)
 - `models_dev` module — models.dev integration (deferred to v0.2.0)
-
-### Deferred
-- `OllamaProvider` (no-auth) is deferred to v0.2.0. See
-  `.agents/specs/v0.2.0-authlm.md`.
-- Plugin system (pluggy) is deferred to v0.2.0. See
-  `.agents/specs/v0.2.0-authlm.md`.
-- `models_dev` integration is deferred to v0.2.0. See
-  `.agents/specs/v0.2.0-authlm.md`.
-- `AwsCredential` / `AzureAdCredential` are deferred to v0.2.0. See
-  `.agents/specs/v0.2.0-authlm.md`.
-- `authlm import llm` / `authlm export` are deferred to v0.2.0. See
-  `.agents/specs/v0.2.0-authlm.md`.
-- File-locking (multi-process refresh safety) is deferred to v0.3.0. See
-  `.agents/specs/v0.3.0-authlm.md`.
-- Additional store backends (Vault, Bitwarden, 1Password) are deferred to
-  v0.3.0. See `.agents/specs/v0.3.0-authlm.md`.
 
 [Unreleased]: https://github.com/vihaan-g/authlm/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/vihaan-g/authlm/releases/tag/v0.1.0
