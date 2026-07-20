@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import functools
 import json
 import os
 import sys
@@ -33,6 +34,12 @@ def _derive_fernet_key(passphrase: bytes, salt: bytes, iterations: int) -> bytes
         iterations=iterations,
     )
     return base64.urlsafe_b64encode(kdf.derive(passphrase))
+
+
+@functools.lru_cache(maxsize=16)
+def _get_fernet_cached(passphrase: str, salt: bytes, iterations: int) -> Fernet:
+    key = _derive_fernet_key(passphrase.encode(), salt, iterations)
+    return Fernet(key)
 
 
 def _restrict_permissions(path: Path) -> None:
@@ -146,8 +153,7 @@ class EncryptedFileStore(CredentialStore):
 
     def _fernet(self, salt_b64: str, iterations: int) -> Fernet:
         salt = base64.urlsafe_b64decode(salt_b64)
-        key = _derive_fernet_key(self._passphrase.encode(), salt, iterations)
-        return Fernet(key)
+        return _get_fernet_cached(self._passphrase, salt, iterations)
 
     def _read(self) -> _EncryptedFile:
         if not self._path.exists():

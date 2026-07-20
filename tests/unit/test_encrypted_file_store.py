@@ -237,3 +237,16 @@ def test_windows_permission_restriction_handles_token_user(
     # Calling restriction should complete without raising pywintypes.error (1332)
     _restrict_permissions_windows(store_path)
     assert store_path.exists()
+
+
+def test_fernet_key_derivation_is_cached(tmp_path: Path) -> None:
+    from authlm.stores.encrypted_file_store import _get_fernet_cached
+
+    _get_fernet_cached.cache_clear()
+    store = _store(tmp_path)
+    store.set(_api_key())
+    store.get("openai", "default")
+    store.get("openai", "default")
+
+    info = _get_fernet_cached.cache_info()
+    assert info.hits >= 1
