@@ -27,16 +27,16 @@ dependencies = [
     "cryptography>=43",
     "httpx>=0.27",
     "keyring>=25",
-    "platformdirs>=4",
+    "platformdirs>=4.10.1",
     "pydantic>=2.0",
     "pywin32>=307; sys_platform == 'win32'",
     "typing_extensions>=4.16.0",
 ]
 
 [project.optional-dependencies]
-openai = ["openai>=2.45.0"]
-anthropic = ["anthropic>=0.116.0"]
-google = ["google-genai>=2.11.0"]
+openai = ["openai>=2.46.0"]
+anthropic = ["anthropic>=0.117.0"]
+google = ["google-genai>=2.12.1"]
 all = ["authlm[openai,anthropic,google]"]
 test = [
     "pytest>=8",
@@ -45,7 +45,7 @@ test = [
     "pytest-httpx>=0.33",
     "respx>=0.21",
     "mypy>=2.3.0",
-    "ruff>=0.15.21",
+    "ruff>=0.15.22",
     "pip-audit>=2.7",
     "build>=1.5.1",
     "types-click",
