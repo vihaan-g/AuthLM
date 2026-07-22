@@ -11,7 +11,7 @@ from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
 from authlm.connection_methods.oauth_pkce import OAuthPKCEMethod
 from authlm.credentials import OAuthCredential
 from authlm.providers.base import OAuthGrant, Provider
-from authlm.providers.openai import OpenAIProvider
+from authlm.providers.openai import OpenAIProvider, _ChatGPTDeviceUserCode
 from authlm.stores.memory_store import MemoryStore
 
 
@@ -252,3 +252,9 @@ def test_connection_methods_lazy_http_client() -> None:
     for m in methods:
         if hasattr(m, "_http_client"):
             assert m._http_client is None  # noqa: SLF001
+
+
+def test_chatgpt_device_usercode_default_interval_is_five() -> None:
+    code = _ChatGPTDeviceUserCode(device_auth_id="dev-123", user_code="USER-CODE")
+    assert code.interval == 5
+

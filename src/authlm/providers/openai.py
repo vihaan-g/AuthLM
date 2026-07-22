@@ -34,7 +34,7 @@ from authlm.stores.base import CredentialStore
 class _ChatGPTDeviceUserCode(BaseModel):
     device_auth_id: str
     user_code: str
-    interval: int = 0
+    interval: int = 5
 
 
 class _ChatGPTDeviceAuthorizationCode(BaseModel):
