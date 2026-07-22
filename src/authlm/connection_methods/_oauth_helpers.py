@@ -152,6 +152,10 @@ def redact_body(body: str) -> str:
         if isinstance(data, dict):
             _redact_dict(data)
             return json.dumps(data)
+        if isinstance(data, list):
+            for item in data:
+                _redact_value(item)
+            return json.dumps(data)
     except (json.JSONDecodeError, ValueError):
         pass
     redacted = _BEARER_TOKEN_RE.sub(f"Bearer {_REDACTED_VALUE}", body)
@@ -159,17 +163,22 @@ def redact_body(body: str) -> str:
     return redacted[:200]
 
 
-def _redact_dict(data: dict[str, object]) -> None:
+def _redact_value(val: object) -> None:
+    """Helper to redact values recursively."""
+    if isinstance(val, dict):
+        _redact_dict(val)
+    elif isinstance(val, list):
+        for item in val:
+            _redact_value(item)
+
+
+def _redact_dict(data: dict[str, Any]) -> None:
     """Recursively replace values of known secret keys with a redacted placeholder."""
     for key, value in data.items():
         if key in _REDACT_DICT_KEYS:
             data[key] = _REDACTED_VALUE
-        elif isinstance(value, dict):
-            _redact_dict(value)
-        elif isinstance(value, list):
-            for item in value:
-                if isinstance(item, dict):
-                    _redact_dict(item)
+        else:
+            _redact_value(value)
 
 
 def classify_token_error(*, status_code: int, body: str) -> TokenError:

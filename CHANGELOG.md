@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   returns whether a client ID matches the hardcoded default for a provider.
 
 ### Fixed
+- `redact_body()` in `_oauth_helpers.py` now recursively redacts secrets within nested JSON lists and top-level arrays.
 - `OAuthPKCEMethod` loopback server error propagation now unblocks main thread event-loop waiters immediately on user denial or state mismatch, and sets `allow_reuse_address` only on POSIX systems (`sys.platform != "win32"`).
 - `EncryptedFileStore` now caches PBKDF2 Fernet key derivation to improve performance on repeated store operations.
 - `KeyringStore` methods `get()`, `set()`, and `delete()` now catch generic `Exception` backend errors (e.g. Linux D-Bus / SecretStorage failures) and wrap them in `SecretStoreError`, and `_index_write()` now writes atomically via a temporary file.
@@ -46,6 +47,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   dictionary or object to extract fields from".
 
 ### Security
+- Fixed a bug where `redact_body()` failed to redact secrets inside nested JSON lists and top-level arrays.
 - Added `"id_token"` to JSON body redaction keys (`_REDACT_DICT_KEYS`) in `_oauth_helpers.py`.
 - Added `"key"`, `"api_key"`, `"secret"`, `"access_token"`, `"refresh_token"`, `"id_token"`, `"client_secret"` to the URL query-parameter redaction set (`_REDACTED_PARAMS`) in `_oauth_helpers.py` so sensitive parameters passed in query strings are redacted in log output and exception messages.
 

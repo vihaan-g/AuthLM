@@ -330,3 +330,17 @@ def test_redact_body_redacts_id_token() -> None:
     result = redact_body('{"id_token": "secret-jwt-payload", "other": "ok"}')
     assert "secret-jwt-payload" not in result
     assert "[REDACTED]" in result
+
+
+def test_redact_body_nested_lists_of_dicts() -> None:
+    raw = '{"data": [[{"access_token": "sk-secret123"}]]}'
+    redacted = redact_body(raw)
+    assert "sk-secret123" not in redacted
+    assert "[REDACTED]" in redacted
+
+
+def test_redact_body_top_level_list() -> None:
+    raw = '[{"access_token": "sk-secret456"}]'
+    redacted = redact_body(raw)
+    assert "sk-secret456" not in redacted
+    assert "[REDACTED]" in redacted
