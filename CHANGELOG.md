@@ -54,8 +54,6 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - README now documents that OpenAI OAuth methods produce Codex-scoped tokens targeting
   the Codex backend, not the standard OpenAI API.
 
-## [0.1.0] - 2026-07-07
-
 ### Added
 - Project scaffolding: `pyproject.toml` with hatchling build, ruff, mypy (strict),
   and pytest configuration.
@@ -208,7 +206,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Updated `README.md` with honest v0.1.0 scope, roadmap section, and
   removed plugin system / models.dev from the features list.
 
-### Removed Before Release
+### Removed
 
 - `authlm.plugins` — Plugin loader (deferred to v0.2.0)
 - `authlm.hookspecs` — pluggy hookspecs (deferred to v0.2.0)
