@@ -185,7 +185,7 @@ async def test_handler_rejects_wrong_state() -> None:
             urlopen(f"http://127.0.0.1:{port}/callback?state=wrong&code=testcode")
         assert exc_info.value.code == 400
         assert "code" not in captured
-        assert "error" not in captured
+        assert captured.get("error") == "oauth_state_mismatch"
     finally:
         server.shutdown()
         server.server_close()
@@ -447,3 +447,33 @@ async def test_wait_for_code_registers_event_before_check() -> None:
 
     code = await task
     assert code == "valid-code"
+
+
+@pytest.mark.asyncio
+async def test_state_mismatch_unblocks_wait_for_code_immediately() -> None:
+    async with httpx.AsyncClient() as client:
+
+        def open_browser_with_wrong_state(authorize_url: str) -> None:
+            query = parse_qs(urlparse(authorize_url).query)
+            parsed_redirect = urlparse(query.get("redirect_uri", [""])[0])
+            port = parsed_redirect.port or 14558
+            import contextlib
+            from urllib.error import HTTPError
+
+            with contextlib.suppress(HTTPError):
+                urlopen(
+                    f"http://127.0.0.1:{port}/callback?code=AUTHCODE&state=wrong-state"
+                ).read()
+
+        method = OAuthPKCEMethod(
+            provider_id="openai",
+            authorize_url=HttpUrl("https://auth.openai.com/oauth/authorize"),
+            token_url=HttpUrl("https://auth.openai.com/oauth/token"),
+            client_id="test-client",
+            scopes=("openid", "profile"),
+            redirect_port=14558,
+            http_client=client,
+            open_browser=open_browser_with_wrong_state,
+        )
+        with pytest.raises(AuthLMError, match="state mismatch"):
+            await method.connect(store=MemoryStore())
