@@ -211,7 +211,7 @@ async def test_validate_warned_method_with_force_allows_probe(
         provider="anthropic",
         alias="default",
         method_id="claude_pro_oauth_browser",
-        access_token="ya29.secret",
+        access_token="mock-anthropic-access-token",
         expires_at=None,
         client_id="test",
     )

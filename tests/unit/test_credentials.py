@@ -173,14 +173,14 @@ def test_oauth_credential_repr_does_not_leak_tokens() -> None:
         provider="openai",
         alias="default",
         method_id="oauth_browser",
-        access_token="ya29.secret-token",
-        refresh_token="rt-refresh-secret",
+        access_token="mock-access-token-987",
+        refresh_token="mock-refresh-token-654",
         expires_at=None,
         scopes=["openid"],
     )
     repr_str = repr(cred)
-    assert "ya29.secret-token" not in repr_str
-    assert "rt-refresh-secret" not in repr_str
+    assert "mock-access-token-987" not in repr_str
+    assert "mock-refresh-token-654" not in repr_str
 
 
 def test_parse_credential_masks_validation_error_secrets() -> None:
