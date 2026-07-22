@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import functools
+import hashlib
 import json
 import os
 import sys
@@ -37,9 +38,17 @@ def _derive_fernet_key(passphrase: bytes, salt: bytes, iterations: int) -> bytes
 
 
 @functools.lru_cache(maxsize=16)
-def _get_fernet_cached(passphrase: str, salt: bytes, iterations: int) -> Fernet:
-    key = _derive_fernet_key(passphrase.encode(), salt, iterations)
+def _get_fernet_cached_by_hash(
+    passphrase_hash: bytes, salt: bytes, iterations: int, passphrase_bytes: bytes
+) -> Fernet:
+    key = _derive_fernet_key(passphrase_bytes, salt, iterations)
     return Fernet(key)
+
+
+def _get_fernet_cached(passphrase: str, salt: bytes, iterations: int) -> Fernet:
+    p_bytes = passphrase.encode("utf-8")
+    p_hash = hashlib.sha256(p_bytes).digest()
+    return _get_fernet_cached_by_hash(p_hash, salt, iterations, p_bytes)
 
 
 def _restrict_permissions(path: Path) -> None:

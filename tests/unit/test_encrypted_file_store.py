@@ -240,13 +240,38 @@ def test_windows_permission_restriction_handles_token_user(
 
 
 def test_fernet_key_derivation_is_cached(tmp_path: Path) -> None:
-    from authlm.stores.encrypted_file_store import _get_fernet_cached
+    from authlm.stores.encrypted_file_store import _get_fernet_cached_by_hash
 
-    _get_fernet_cached.cache_clear()
+    _get_fernet_cached_by_hash.cache_clear()
     store = _store(tmp_path)
     store.set(_api_key())
     store.get("openai", "default")
     store.get("openai", "default")
 
-    info = _get_fernet_cached.cache_info()
+    info = _get_fernet_cached_by_hash.cache_info()
     assert info.hits >= 1
+
+
+def test_encrypted_file_store_fernet_cache_does_not_store_plaintext_passphrase() -> (
+    None
+):  # noqa: E501
+    from collections.abc import Callable
+    from typing import Any
+
+    from authlm.stores.encrypted_file_store import (
+        _get_fernet_cached,
+        _get_fernet_cached_by_hash,
+    )
+
+    passphrase = "my-secret-passphrase-12345"
+    salt = b"0" * 16
+    iterations = 1000
+
+    fernet = _get_fernet_cached(passphrase, salt, iterations)
+    assert fernet is not None
+
+    if hasattr(_get_fernet_cached_by_hash, "cache_info"):
+        params_fn: Callable[[], Any] = getattr(
+            _get_fernet_cached_by_hash, "cache_parameters", lambda: {}
+        )
+        assert passphrase not in str(params_fn())
