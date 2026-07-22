@@ -73,10 +73,13 @@ def status(
     metadata_path: Path | None,
 ) -> None:
     """Show credential metadata; --validate to probe."""
-    if store_name is None:
-        store = get_default_store()
-    else:
-        store = build_store(store_name=store_name)
+    try:
+        if store_name is None:
+            store = get_default_store()
+        else:
+            store = build_store(store_name=store_name)
+    except AuthLMError as exc:
+        raise click.ClickException(str(exc)) from exc
     if show_backend:
         click.echo(store.backend_name())
         return

@@ -143,10 +143,13 @@ def connect(
                 err=True,
             )
 
-    if store_name is None:
-        store = get_default_store()
-    else:
-        store = build_store(store_name=store_name)
+    try:
+        if store_name is None:
+            store = get_default_store()
+        else:
+            store = build_store(store_name=store_name)
+    except AuthLMError as exc:
+        raise click.ClickException(str(exc)) from exc
     meta = MetadataStore(path=get_metadata_path(metadata_path))
 
     try:

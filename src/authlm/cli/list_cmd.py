@@ -6,6 +6,7 @@ import click
 
 from authlm.cli._context import get_metadata_path
 from authlm.cli._formatters import format_list_table
+from authlm.errors import AuthLMError
 from authlm.metadata import MetadataStore
 from authlm.stores import build_store, get_default_store
 
@@ -29,10 +30,13 @@ from authlm.stores import build_store, get_default_store
 )
 def list_cmd(store_name: str | None, metadata_path: Path | None) -> None:
     """List stored credentials."""
-    if store_name is None:
-        store = get_default_store()
-    else:
-        store = build_store(store_name=store_name)
+    try:
+        if store_name is None:
+            store = get_default_store()
+        else:
+            store = build_store(store_name=store_name)
+    except AuthLMError as exc:
+        raise click.ClickException(str(exc)) from exc
     entries = sorted(
         (provider, alias, cred.method_id if cred is not None else "")
         for provider, alias in store.list()

@@ -6,6 +6,7 @@ from enum import StrEnum
 import click
 
 from authlm.credentials import ApiKeyCredential, OAuthCredential
+from authlm.errors import AuthLMError
 from authlm.stores import build_store, get_default_store
 
 
@@ -84,10 +85,13 @@ def env(
 
     Designed for use in shell: eval "$(authlm env openai)".
     """
-    if store_name is None:
-        store = get_default_store()
-    else:
-        store = build_store(store_name=store_name)
+    try:
+        if store_name is None:
+            store = get_default_store()
+        else:
+            store = build_store(store_name=store_name)
+    except AuthLMError as exc:
+        raise click.ClickException(str(exc)) from exc
     cred = store.get(provider_id, alias)
     if cred is None:
         raise click.ClickException(f"Credential not found for {provider_id}:{alias}")
