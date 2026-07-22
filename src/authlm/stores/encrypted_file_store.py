@@ -69,9 +69,6 @@ def _restrict_permissions_windows(path: Path) -> None:
             user_sid,
         )
 
-        sd = win32security.SECURITY_DESCRIPTOR()
-        sd.SetDacl(1, dacl, 0)
-
         win32security.SetNamedSecurityInfo(
             str(path),
             win32security.SE_FILE_OBJECT,
