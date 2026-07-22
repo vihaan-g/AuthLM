@@ -182,6 +182,35 @@ async def test_refresh_invalid_grant_raises_reconnection_required(
 
 
 @pytest.mark.asyncio
+async def test_refresh_redacts_sensitive_url_params_on_httpx_error(
+    respx_mock: MockRouter,
+) -> None:
+    respx_mock.post(
+        "https://auth.openai.com/oauth/token"
+    ).side_effect = httpx.RequestError(
+        "Connect error to https://auth.openai.com/oauth/token?code=secret_code_123&client_secret=top_secret"
+    )
+    store = MemoryStore()
+    store.set(
+        OAuthCredential(
+            provider="openai",
+            alias="default",
+            method_id="oauth_browser",
+            access_token="a",
+            refresh_token="r",
+            expires_at=None,
+        )
+    )
+    with pytest.raises(RefreshFailed) as exc_info:
+        await refresh("openai", alias="default", store=store)
+
+    err_msg = str(exc_info.value)
+    assert "REDACTED" in err_msg
+    assert "secret_code_123" not in err_msg
+    assert "top_secret" not in err_msg
+
+
+@pytest.mark.asyncio
 async def test_connect_stores_credential() -> None:
     store = MemoryStore()
     method = get_method("openrouter", "api_key")

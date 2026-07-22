@@ -11,6 +11,7 @@ from authlm.connection_methods._oauth_helpers import (
     build_oauth_credential,
     classify_token_error,
     redact_body,
+    redact_url,
 )
 from authlm.connection_methods.api_key import APIKeyMethod
 from authlm.connection_methods.oauth_device import OAuthDeviceCodeMethod
@@ -190,8 +191,9 @@ async def refresh(
                 timeout=30.0,
             )
         except httpx.HTTPError as exc:
+            redacted_err = redact_url(str(exc))
             raise RefreshFailed(
-                f"Token endpoint network error for {provider}:{alias}: {exc}"
+                f"Token endpoint network error for {provider}:{alias}: {redacted_err}"
             ) from exc
     classification = classify_token_error(
         status_code=response.status_code, body=response.text
