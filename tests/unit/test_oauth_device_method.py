@@ -549,3 +549,31 @@ async def test_device_code_request_is_json_when_configured() -> None:
     await method._request_device_code()  # noqa: SLF001
     assert len(captured_content_type) == 1
     assert "application/json" in captured_content_type[0]
+
+
+@pytest.mark.asyncio
+async def test_device_code_500_status_code_respects_poll_timeout() -> None:
+    def _server_error(request: httpx.Request) -> httpx.Response:
+        if "device/code" in str(request.url):
+            return httpx.Response(
+                200,
+                json={
+                    "device_code": "dc-1",
+                    "user_code": "UC-1",
+                    "verification_uri": "https://example.com/activate",
+                },
+            )
+        return httpx.Response(500, text="Internal Server Error")
+
+    method = OAuthDeviceCodeMethod(
+        provider_id="test",
+        device_code_url=HttpUrl("https://example.com/device/code"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        poll_interval_seconds=0.01,
+        poll_timeout_seconds=0.1,
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(_server_error)),
+    )
+    with pytest.raises(ConnectionTimeout):
+        await method.connect(store=MemoryStore())

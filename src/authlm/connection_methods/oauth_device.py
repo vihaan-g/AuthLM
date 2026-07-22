@@ -244,6 +244,10 @@ class OAuthDeviceCodeMethod(ConnectionMethod):
                 await asyncio.sleep(interval)
                 continue
             if classification.status_code >= 500 or classification.status_code == 0:
+                if loop.time() >= deadline:
+                    raise ConnectionTimeout(
+                        f"Device flow authorization timed out after {timeout} seconds"
+                    )
                 await asyncio.sleep(interval)
                 continue
             raise TokenEndpointError(
