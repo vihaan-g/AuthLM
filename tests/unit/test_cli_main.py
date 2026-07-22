@@ -29,3 +29,10 @@ def test_entry_point_is_importable() -> None:
     """The pyproject.toml [project.scripts] entry is `authlm.cli:cli`."""
     assert hasattr(cli_pkg, "cli")
     assert cli_pkg.cli is cli
+
+
+def test_invalid_store_name_displays_clean_error(runner: CliRunner) -> None:
+    result = runner.invoke(cli, ["list", "--store", "invalid_store_backend"])
+    assert result.exit_code != 0
+    assert "Traceback" not in result.output
+    assert "Unknown store" in result.output or "invalid_store_backend" in result.output
