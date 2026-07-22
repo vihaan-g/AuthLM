@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -36,6 +37,15 @@ from authlm.providers.registry import get_method as _get_method
 from authlm.providers.registry import get_provider as _get_provider
 from authlm.stores import get_default_store
 from authlm.stores.base import CredentialStore
+
+_REFRESH_LOCKS: dict[tuple[str, str], asyncio.Lock] = {}
+
+
+def _get_refresh_lock(provider: str, alias: str) -> asyncio.Lock:
+    key = (provider, alias)
+    if key not in _REFRESH_LOCKS:
+        _REFRESH_LOCKS[key] = asyncio.Lock()
+    return _REFRESH_LOCKS[key]
 
 
 def should_refresh(cred: Credential, *, margin: timedelta) -> bool:
@@ -167,81 +177,91 @@ async def refresh(
 
     """
     backend = store or get_default_store()
-    cred = backend.get(provider, alias)
-    if cred is None:
-        raise CredentialNotFound(f"No credential stored for {provider}:{alias}")
-    if not isinstance(cred, OAuthCredential):
-        return cred
-    if not cred.refresh_token:
-        raise ReconnectionRequired(
-            f"No refresh token for {provider}:{alias}; re-run connect()"
+    cred_before = backend.get(provider, alias)
+    async with _get_refresh_lock(provider, alias):
+        cred = backend.get(provider, alias)
+        if cred is None:
+            raise CredentialNotFound(f"No credential stored for {provider}:{alias}")
+        if not isinstance(cred, OAuthCredential):
+            return cred
+        if (
+            cred_before is not None
+            and cred != cred_before
+            and not should_refresh(cred, margin=timedelta(0))
+        ):
+            return cred
+        if not cred.refresh_token:
+            raise ReconnectionRequired(
+                f"No refresh token for {provider}:{alias}; re-run connect()"
+            )
+        oauth = get_oauth_config(provider)
+        if oauth is None:
+            raise AuthLMError(f"Provider {provider!r} has no OAuth config")
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(
+                    str(oauth.token_url),
+                    data={
+                        "grant_type": "refresh_token",
+                        "refresh_token": cred.refresh_token,
+                        "client_id": oauth.client_id,
+                    },
+                    timeout=30.0,
+                )
+            except httpx.HTTPError as exc:
+                redacted_err = redact_url(str(exc))
+                raise RefreshFailed(
+                    f"Token endpoint network error for {provider}:{alias}: "
+                    f"{redacted_err}"
+                ) from exc
+        classification = classify_token_error(
+            status_code=response.status_code, body=response.text
         )
-    oauth = get_oauth_config(provider)
-    if oauth is None:
-        raise AuthLMError(f"Provider {provider!r} has no OAuth config")
-    async with httpx.AsyncClient() as client:
+        if classification.fatal:
+            if classification.fatal_reason == "access_denied":
+                raise AccessDenied(
+                    f"Token refresh for {provider}:{alias}: {classification.error_code}"
+                )
+            raise ReconnectionRequired(
+                f"Refresh token for {provider}:{alias} is dead; "
+                f"re-run connect() ({classification.error_code})"
+            )
+        if 500 <= response.status_code < 600:
+            raise RefreshFailed(f"Token endpoint 5xx: status={response.status_code}")
+        if not (200 <= response.status_code < 300):
+            raise TokenEndpointError(
+                f"Token endpoint error: status={response.status_code} "
+                f"body={redact_body(response.text)}"
+            )
         try:
-            response = await client.post(
-                str(oauth.token_url),
-                data={
-                    "grant_type": "refresh_token",
-                    "refresh_token": cred.refresh_token,
-                    "client_id": oauth.client_id,
-                },
-                timeout=30.0,
-            )
-        except httpx.HTTPError as exc:
-            redacted_err = redact_url(str(exc))
-            raise RefreshFailed(
-                f"Token endpoint network error for {provider}:{alias}: {redacted_err}"
+            data = response.json()
+        except json.JSONDecodeError as exc:
+            raise TokenEndpointError(
+                f"Token endpoint returned non-JSON body: "
+                f"body={redact_body(response.text)}"
             ) from exc
-    classification = classify_token_error(
-        status_code=response.status_code, body=response.text
-    )
-    if classification.fatal:
-        if classification.fatal_reason == "access_denied":
-            raise AccessDenied(
-                f"Token refresh for {provider}:{alias}: {classification.error_code}"
-            )
-        raise ReconnectionRequired(
-            f"Refresh token for {provider}:{alias} is dead; "
-            f"re-run connect() ({classification.error_code})"
+        new_cred = build_oauth_credential(
+            data=data,
+            provider=cred.provider,
+            alias=cred.alias,
+            method_id=cred.method_id,
+            client_id=cred.client_id,
         )
-    if 500 <= response.status_code < 600:
-        raise RefreshFailed(f"Token endpoint 5xx: status={response.status_code}")
-    if not (200 <= response.status_code < 300):
-        raise TokenEndpointError(
-            f"Token endpoint error: status={response.status_code} "
-            f"body={redact_body(response.text)}"
-        )
-    try:
-        data = response.json()
-    except json.JSONDecodeError as exc:
-        raise TokenEndpointError(
-            f"Token endpoint returned non-JSON body: body={redact_body(response.text)}"
-        ) from exc
-    new_cred = build_oauth_credential(
-        data=data,
-        provider=cred.provider,
-        alias=cred.alias,
-        method_id=cred.method_id,
-        client_id=cred.client_id,
-    )
-    update: dict[str, object] = {}
-    if new_cred.refresh_token is None and cred.refresh_token is not None:
-        update["refresh_token"] = cred.refresh_token
-    if not new_cred.scopes and cred.scopes:
-        update["scopes"] = list(cred.scopes)
-    update["warning_acknowledged_at"] = cred.warning_acknowledged_at
-    new_cred = new_cred.model_copy(update=update)
-    backend.set(new_cred)
-    if metadata_store is not None:
-        fp = compute_fingerprint(new_cred.access_token)
-        meta = metadata_store.get(provider, alias)
-        if meta is not None:
-            meta.fingerprint = fp
-            metadata_store.set(provider, alias, meta)
-    return new_cred
+        update: dict[str, object] = {}
+        if new_cred.refresh_token is None and cred.refresh_token is not None:
+            update["refresh_token"] = cred.refresh_token
+        if not new_cred.scopes and cred.scopes:
+            update["scopes"] = list(cred.scopes)
+        update["warning_acknowledged_at"] = cred.warning_acknowledged_at
+        new_cred = new_cred.model_copy(update=update)
+        backend.set(new_cred)
+        if metadata_store is not None:
+            fp = compute_fingerprint(new_cred.access_token)
+            meta = metadata_store.get(provider, alias)
+            if meta is not None:
+                meta.fingerprint = fp
+                metadata_store.set(provider, alias, meta)
+        return new_cred
 
 
 async def connect(

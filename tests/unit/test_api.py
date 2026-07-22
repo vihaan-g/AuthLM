@@ -160,6 +160,54 @@ async def test_get_valid_credential_refreshes_when_expired(
 
 
 @pytest.mark.asyncio
+async def test_concurrent_get_valid_credential_serializes_refresh(
+    respx_mock: MockRouter,
+) -> None:
+    """Concurrent calls to get_valid_credential on an expired token execute only
+    one refresh POST.
+    """
+    store = MemoryStore()
+    expired_cred = OAuthCredential(
+        provider="openai",
+        alias="default",
+        method_id="chatgpt_oauth_browser",
+        access_token="old-access",
+        refresh_token="old-refresh",
+        expires_at=datetime.now(UTC) - timedelta(hours=1),
+    )
+    store.set(expired_cred)
+
+    async def _delayed_response(request: httpx.Request) -> httpx.Response:
+        await asyncio.sleep(0.01)
+        return httpx.Response(
+            200,
+            json={
+                "access_token": "new-access",
+                "refresh_token": "new-refresh",
+                "expires_in": 3600,
+            },
+        )
+
+    token_route = respx_mock.post("https://auth.openai.com/oauth/token").mock(
+        side_effect=_delayed_response
+    )
+
+    # Launch two concurrent get_valid_credential requests
+    results = await asyncio.gather(
+        get_valid_credential(
+            "openai", alias="default", margin=timedelta(seconds=60), store=store
+        ),
+        get_valid_credential(
+            "openai", alias="default", margin=timedelta(seconds=60), store=store
+        ),
+    )
+
+    assert token_route.call_count == 1
+    assert results[0].access_token == "new-access"
+    assert results[1].access_token == "new-access"
+
+
+@pytest.mark.asyncio
 async def test_refresh_invalid_grant_raises_reconnection_required(
     respx_mock: MockRouter,
 ) -> None:
