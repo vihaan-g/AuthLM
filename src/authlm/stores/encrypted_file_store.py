@@ -129,7 +129,11 @@ class EncryptedFileStore(CredentialStore):
         if file.salt is None:
             file.salt = base64.urlsafe_b64encode(os.urandom(16)).decode()
             file.iterations = self._iterations
+        else:
+            file.iterations = max(file.iterations, self._iterations)
+
         fernet = self._fernet(file.salt, file.iterations)
+
         key = f"{credential.provider}:{credential.alias}"
         file.entries[key] = fernet.encrypt(
             credential.model_dump_json().encode()

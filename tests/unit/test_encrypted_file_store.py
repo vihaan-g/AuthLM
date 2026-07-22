@@ -275,3 +275,30 @@ def test_encrypted_file_store_fernet_cache_does_not_store_plaintext_passphrase()
             _get_fernet_cached_by_hash, "cache_parameters", lambda: {}
         )
         assert passphrase not in str(params_fn())
+
+
+def test_encrypted_file_store_ignores_lowered_file_iterations(tmp_path: Path) -> None:
+    path = tmp_path / "creds.enc.json"
+    store = EncryptedFileStore(
+        path=path, passphrase="test-passphrase", iterations=100000
+    )
+
+    cred = ApiKeyCredential(
+        provider="openai", alias="default", method_id="api_key", secret="sk-secret"
+    )
+    store.set(cred)
+
+    # Modify JSON file to set iterations to 1
+    content = json.loads(path.read_text())
+    content["iterations"] = 1
+    path.write_text(json.dumps(content))
+
+    # Writing another credential should enforce at least default iterations
+    # (100,000) for encryption
+    cred2 = ApiKeyCredential(
+        provider="openai", alias="work", method_id="api_key", secret="sk-work"
+    )
+    store.set(cred2)
+
+    updated = json.loads(path.read_text())
+    assert updated["iterations"] >= 100000
