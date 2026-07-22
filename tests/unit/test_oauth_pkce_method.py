@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -418,3 +419,30 @@ async def test_exchange_code_503_raises_refresh_failed() -> None:
         await method._exchange_code(  # noqa: SLF001
             code="test-code", pair=pair, redirect_uri="http://127.0.0.1:0/callback"
         )
+
+
+@pytest.mark.asyncio
+async def test_wait_for_code_registers_event_before_check() -> None:
+    method = OAuthPKCEMethod(
+        provider_id="test",
+        authorize_url=HttpUrl("https://example.com/auth"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        redirect_port=0,
+    )
+    captured: dict[str, Any] = {}
+
+    # Start wait_for_code in background task
+    task = asyncio.create_task(method._wait_for_code(captured, timeout=1.0))  # type: ignore[arg-type]
+    await asyncio.sleep(0.01)
+
+    assert "_event" in captured
+    assert isinstance(captured["_event"], asyncio.Event)
+
+    # Trigger event
+    captured["code"] = "valid-code"
+    captured["_event"].set()
+
+    code = await task
+    assert code == "valid-code"
