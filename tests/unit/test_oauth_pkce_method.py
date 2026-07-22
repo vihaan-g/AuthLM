@@ -185,6 +185,7 @@ async def test_handler_rejects_wrong_state() -> None:
             urlopen(f"http://127.0.0.1:{port}/callback?state=wrong&code=testcode")
         assert exc_info.value.code == 400
         assert "code" not in captured
+        assert "error" not in captured
     finally:
         server.shutdown()
         server.server_close()

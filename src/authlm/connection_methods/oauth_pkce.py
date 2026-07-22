@@ -224,10 +224,6 @@ class OAuthPKCEMethod(ConnectionMethod):
                     self.send_response(400)
                     self.end_headers()
                     self.wfile.write(b"state mismatch")
-                    captured["error"] = "oauth_state_mismatch"
-                    event = captured.get("_event")
-                    if isinstance(event, asyncio.Event):
-                        loop.call_soon_threadsafe(event.set)
                     return
                 captured["code"] = query.get("code", [""])[0]
                 self.send_response(200)
