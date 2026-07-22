@@ -115,12 +115,12 @@ AuthLM exposes six public async functions and a handful of types. Everything is 
 
 | Function | Description |
 |---|---|
-| `connect(provider, alias, method_id)` | Run an interactive auth flow and persist the credential. |
-| `get_credential(provider, alias)` | Fast store read — returns the credential as-is, even if expired. No network. |
-| `get_valid_credential(provider, alias, margin)` | Returns a usable credential — auto-refreshes if expired or within margin. |
-| `refresh(provider, alias)` | Force-refreshes an OAuth credential via the token endpoint. |
-| `should_refresh(credential, margin)` | Pure datetime check — returns `True` if expired or within margin. |
-| `validate(credential, *, force)` | Probes the credential against the provider's validation URL. |
+| `connect(provider, *, alias, method_id=None, store=None, metadata_store=None)` | Run an interactive auth flow and persist the credential. |
+| `get_credential(provider, *, alias, store=None)` | Fast store read — returns the credential as-is, even if expired. No network. |
+| `get_valid_credential(provider, *, alias, margin, store=None, metadata_store=None)` | Returns a usable credential — auto-refreshes if expired or within margin. |
+| `refresh(provider, *, alias, store=None, metadata_store=None)` | Force-refreshes an OAuth credential via the token endpoint. |
+| `should_refresh(credential, *, margin)` | Pure datetime check — returns `True` if expired or within margin. |
+| `validate(credential, *, force, metadata_store=None)` | Probes the credential against the provider's validation URL. |
 
 ### Credential types
 
@@ -156,6 +156,7 @@ All exceptions inherit from `AuthLMError`. Key types:
 |---|---|
 | `CredentialNotFound` | No credential stored for `(provider, alias)` |
 | `RefreshFailed` | Transient network error from token endpoint |
+| `ConnectionTimeout` | OAuth flow timed out waiting for user action or server response |
 | `ReconnectionRequired` | Refresh token is dead — re-run `connect()` |
 | `AccessDenied` | 403 from provider (token lacks entitlement) |
 | `TokenEndpointError` | Other token endpoint error |

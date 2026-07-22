@@ -57,6 +57,7 @@ authlm = "authlm.cli:cli"
 [project.urls]
 Homepage = "https://github.com/vihaan-g/authlm"
 Repository = "https://github.com/vihaan-g/authlm"
+Source = "https://github.com/vihaan-g/authlm"
 Issues = "https://github.com/vihaan-g/authlm/issues"
 Changelog = "https://github.com/vihaan-g/authlm/releases"
 

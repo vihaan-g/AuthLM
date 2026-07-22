@@ -257,4 +257,3 @@ def test_connection_methods_lazy_http_client() -> None:
 def test_chatgpt_device_usercode_default_interval_is_five() -> None:
     code = _ChatGPTDeviceUserCode(device_auth_id="dev-123", user_code="USER-CODE")
     assert code.interval == 5
-

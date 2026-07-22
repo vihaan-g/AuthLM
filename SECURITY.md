@@ -34,7 +34,7 @@ We follow coordinated disclosure. We will work with you on an embargo period and
 
 ### AuthLM protects against
 
-- **Secrets written to disk in plaintext.** The default backend is the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service). Plaintext file storage is opt-in and warns.
+- **Secrets written to disk in plaintext.** The default backend is the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service). File-based storage uses `EncryptedFileStore` (Fernet AES-128-CBC encryption with PBKDF2 key derivation).
 - **Secrets appearing in log output or exception messages.** All logs route through a redaction layer in `authlm.connection_methods._oauth_helpers` (`redact_body`, `redact_url`, `_redact_dict`) that scrubs OAuth tokens, API keys, client secrets, and other sensitive JSON body fields. URL query parameters named `key`, `api_key`, `secret`, `access_token`, `refresh_token`, `id_token`, `client_secret`, `code`, and `token` are redacted from logged URLs. HTTP response header redaction (e.g., `Authorization: Bearer`) is handled at the VCR cassette layer used in integration tests (v0.2.0); runtime headers are not intercepted by the current redaction layer.
 - **Secrets appearing in VCR cassettes.** Recorded HTTP fixtures are scrubbed via `filter_headers`, `filter_post_data_parameters`, and `before_record_response` hooks.
 - **Token expiry going unnoticed.** The public `get_valid_credential()` API makes expiry explicit; consumers choose when to refresh rather than relying on silent auto-refresh on every read.
