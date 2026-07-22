@@ -61,6 +61,30 @@ jobs:
       contents: write
       id-token: write
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Extract Changelog Section
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          python -c "
+          from pathlib import Path
+          text = Path('CHANGELOG.md').read_text()
+          lines = text.splitlines()
+          body = []
+          capturing = False
+          for line in lines:
+              if line.startswith('## ['):
+                  if f'[{VERSION}]' in line or (f'[{VERSION}-' in line):
+                      capturing = True
+                      continue
+                  elif capturing:
+                      break
+              if capturing:
+                  body.append(line)
+          Path('release_notes.md').write_text('\n'.join(body).strip() or f'Release v{VERSION}')
+          "
+
       - name: Download dists
         uses: actions/download-artifact@v8
         with:
@@ -72,7 +96,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          generate_release_notes: true
+          body_path: release_notes.md
           files: |
             dist/*.tar.gz
             dist/*.whl
