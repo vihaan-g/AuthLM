@@ -4,7 +4,9 @@ import hashlib
 from datetime import datetime
 from typing import Annotated, Literal, TypeAlias
 
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import BaseModel, Field, TypeAdapter, ValidationError
+
+from authlm.errors import SecretStoreError
 
 
 class Credential(BaseModel):
@@ -39,8 +41,10 @@ _ADAPTER: TypeAdapter[ApiKeyCredential | OAuthCredential] = TypeAdapter(Credenti
 
 def parse_credential(raw: str | bytes) -> Credential:
     """Deserialize a credential from JSON using the discriminated union."""
-    return _ADAPTER.validate_json(raw)
-
+    try:
+        return _ADAPTER.validate_json(raw)
+    except ValidationError:
+        raise SecretStoreError("Failed to parse stored credential payload") from None
 
 def compute_fingerprint(secret: str) -> str:
     """Return a truncated SHA-256 fingerprint for change detection.

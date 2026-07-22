@@ -181,3 +181,16 @@ def test_oauth_credential_repr_does_not_leak_tokens() -> None:
     repr_str = repr(cred)
     assert "ya29.secret-token" not in repr_str
     assert "rt-refresh-secret" not in repr_str
+
+
+def test_parse_credential_masks_validation_error_secrets() -> None:
+    from authlm.errors import SecretStoreError
+
+    invalid_payload = (
+        '{"type": "api_key", "provider": "openai", "alias": "default", "secret": "sk-super-secret-key-12345"}'
+    )
+    with pytest.raises(SecretStoreError) as exc_info:
+        parse_credential(invalid_payload)
+
+    assert "sk-super-secret-key-12345" not in str(exc_info.value)
+    assert "Failed to parse stored credential payload" in str(exc_info.value)
