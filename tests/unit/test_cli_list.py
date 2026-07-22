@@ -108,8 +108,10 @@ def test_list_store_error_displays_clean_click_exception(
         class FailingStore:
             def list(self) -> Any:
                 raise SecretStoreError("Keyring access locked")
+
             def backend_name(self) -> str:
                 return "FailingStore"
+
         return FailingStore()
 
     monkeypatch.setattr(_list_mod, "build_store", _failing_store)
