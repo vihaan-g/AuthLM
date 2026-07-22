@@ -265,6 +265,9 @@ class OAuthPKCEMethod(ConnectionMethod):
         return server
 
     async def _wait_for_code(self, captured: dict[str, str], *, timeout: float) -> str:
+        event = asyncio.Event()
+        captured["_event"] = event  # type: ignore[assignment]
+
         if "code" in captured:
             return captured["code"]
         if captured.get("error") == "oauth_state_mismatch":
@@ -279,9 +282,6 @@ class OAuthPKCEMethod(ConnectionMethod):
                 f"Authorization denied by user for {self._provider_id}: "
                 f"{captured['error']}"
             )
-
-        event = asyncio.Event()
-        captured["_event"] = event  # type: ignore[assignment]
 
         try:
             await asyncio.wait_for(event.wait(), timeout=timeout)
