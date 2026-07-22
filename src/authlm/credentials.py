@@ -46,6 +46,7 @@ def parse_credential(raw: str | bytes) -> Credential:
     except ValidationError:
         raise SecretStoreError("Failed to parse stored credential payload") from None
 
+
 def compute_fingerprint(secret: str) -> str:
     """Return a truncated SHA-256 fingerprint for change detection.
 
