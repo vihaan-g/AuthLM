@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   returns whether a client ID matches the hardcoded default for a provider.
 
 ### Fixed
+- `OAuthPKCEMethod` loopback server now returns HTTP 404 for auxiliary paths (such as `/favicon.ico`) without setting an error state.
 - `redact_body()` in `_oauth_helpers.py` now recursively redacts secrets within nested JSON lists and top-level arrays.
 - `OAuthPKCEMethod` loopback server error propagation now unblocks main thread event-loop waiters immediately on user denial or state mismatch, and sets `allow_reuse_address` only on POSIX systems (`sys.platform != "win32"`).
 - `EncryptedFileStore` now caches PBKDF2 Fernet key derivation to improve performance on repeated store operations.

@@ -192,6 +192,42 @@ async def test_handler_rejects_wrong_state() -> None:
 
 
 @pytest.mark.asyncio
+async def test_handler_ignores_auxiliary_paths_such_as_favicon() -> None:
+    """Handler returns 404 for non-callback paths without error state."""
+    from urllib.error import HTTPError
+
+    method = OAuthPKCEMethod(
+        provider_id="test",
+        authorize_url=HttpUrl("https://example.com/auth"),
+        token_url=HttpUrl("https://example.com/token"),
+        client_id="test",
+        scopes=["openid"],
+        redirect_port=0,
+    )
+
+    captured: dict[str, str] = {}
+    server = method._start_loopback(captured, "expected-state")  # noqa: SLF001
+    port = server.server_address[1]
+    try:
+        # Request auxiliary path /favicon.ico
+        with pytest.raises(HTTPError) as exc_info:
+            urlopen(f"http://127.0.0.1:{port}/favicon.ico")
+        assert exc_info.value.code == 404
+        assert "error" not in captured
+        assert "code" not in captured
+
+        # Real callback request should still succeed
+        response = urlopen(
+            f"http://127.0.0.1:{port}/callback?code=realcode&state=expected-state"
+        )
+        assert response.status == 200
+        assert captured.get("code") == "realcode"
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+@pytest.mark.asyncio
 async def test_handler_returns_denied_html() -> None:
     """The loopback Handler returns 200 + denial HTML when user denies."""
     method = OAuthPKCEMethod(

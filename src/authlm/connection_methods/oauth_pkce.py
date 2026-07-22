@@ -196,10 +196,19 @@ class OAuthPKCEMethod(ConnectionMethod):
         self, captured: dict[str, str], expected_state: str
     ) -> ThreadingHTTPServer:
         loop = asyncio.get_event_loop()
+        redirect_path = self._redirect_path
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:  # noqa: N802
-                query = parse_qs(urlparse(self.path).query)
+                parsed = urlparse(self.path)
+                if parsed.path != redirect_path:
+                    self.send_response(404)
+                    self.send_header("Content-Type", "text/plain; charset=utf-8")
+                    self.end_headers()
+                    self.wfile.write(b"Not Found")
+                    return
+
+                query = parse_qs(parsed.query)
                 received_error = query.get("error", [""])[0]
                 if received_error:
                     captured["error"] = received_error
