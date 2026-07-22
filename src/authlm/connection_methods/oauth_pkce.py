@@ -288,13 +288,6 @@ class OAuthPKCEMethod(ConnectionMethod):
         finally:
             captured.pop("_event", None)
 
-        if captured.get("error") == "oauth_state_mismatch":
-            raise AuthLMError(
-                "OAuth state mismatch — the callback state parameter "
-                "did not match the expected value. This may indicate a "
-                "CSRF attack, a misconfigured redirect URI, or a "
-                "browser/tool that modified the callback URL."
-            )
         if "error" in captured:
             raise TokenEndpointError(
                 f"Authorization denied by user for {self._provider_id}: "
