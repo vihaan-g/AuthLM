@@ -92,7 +92,10 @@ def env(
             store = build_store(store_name=store_name)
     except AuthLMError as exc:
         raise click.ClickException(str(exc)) from exc
-    cred = store.get(provider_id, alias)
+    try:
+        cred = store.get(provider_id, alias)
+    except AuthLMError as exc:
+        raise click.ClickException(str(exc)) from exc
     if cred is None:
         raise click.ClickException(f"Credential not found for {provider_id}:{alias}")
     pairs = _credential_to_env_vars(cred, include_refresh_token=include_refresh_token)  # type: ignore[arg-type]

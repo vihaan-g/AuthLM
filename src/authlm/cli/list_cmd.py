@@ -37,11 +37,14 @@ def list_cmd(store_name: str | None, metadata_path: Path | None) -> None:
             store = build_store(store_name=store_name)
     except AuthLMError as exc:
         raise click.ClickException(str(exc)) from exc
-    entries = sorted(
-        (provider, alias, cred.method_id if cred is not None else "")
-        for provider, alias in store.list()
-        for cred in [store.get(provider, alias)]
-    )
+    try:
+        entries = sorted(
+            (provider, alias, cred.method_id if cred is not None else "")
+            for provider, alias in store.list()
+            for cred in [store.get(provider, alias)]
+        )
+    except AuthLMError as exc:
+        raise click.ClickException(str(exc)) from exc
     metadata_store = MetadataStore(path=get_metadata_path(metadata_path))
     click.echo(
         format_list_table(

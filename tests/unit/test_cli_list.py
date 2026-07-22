@@ -95,3 +95,27 @@ def test_list_multiple_entries(
     assert result.exit_code == 0
     assert "personal" in result.output
     assert "work" in result.output
+
+
+def test_list_store_error_displays_clean_click_exception(
+    runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from typing import Any
+
+    from authlm.errors import SecretStoreError
+
+    def _failing_store(*args: Any, **kwargs: Any) -> Any:
+        class FailingStore:
+            def list(self) -> Any:
+                raise SecretStoreError("Keyring access locked")
+            def backend_name(self) -> str:
+                return "FailingStore"
+        return FailingStore()
+
+    monkeypatch.setattr(_list_mod, "build_store", _failing_store)
+    result = runner.invoke(
+        cli, ["list", "--store", "memory", "--metadata-path", str(tmp_path / "m.json")]
+    )
+    assert result.exit_code != 0
+    assert "Traceback" not in result.output
+    assert "Keyring access locked" in result.output

@@ -46,7 +46,10 @@ def disconnect(
     except AuthLMError as exc:
         raise click.ClickException(str(exc)) from exc
     meta = MetadataStore(path=get_metadata_path(metadata_path))
-    cred = store.get(provider_id, alias)
+    try:
+        cred = store.get(provider_id, alias)
+    except AuthLMError as exc:
+        raise click.ClickException(str(exc)) from exc
     if cred is None:
         raise click.ClickException(f"Credential not found for {provider_id}:{alias}")
     if not yes and not click.confirm(
@@ -55,6 +58,9 @@ def disconnect(
     ):
         click.echo("Aborted.")
         return
-    store.delete(provider_id, alias)
+    try:
+        store.delete(provider_id, alias)
+    except AuthLMError as exc:
+        raise click.ClickException(str(exc)) from exc
     meta.delete(provider_id, alias)
     click.echo(f"Deleted {provider_id}:{alias}")

@@ -85,18 +85,24 @@ def status(
         return
     meta = MetadataStore(path=get_metadata_path(metadata_path))
     pairs: list[tuple[str, str]]
-    if provider_id is None:
-        pairs = sorted(store.list())
-    else:
-        if show_all:
-            pairs = [(p, a) for p, a in store.list() if p == provider_id]
+    try:
+        if provider_id is None:
+            pairs = sorted(store.list())
         else:
-            pairs = [(provider_id, alias)]
+            if show_all:
+                pairs = [(p, a) for p, a in store.list() if p == provider_id]
+            else:
+                pairs = [(provider_id, alias)]
+    except AuthLMError as exc:
+        raise click.ClickException(str(exc)) from exc
     if not pairs:
         click.echo("No credentials stored.", err=True)
         return
     for provider, a in pairs:
-        cred = store.get(provider, a)
+        try:
+            cred = store.get(provider, a)
+        except AuthLMError as exc:
+            raise click.ClickException(str(exc)) from exc
         if cred is None:
             raise click.ClickException(f"{provider}:{a}: not found")
         metadata = meta.get(provider, a)
