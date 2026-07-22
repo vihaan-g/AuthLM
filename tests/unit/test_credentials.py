@@ -187,7 +187,8 @@ def test_parse_credential_masks_validation_error_secrets() -> None:
     from authlm.errors import SecretStoreError
 
     invalid_payload = (
-        '{"type": "api_key", "provider": "openai", "alias": "default", "secret": "sk-super-secret-key-12345"}'
+        '{"type": "api_key", "provider": "openai", '
+        '"alias": "default", "secret": "sk-super-secret-key-12345"}'
     )
     with pytest.raises(SecretStoreError) as exc_info:
         parse_credential(invalid_payload)
