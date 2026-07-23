@@ -65,24 +65,27 @@ jobs:
 
       - name: Extract Changelog Section
         id: changelog
+        env:
+          RAW_VERSION: ${{ github.ref_name }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
           python -c "
+          import os
           from pathlib import Path
+          version = os.environ['RAW_VERSION'].lstrip('v')
           text = Path('CHANGELOG.md').read_text()
           lines = text.splitlines()
           body = []
           capturing = False
           for line in lines:
               if line.startswith('## ['):
-                  if f'[{VERSION}]' in line or (f'[{VERSION}-' in line):
+                  if f'[{version}]' in line or f'[{version}-' in line:
                       capturing = True
                       continue
                   elif capturing:
                       break
               if capturing:
                   body.append(line)
-          Path('release_notes.md').write_text('\n'.join(body).strip() or f'Release v{VERSION}')
+          Path('release_notes.md').write_text('\n'.join(body).strip() or f'Release v{version}')
           "
 
       - name: Download dists
