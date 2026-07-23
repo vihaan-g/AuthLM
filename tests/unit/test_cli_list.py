@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -121,3 +122,87 @@ def test_list_store_error_displays_clean_click_exception(
     assert result.exit_code != 0
     assert "Traceback" not in result.output
     assert "Keyring access locked" in result.output
+
+
+def test_list_cmd_json_output(
+    runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store = MemoryStore()
+    store.set(
+        ApiKeyCredential(
+            provider="openai", alias="default", method_id="api_key", secret="sec"
+        )
+    )
+    monkeypatch.setattr(_list_mod, "build_store", lambda *, store_name: store)
+    meta_path = tmp_path / "m.json"
+    meta = MetadataStore(path=meta_path)
+    meta.set(
+        "openai",
+        "default",
+        MetadataEntry(
+            provider_display_name="OpenAI",
+            method_id="api_key",
+            connected_at=datetime(2026, 6, 29, tzinfo=UTC),
+            last_validated_at=datetime(2026, 6, 30, tzinfo=UTC),
+        ),
+    )
+
+    # Test with --json flag
+    res_json_flag = runner.invoke(
+        cli,
+        [
+            "list",
+            "--store",
+            "memory",
+            "--json",
+            "--metadata-path",
+            str(meta_path),
+        ],
+    )
+    assert res_json_flag.exit_code == 0
+    data_flag = json.loads(res_json_flag.output)
+    assert data_flag == [
+        {
+            "provider": "openai",
+            "alias": "default",
+            "method_id": "api_key",
+            "backend": "Memory",
+            "last_validated": datetime(2026, 6, 30, tzinfo=UTC)
+            .astimezone()
+            .isoformat(),
+        }
+    ]
+
+    # Test with --format json flag
+    res_format_json = runner.invoke(
+        cli,
+        [
+            "list",
+            "--store",
+            "memory",
+            "--format",
+            "json",
+            "--metadata-path",
+            str(meta_path),
+        ],
+    )
+    assert res_format_json.exit_code == 0
+    data_format = json.loads(res_format_json.output)
+    assert data_format == data_flag
+
+
+def test_list_empty_json(runner: CliRunner, tmp_path: Path) -> None:
+    result = runner.invoke(
+        cli,
+        [
+            "list",
+            "--store",
+            "memory",
+            "--json",
+            "--metadata-path",
+            str(tmp_path / "m.json"),
+        ],
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data == []

@@ -5,7 +5,7 @@ from pathlib import Path
 import click
 
 from authlm.cli._context import get_metadata_path
-from authlm.cli._formatters import format_list_table
+from authlm.cli._formatters import format_list_json, format_list_table
 from authlm.errors import AuthLMError
 from authlm.metadata import MetadataStore
 from authlm.stores import build_store, get_default_store
@@ -28,7 +28,26 @@ from authlm.stores import build_store, get_default_store
         "(default: platform user data dir, env: AUTHLM_METADATA_PATH)."
     ),
 )
-def list_cmd(store_name: str | None, metadata_path: Path | None) -> None:
+@click.option(
+    "--json",
+    "json_format",
+    is_flag=True,
+    default=False,
+    help="Output records in JSON format.",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["table", "json"]),
+    default="table",
+    help="Output format (table or json).",
+)
+def list_cmd(
+    store_name: str | None,
+    metadata_path: Path | None,
+    json_format: bool,
+    output_format: str,
+) -> None:
     """List stored credentials."""
     try:
         if store_name is None:
@@ -46,8 +65,12 @@ def list_cmd(store_name: str | None, metadata_path: Path | None) -> None:
     except AuthLMError as exc:
         raise click.ClickException(str(exc)) from exc
     metadata_store = MetadataStore(path=get_metadata_path(metadata_path))
+    if json_format or output_format == "json":
+        formatter = format_list_json
+    else:
+        formatter = format_list_table
     click.echo(
-        format_list_table(
+        formatter(
             entries,
             backend_name=store.backend_name(),
             metadata_store=metadata_store,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 
 from authlm.credentials import Credential
@@ -39,6 +40,32 @@ def format_list_table(
     for row in rows:
         lines.append(" | ".join(row[i].ljust(widths[i]) for i in range(5)))
     return "\n".join(lines) + "\n"
+
+
+def format_list_json(
+    entries: list[tuple[str, str, str]],
+    *,
+    backend_name: str,
+    metadata_store: MetadataStore | None = None,
+) -> str:
+    """Render a `list`-style JSON array for the given credentials."""
+    records: list[dict[str, str | None]] = []
+    for provider, alias, method_id in entries:
+        last_validated: str | None = None
+        if metadata_store is not None:
+            entry = metadata_store.get(provider, alias)
+            if entry is not None and entry.last_validated_at is not None:
+                last_validated = _format_datetime(entry.last_validated_at)
+        records.append(
+            {
+                "provider": provider,
+                "alias": alias,
+                "method_id": method_id,
+                "backend": backend_name,
+                "last_validated": last_validated,
+            }
+        )
+    return json.dumps(records, indent=2) + "\n"
 
 
 def format_status_table(

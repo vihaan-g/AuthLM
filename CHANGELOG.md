@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 ## [Unreleased]
 
 ### Added
+- `authlm list` now supports `--json` and `--format json` flags to output credentials in structured JSON format.
 - `authlm.api` now re-exports `validate`.
 - `authlm env` POSIX shell output format (`_format_shell`) now includes the `export ` keyword (e.g. `export OPENAI_API_KEY='...'`).
 - `validate()` now accepts an optional `metadata_store` parameter and persists `last_validated_at` upon a successful probe.
