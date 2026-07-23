@@ -6,6 +6,7 @@ import click
 
 from authlm.cli import connect as _connect
 from authlm.cli import disconnect as _disconnect
+from authlm.cli import doctor as _doctor
 from authlm.cli import env as _env
 from authlm.cli import list_cmd as _list_cmd
 from authlm.cli import status as _status
@@ -25,6 +26,7 @@ cli.add_command(_connect.connect)
 cli.add_command(_status.status)
 cli.add_command(_disconnect.disconnect)
 cli.add_command(_env.env)
+cli.add_command(_doctor.doctor)
 
 
 __all__ = ["cli"]
