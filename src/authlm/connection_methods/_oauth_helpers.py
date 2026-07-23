@@ -45,17 +45,17 @@ _ACCESS_DENIED_CODES: frozenset[str] = frozenset(
     {"entitlement_denied", "access_denied"}
 )
 _REDACTED_VALUE: str = "[REDACTED]"
-_REDACT_DICT_KEYS: frozenset[str] = frozenset(
-    {
-        "access_token",
-        "refresh_token",
-        "id_token",
-        "code",
-        "client_secret",
-        "api_key",
-        "secret",
-    }
-)
+_REDACT_DICT_KEYS: set[str] = {
+    "code",
+    "access_token",
+    "refresh_token",
+    "id_token",
+    "token",
+    "client_secret",
+    "api_key",
+    "secret",
+    "key",
+}
 
 _BEARER_TOKEN_RE: re.Pattern[str] = re.compile(r"Bearer [A-Za-z0-9_-]{8,}")
 _TOKEN_PARAM_RE: re.Pattern[str] = re.compile(

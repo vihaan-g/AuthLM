@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Security
 - Fixed a bug where `redact_body()` failed to redact secrets inside nested JSON lists and top-level arrays.
-- Added `"id_token"` to JSON body redaction keys (`_REDACT_DICT_KEYS`) in `_oauth_helpers.py`.
+- Added `"id_token"`, `"token"`, and `"key"` to JSON body redaction keys (`_REDACT_DICT_KEYS`) in `_oauth_helpers.py`.
 - Added `"key"`, `"api_key"`, `"secret"`, `"access_token"`, `"refresh_token"`, `"id_token"`, `"client_secret"` to the URL query-parameter redaction set (`_REDACTED_PARAMS`) in `_oauth_helpers.py` so sensitive parameters passed in query strings are redacted in log output and exception messages.
 
 ### Changed

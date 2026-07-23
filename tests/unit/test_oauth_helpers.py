@@ -344,3 +344,15 @@ def test_redact_body_top_level_list() -> None:
     redacted = redact_body(raw)
     assert "sk-secret456" not in redacted
     assert "[REDACTED]" in redacted
+
+
+def test_redact_body_redacts_token_key() -> None:
+    result = redact_body('{"token": "secret-token-123", "other": "ok"}')
+    assert "secret-token-123" not in result
+    assert "[REDACTED]" in result
+
+
+def test_redact_body_redacts_key_param() -> None:
+    result = redact_body('{"key": "AIza-secret-key", "other": "ok"}')
+    assert "AIza-secret-key" not in result
+    assert "[REDACTED]" in result
