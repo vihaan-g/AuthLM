@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-24
+
 ### Added
 - `authlm doctor` command for diagnosing Python environment, store selection, metadata file permissions, and credential fingerprint integrity.
 - `authlm list` now supports `--json` and `--format json` flags to output credentials in structured JSON format.
