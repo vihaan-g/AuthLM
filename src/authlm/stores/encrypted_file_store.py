@@ -47,7 +47,7 @@ def _get_fernet_cached_by_hash(
 
 def _get_fernet_cached(passphrase: str, salt: bytes, iterations: int) -> Fernet:
     p_bytes = passphrase.encode("utf-8")
-    p_hash = hashlib.sha256(p_bytes).digest()
+    p_hash = hashlib.pbkdf2_hmac("sha256", p_bytes, b"authlm-cache-salt", 100)
     return _get_fernet_cached_by_hash(p_hash, salt, iterations, p_bytes)
 
 
