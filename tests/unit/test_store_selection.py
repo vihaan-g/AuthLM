@@ -127,3 +127,15 @@ def test_encrypted_file_store_prompts_when_no_env_var(
 
     store = build_store(store_name="encrypted_file")
     assert store is not None
+
+
+def test_set_store_programmatic_override() -> None:
+    from authlm import set_store
+    from authlm.stores import MemoryStore, get_default_store
+
+    mem_store = MemoryStore()
+    set_store(mem_store)
+    try:
+        assert get_default_store() is mem_store
+    finally:
+        set_store(None)

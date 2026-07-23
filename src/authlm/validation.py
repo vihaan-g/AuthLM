@@ -25,6 +25,11 @@ async def validate(
     401/404. Raises AccessDenied on 403 with entitlement-denied, and
     TokenEndpointError on other 4xx. Raises RefreshFailed on network errors.
 
+    Args:
+        cred: The credential model instance to validate.
+        force: Whether to force validation of warned connection methods.
+        metadata_store: Optional MetadataStore instance to update last_validated_at.
+
     Raises:
         PermissionError: If the method is warned and force=False.
         AuthLMError: If validation probe is not supported for credential

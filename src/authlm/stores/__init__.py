@@ -39,6 +39,9 @@ def set_store(store: CredentialStore | None) -> None:
     Pass a ``CredentialStore`` instance to use it globally. Pass ``None``
     to clear the override and revert to auto-selection via
     ``get_default_store()``.
+
+    Args:
+        store: The CredentialStore instance to set as default, or None to clear.
     """
     global _store_override
     _store_override = store

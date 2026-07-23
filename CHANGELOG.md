@@ -21,45 +21,6 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   to support providers that expect JSON device-code requests.
 - `is_default_client_id(provider_id, client_id)` helper in `_auth_table`
   returns whether a client ID matches the hardcoded default for a provider.
-
-### Fixed
-- `authlm status --validate` now passes `metadata_store` to `validate()`, ensuring metadata is created when missing.
-- `OAuthPKCEMethod` loopback server now returns HTTP 404 for auxiliary paths (such as `/favicon.ico`) without setting an error state.
-- `redact_body()` in `_oauth_helpers.py` now recursively redacts secrets within nested JSON lists and top-level arrays.
-- `OAuthPKCEMethod` loopback server error propagation now unblocks main thread event-loop waiters immediately on user denial or state mismatch, and sets `allow_reuse_address` only on POSIX systems (`sys.platform != "win32"`).
-- `EncryptedFileStore` now caches PBKDF2 Fernet key derivation to improve performance on repeated store operations.
-- `KeyringStore` methods `get()`, `set()`, and `delete()` now catch generic `Exception` backend errors (e.g. Linux D-Bus / SecretStorage failures) and wrap them in `SecretStoreError`, and `_index_write()` now writes atomically via a temporary file.
-- Windows DACL user SID resolution in `_restrict_permissions` now resolves process token user SID for domain/cloud-joined accounts.
-- Provider `connection_methods()` (`OpenAIProvider`, `AnthropicProvider`, `GoogleProvider`) now lazy-manage `httpx.AsyncClient` instances instead of eagerly instantiating them, eliminating socket handle leaks.
-- `EnvStore.get()` now returns `None` when `alias != "default"` instead of raising `CredentialNotFound`, aligning it with the `CredentialStore` protocol contract.
-- `connect` CLI error messages correctly distinguish between unknown methods and warned methods, listing available method IDs when an unknown one is provided.
-- `validate()` now skips probing for OpenAI's `chatgpt_oauth_browser` and `chatgpt_oauth_device` methods by raising `AuthLMError`, avoiding inevitable 403 errors since those tokens do not have entitlement for the standard validation endpoint.
-- `status` CLI now explicitly notes when fingerprint tamper detection is skipped due to a missing metadata entry, instead of failing silently.
-- `chatgpt_oauth_device` now implements the official two-stage Codex device-code flow, which is not RFC 8628 compliant. It correctly polls for an authorization-code/PKCE tuple using `device_auth_id` rather than polling the token endpoint directly.
-- `chatgpt_oauth_browser` now pins the OAuth redirect URI to `http://localhost:1455/auth/callback` to match the single registered URI for the Codex public client ID. Previously, it sent `http://127.0.0.1:1455/callback` which was rejected by OpenAI.
-- `validate()` now sends Google API keys as `?key=` query parameters instead of
-  `Authorization: Bearer` headers. Google's Generative Language API rejects Bearer
-  auth for API keys with 401; the key works correctly when sent as a query parameter.
-- OpenAI OAuth PKCE authorize URL now includes `codex_cli_simplified_flow`,
-  `originator`, and `id_token_add_organizations` parameters. Without these,
-  OpenAI's authorize endpoint returned "Invalid authorize request" before the
-  sign-in screen appeared.
-- OpenAI OAuth device-code flow now sends a JSON body to the device-code
-  endpoint instead of form-encoded. OpenAI's `/api/accounts/deviceauth/usercode`
-  endpoint returns 400 for form-encoded bodies with "Input should be a valid
-  dictionary or object to extract fields from".
-
-### Security
-- Fixed a bug where `redact_body()` failed to redact secrets inside nested JSON lists and top-level arrays.
-- Added `"id_token"`, `"token"`, and `"key"` to JSON body redaction keys (`_REDACT_DICT_KEYS`) in `_oauth_helpers.py`.
-- Added `"key"`, `"api_key"`, `"secret"`, `"access_token"`, `"refresh_token"`, `"id_token"`, `"client_secret"` to the URL query-parameter redaction set (`_REDACTED_PARAMS`) in `_oauth_helpers.py` so sensitive parameters passed in query strings are redacted in log output and exception messages.
-
-### Changed
-- `OAuthPKCEMethod` and `OAuthDeviceCodeMethod` now log initial prompt/browser URLs at `DEBUG` level instead of `INFO`.
-- README now documents that OpenAI OAuth methods produce Codex-scoped tokens targeting
-  the Codex backend, not the standard OpenAI API.
-
-### Added
 - Project scaffolding: `pyproject.toml` with hatchling build, ruff, mypy (strict),
   and pytest configuration.
 - `authlm` package skeleton with `py.typed` marker and dynamic version sourced from
@@ -150,31 +111,10 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Dependabot bumps: `anthropic` 0.112.0 → 0.113.0 (PR #6), `astral-sh/setup-uv`
   SHA pin updated (PR #5).
 
-### Fixed
-- `EncryptedFileStore` file permissions now work on Windows: replaced the
-  POSIX-only `os.chmod(0o600)` with a platform-aware `_restrict_permissions`
-  that uses `pywin32` (`SetNamedSecurityInfo` with
-  `PROTECTED_DACL_SECURITY_INFORMATION`) on Windows to strip inherited ACLs
-  and grant Read+Write only to the current user. `pywin32>=307` is a
-  platform-marked core dependency (`sys_platform == 'win32'`).
-- Keyring store and encrypted file store now wrap raw backend errors
-  (`keyring.errors.*`, file I/O) in `SecretStoreError` so consumers can
-  catch all secret-store failures with a single `AuthLMError` subclass.
-- `get_default_store` now emits a `WARNING`-level log when the encrypted
-  file passphrase is sourced from `AUTHLM_PASSPHRASE` (visible to child
-  processes and `/proc/<pid>/environ` on Linux); prefer an interactive
-  prompt.
-- `validation.validate()` now runs the 4xx `TokenEndpointError` body
-  through `redact_body` in `authlm.connection_methods._oauth_helpers`
-  before including it in the exception message. `Bearer <token>` substrings
-  and JSON-string fields named `access_token` / `refresh_token` /
-  `id_token` / `client_secret` are replaced with `[REDACTED]`, and the
-  body is truncated to 200 chars. Prevents credential leakage when OAuth
-  providers echo tokens in error bodies (e.g. `invalid_token: <token>`).
-  The `state` (CSRF) parameter is intentionally **not** redacted — it is
-  not a credential and is useful for debugging.
-
 ### Changed
+- `OAuthPKCEMethod` and `OAuthDeviceCodeMethod` now log initial prompt/browser URLs at `DEBUG` level instead of `INFO`.
+- README now documents that OpenAI OAuth methods produce Codex-scoped tokens targeting
+  the Codex backend, not the standard OpenAI API.
 - Expanded README with status/build/license badges, a "Why AuthLM?" motivation
   section, a feature comparison table (vs `llm keys`, LiteLLM, provider SDKs),
   installation instructions (from source, since not yet on PyPI), CLI usage
@@ -211,8 +151,61 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Updated `README.md` with honest v0.1.0 scope, roadmap section, and
   removed plugin system / models.dev from the features list.
 
-### Removed
+### Fixed
+- `authlm status --validate` now passes `metadata_store` to `validate()`, ensuring metadata is created when missing.
+- `OAuthPKCEMethod` loopback server now returns HTTP 404 for auxiliary paths (such as `/favicon.ico`) without setting an error state.
+- `redact_body()` in `_oauth_helpers.py` now recursively redacts secrets within nested JSON lists and top-level arrays.
+- `OAuthPKCEMethod` loopback server error propagation now unblocks main thread event-loop waiters immediately on user denial or state mismatch, and sets `allow_reuse_address` only on POSIX systems (`sys.platform != "win32"`).
+- `EncryptedFileStore` now caches PBKDF2 Fernet key derivation to improve performance on repeated store operations.
+- `KeyringStore` methods `get()`, `set()`, and `delete()` now catch generic `Exception` backend errors (e.g. Linux D-Bus / SecretStorage failures) and wrap them in `SecretStoreError`, and `_index_write()` now writes atomically via a temporary file.
+- Windows DACL user SID resolution in `_restrict_permissions` now resolves process token user SID for domain/cloud-joined accounts.
+- Provider `connection_methods()` (`OpenAIProvider`, `AnthropicProvider`, `GoogleProvider`) now lazy-manage `httpx.AsyncClient` instances instead of eagerly instantiating them, eliminating socket handle leaks.
+- `EnvStore.get()` now returns `None` when `alias != "default"` instead of raising `CredentialNotFound`, aligning it with the `CredentialStore` protocol contract.
+- `connect` CLI error messages correctly distinguish between unknown methods and warned methods, listing available method IDs when an unknown one is provided.
+- `validate()` now skips probing for OpenAI's `chatgpt_oauth_browser` and `chatgpt_oauth_device` methods by raising `AuthLMError`, avoiding inevitable 403 errors since those tokens do not have entitlement for the standard validation endpoint.
+- `status` CLI now explicitly notes when fingerprint tamper detection is skipped due to a missing metadata entry, instead of failing silently.
+- `chatgpt_oauth_device` now implements the official two-stage Codex device-code flow, which is not RFC 8628 compliant. It correctly polls for an authorization-code/PKCE tuple using `device_auth_id` rather than polling the token endpoint directly.
+- `chatgpt_oauth_browser` now pins the OAuth redirect URI to `http://localhost:1455/auth/callback` to match the single registered URI for the Codex public client ID. Previously, it sent `http://127.0.0.1:1455/callback` which was rejected by OpenAI.
+- `validate()` now sends Google API keys as `?key=` query parameters instead of
+  `Authorization: Bearer` headers. Google's Generative Language API rejects Bearer
+  auth for API keys with 401; the key works correctly when sent as a query parameter.
+- OpenAI OAuth PKCE authorize URL now includes `codex_cli_simplified_flow`,
+  `originator`, and `id_token_add_organizations` parameters. Without these,
+  OpenAI's authorize endpoint returned "Invalid authorize request" before the
+  sign-in screen appeared.
+- OpenAI OAuth device-code flow now sends a JSON body to the device-code
+  endpoint instead of form-encoded. OpenAI's `/api/accounts/deviceauth/usercode`
+  endpoint returns 400 for form-encoded bodies with "Input should be a valid
+  dictionary or object to extract fields from".
+- `EncryptedFileStore` file permissions now work on Windows: replaced the
+  POSIX-only `os.chmod(0o600)` with a platform-aware `_restrict_permissions`
+  that uses `pywin32` (`SetNamedSecurityInfo` with
+  `PROTECTED_DACL_SECURITY_INFORMATION`) on Windows to strip inherited ACLs
+  and grant Read+Write only to the current user. `pywin32>=307` is a
+  platform-marked core dependency (`sys_platform == 'win32'`).
+- Keyring store and encrypted file store now wrap raw backend errors
+  (`keyring.errors.*`, file I/O) in `SecretStoreError` so consumers can
+  catch all secret-store failures with a single `AuthLMError` subclass.
+- `get_default_store` now emits a `WARNING`-level log when the encrypted
+  file passphrase is sourced from `AUTHLM_PASSPHRASE` (visible to child
+  processes and `/proc/<pid>/environ` on Linux); prefer an interactive
+  prompt.
+- `validation.validate()` now runs the 4xx `TokenEndpointError` body
+  through `redact_body` in `authlm.connection_methods._oauth_helpers`
+  before including it in the exception message. `Bearer <token>` substrings
+  and JSON-string fields named `access_token` / `refresh_token` /
+  `id_token` / `client_secret` are replaced with `[REDACTED]`, and the
+  body is truncated to 200 chars. Prevents credential leakage when OAuth
+  providers echo tokens in error bodies (e.g. `invalid_token: <token>`).
+  The `state` (CSRF) parameter is intentionally **not** redacted — it is
+  not a credential and is useful for debugging.
 
+### Security
+- Fixed a bug where `redact_body()` failed to redact secrets inside nested JSON lists and top-level arrays.
+- Added `"id_token"`, `"token"`, and `"key"` to JSON body redaction keys (`_REDACT_DICT_KEYS`) in `_oauth_helpers.py`.
+- Added `"key"`, `"api_key"`, `"secret"`, `"access_token"`, `"refresh_token"`, `"id_token"`, `"client_secret"` to the URL query-parameter redaction set (`_REDACTED_PARAMS`) in `_oauth_helpers.py` so sensitive parameters passed in query strings are redacted in log output and exception messages.
+
+### Removed
 - `authlm.plugins` — Plugin loader (deferred to v0.2.0)
 - `authlm.hookspecs` — pluggy hookspecs (deferred to v0.2.0)
 - `models_dev` module — models.dev integration (deferred to v0.2.0)
