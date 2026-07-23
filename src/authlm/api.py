@@ -37,6 +37,16 @@ from authlm.providers.registry import get_method as _get_method
 from authlm.providers.registry import get_provider as _get_provider
 from authlm.stores import get_default_store
 from authlm.stores.base import CredentialStore
+from authlm.validation import validate
+
+__all__ = [
+    "connect",
+    "get_credential",
+    "get_valid_credential",
+    "refresh",
+    "should_refresh",
+    "validate",
+]
 
 _REFRESH_LOCKS: dict[tuple[str, str], asyncio.Lock] = {}
 

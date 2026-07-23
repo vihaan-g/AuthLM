@@ -7,6 +7,7 @@ from authlm.api import (
     get_valid_credential,
     refresh,
     should_refresh,
+    validate,
 )
 from authlm.credentials import (
     ApiKeyCredential,
@@ -38,7 +39,6 @@ from authlm.stores import (
     get_default_store,
     set_store,
 )
-from authlm.validation import validate
 
 __all__ = [
     "__version__",

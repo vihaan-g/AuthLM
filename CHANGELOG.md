@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 ## [Unreleased]
 
 ### Added
+- `authlm.api` now re-exports `validate`.
 - `authlm env` POSIX shell output format (`_format_shell`) now includes the `export ` keyword (e.g. `export OPENAI_API_KEY='...'`).
 - `validate()` now accepts an optional `metadata_store` parameter and persists `last_validated_at` upon a successful probe.
 - `authlm connect google --method oauth_browser` now prints a pre-flight warning
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   returns whether a client ID matches the hardcoded default for a provider.
 
 ### Fixed
+- `authlm status --validate` now passes `metadata_store` to `validate()`, ensuring metadata is created when missing.
 - `OAuthPKCEMethod` loopback server now returns HTTP 404 for auxiliary paths (such as `/favicon.ico`) without setting an error state.
 - `redact_body()` in `_oauth_helpers.py` now recursively redacts secrets within nested JSON lists and top-level arrays.
 - `OAuthPKCEMethod` loopback server error propagation now unblocks main thread event-loop waiters immediately on user denial or state mismatch, and sets `allow_reuse_address` only on POSIX systems (`sys.platform != "win32"`).

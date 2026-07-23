@@ -721,3 +721,10 @@ async def test_refresh_store_set_failure_after_token_success(
     assert stored is not None
     assert isinstance(stored, OAuthCredential)
     assert stored.access_token == "OLD_TOKEN"
+
+
+def test_api_module_exports_validate() -> None:
+    from authlm.api import validate as api_validate
+    from authlm.validation import validate as core_validate
+
+    assert api_validate is core_validate

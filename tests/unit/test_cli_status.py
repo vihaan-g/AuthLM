@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from click.testing import CliRunner
+from respx import MockRouter
 
 from authlm.cli import cli
 from authlm.cli import status as _status_mod
@@ -263,3 +264,38 @@ def test_status_warns_on_fingerprint_mismatch(
     )
     assert result.exit_code == 0
     assert "changed" in result.output.lower() or "WARNING" in result.output
+
+
+def test_status_validate_creates_metadata_when_missing(
+    runner: CliRunner, tmp_path: Path, respx_mock: MockRouter
+) -> None:
+    respx_mock.get("https://api.openai.com/v1/models").respond(200, json={"data": []})
+    user_dir = tmp_path / "authlm"
+    user_dir.mkdir(parents=True, exist_ok=True)
+    store_file = user_dir / "credentials.enc.json"
+    meta_file = tmp_path / "metadata.json"
+    from authlm.credentials import ApiKeyCredential
+    from authlm.stores.encrypted_file_store import EncryptedFileStore
+
+    enc_store = EncryptedFileStore(path=store_file, passphrase="pass", iterations=1000)
+    enc_store.set(
+        ApiKeyCredential(
+            provider="openai", alias="default", method_id="api_key", secret="sk-test"
+        )
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "status",
+            "openai",
+            "--validate",
+            "--store",
+            "encrypted_file",
+            "--metadata-path",
+            str(meta_file),
+        ],
+        env={"AUTHLM_PASSPHRASE": "pass", "AUTHLM_USER_PATH": str(user_dir)},
+    )
+    assert result.exit_code == 0
+    assert meta_file.exists()

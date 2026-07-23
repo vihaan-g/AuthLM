@@ -139,7 +139,7 @@ def status(
                         err=True,
                     )
             try:
-                result = asyncio.run(_validate(cred, force=force))
+                result = asyncio.run(_validate(cred, force=force, metadata_store=meta))
             except (AuthLMError, PermissionError) as exc:
                 raise click.ClickException(str(exc)) from exc
             if result:
