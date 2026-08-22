@@ -35,7 +35,9 @@ from openai import AsyncOpenAI
 await authlm.connect("openai", alias="default", method_id="api_key")
 
 # Get a valid credential — auto-refreshes if expired or expiring soon
-cred = await authlm.get_valid_credential("openai", alias="default", margin=timedelta(minutes=5))
+cred = await authlm.get_valid_credential(
+    "openai", alias="default", margin=timedelta(minutes=5)
+)
 
 # Use with any inference library
 client = AsyncOpenAI(api_key=cred.secret)
@@ -47,7 +49,9 @@ Multiple accounts, one provider:
 await authlm.connect("openai", alias="personal", method_id="api_key")
 await authlm.connect("openai", alias="work", method_id="api_key")
 
-work_cred = await authlm.get_valid_credential("openai", alias="work", margin=timedelta(minutes=5))
+work_cred = await authlm.get_valid_credential(
+    "openai", alias="work", margin=timedelta(minutes=5)
+)
 ```
 
 Check if your credential still works:
