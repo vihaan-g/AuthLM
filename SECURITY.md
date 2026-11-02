@@ -87,11 +87,11 @@ We will not pursue legal action against security researchers who act in good fai
 
 ## Security-Relevant Dependencies
 
-AuthLM's security depends on the integrity of its dependencies. All dependencies are:
+AuthLM's security depends on the integrity of its dependencies. Dependency maintenance includes:
 
-- **Pinned in `uv.lock`** for reproducible installs.
-- **Tracked by Dependabot** for security advisories (`uv` and `github-actions` ecosystems, weekly).
-- **Scanned by `pip-audit`** in CI on every pull request.
-- **Scanned by CodeQL** weekly and on every push to `main`.
+- **Pinning dependencies in `uv.lock`** for reproducible installs.
+- **Tracking security advisories with Dependabot** (`uv` and `github-actions` ecosystems, weekly).
+- **Scanning dependencies with `pip-audit`** in Linux CI on every pull request, including optional provider SDKs and test dependencies.
+- **Running CodeQL** weekly and on every push to `main`.
 
 If you discover a vulnerability in a dependency that affects AuthLM, please report it via the same private vulnerability channel.

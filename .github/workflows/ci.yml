@@ -119,7 +119,7 @@ jobs:
 
       - name: Run pip-audit
         run: |
-          uv export --no-hashes --no-emit-project -o /tmp/requirements.txt
+          uv export --all-extras --no-hashes --no-emit-project -o /tmp/requirements.txt
           uv run pip-audit --strict -r /tmp/requirements.txt
 
   secrets-grep:
