@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Security
+- Update locked `anyio` to `4.14.2` and `certifi` to `2026.10.19` to address dependency audit findings.
+
 ## [0.1.0] - 2026-07-24
 
 ### Added
